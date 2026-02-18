@@ -26,4 +26,9 @@ public class Pedido
     
     // Navigation property
     public Usuario Usuario { get; set; } = null!;
+    public ICollection<PedidoProducto> PedidoProductos { get; set; } = new List<PedidoProducto>();
+    public int ClienteId { get; set; }
+    public Cliente Cliente { get; set; }
+    public Pago? Pago { get; set; }
+    
 }
