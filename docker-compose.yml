@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: chatbot-db
@@ -21,7 +20,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Inventory Microservice (.NET 8)
   inventario-service:
     build:
       context: ./src/Services.Inventario
@@ -29,10 +27,7 @@ services:
     container_name: inventario-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;
-      - Port=5432;Database=${DB_NAME};
-      - Username=${DB_USER};
-      - Password=${DB_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
     ports:
       - "5001:8080"
     depends_on:
@@ -42,7 +37,6 @@ services:
       - chatbot-network
     restart: unless-stopped
 
-  # Payments Microservice (.NET 8)
   pagos-service:
     build:
       context: ./src/Services.Pagos
@@ -63,7 +57,6 @@ services:
       - chatbot-network
     restart: unless-stopped
 
-  # Node.js Gateway & Chatbot
   gateway:
     build:
       context: ./src/Gateway.NodeJS
@@ -93,7 +86,6 @@ services:
       - chatbot-network
     restart: unless-stopped
 
-  # Admin Web Panel (React)
   admin-web:
     build:
       context: ./src/Admin.Web
