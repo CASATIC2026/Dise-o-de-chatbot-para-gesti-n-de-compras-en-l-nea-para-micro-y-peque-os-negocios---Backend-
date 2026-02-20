@@ -1,176 +1,56 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Core.Entities;
+using Shared.Core.Mappings;
 
 namespace Shared.Core.Data;
 
+/// <summary>
+/// Main application database context.
+/// Manages entity sets and database configuration.
+/// </summary>
 public class ApplicationDbContext : DbContext
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApplicationDbContext"/> class.
+    /// </summary>
+    /// <param name="options">The options to be used by a <see cref="DbContext"/>.</param>
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
-
+    /// <summary>
+    /// Entity sets for database tables.
+    /// </summary>
+    public DbSet<Categoria> Categorias => Set<Categoria>();
+    public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Conversacion> Conversaciones => Set<Conversacion>();
+    public DbSet<Mensaje> Mensajes => Set<Mensaje>();
+    public DbSet<Pago> Pagos => Set<Pago>();
+    public DbSet<Pedido> Pedidos => Set<Pedido>();
+    public DbSet<PedidoProducto> PedidoProductos => Set<PedidoProducto>();
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<Usuario> Usuarios => Set<Usuario>();
-    public DbSet<Pedido> Pedidos => Set<Pedido>();
 
+
+    /// <summary>
+    /// Configures the schema needed for the application context.
+    /// </summary>
+    /// <param name="modelBuilder">The builder being used to construct the model for this context.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // ===============================
-        // PRODUCTO
-        // ===============================
-        modelBuilder.Entity<Producto>(entity =>
-        {
-            entity.ToTable("productos");
+        // Apply entity configurations from separate classes to keep this file clean.
+        modelBuilder.ApplyConfiguration(new CategoriaConfiguration());
+        modelBuilder.ApplyConfiguration(new ClienteConfiguration());
+        modelBuilder.ApplyConfiguration(new ConversacionConfiguration());
+        modelBuilder.ApplyConfiguration(new MensajeConfiguration());
+        modelBuilder.ApplyConfiguration(new PagoConfiguration());
+        modelBuilder.ApplyConfiguration(new PedidoConfiguration());
+        modelBuilder.ApplyConfiguration(new PedidoProductoConfiguration());
+        modelBuilder.ApplyConfiguration(new ProductoConfiguration());
+        modelBuilder.ApplyConfiguration(new UsuarioConfiguration());
 
-            entity.HasKey(e => e.Id);
-
-            entity.Property(e => e.Id)
-                  .HasColumnName("id_producto");
-
-            entity.Property(e => e.Nombre)
-                  .IsRequired()
-                  .HasMaxLength(200)
-                  .HasColumnName("nombre");
-
-            entity.Property(e => e.Descripcion)
-                  .HasMaxLength(1000)
-                  .HasColumnName("descripcion");
-
-            entity.Property(e => e.Precio)
-                  .HasPrecision(10, 2)
-                  .HasColumnName("precio");
-
-            entity.Property(e => e.Stock)
-                  .HasColumnName("stock");
-
-            entity.Property(e => e.Activo)
-                  .HasColumnName("activo");
-
-            entity.Property(e => e.CreadoEn)
-                  .HasColumnName("creado_en")
-                  .HasDefaultValueSql("NOW()");
-
-            entity.Property(e => e.ActualizadoEn)
-                  .HasColumnName("actualizado_en")
-                  .HasDefaultValueSql("NOW()");
-
-            entity.HasIndex(e => e.Activo);
-        });
-
-        // ===============================
-        // USUARIO
-        // ===============================
-        modelBuilder.Entity<Usuario>(entity =>
-        {
-            entity.ToTable("usuarios");
-
-            entity.HasKey(e => e.Id);
-
-            entity.Property(e => e.Id)
-                  .HasColumnName("id_usuario");
-
-            entity.Property(e => e.Nombre)
-                  .IsRequired()
-                  .HasMaxLength(100)
-                  .HasColumnName("nombre");
-
-            entity.Property(e => e.Email)
-                  .IsRequired()
-                  .HasMaxLength(150)
-                  .HasColumnName("email");
-
-            entity.Property(e => e.ContrasenaHash)
-                  .IsRequired()
-                  .HasColumnName("contrasena_hash");
-
-            entity.Property(e => e.Rol)
-                  .HasMaxLength(50)
-                  .HasColumnName("rol");
-
-            entity.Property(e => e.Estado)
-                  .HasColumnName("estado");
-
-            entity.Property(e => e.Telefono)
-                  .HasMaxLength(20)
-                  .HasColumnName("telefono");
-
-            entity.Property(e => e.TelegramId)
-                  .HasColumnName("telegram_id");
-
-            entity.Property(e => e.WhatsAppId)
-                  .HasColumnName("whatsapp_id");
-
-            entity.Property(e => e.HistorialConversacion)
-                  .HasColumnName("historial_conversacion")
-                  .HasColumnType("jsonb")
-                  .HasDefaultValueSql("'[]'::jsonb");
-
-            entity.Property(e => e.CreadoEn)
-                  .HasColumnName("creado_en")
-                  .HasDefaultValueSql("NOW()");
-
-            entity.Property(e => e.ActualizadoEn)
-                  .HasColumnName("actualizado_en")
-                  .HasDefaultValueSql("NOW()");
-
-            entity.HasIndex(e => e.TelegramId).IsUnique();
-            entity.HasIndex(e => e.WhatsAppId).IsUnique();
-        });
-
-        // ===============================
-        // PEDIDO
-        // ===============================
-        modelBuilder.Entity<Pedido>(entity =>
-        {
-            entity.ToTable("pedido");
-
-            entity.HasKey(e => e.Id);
-
-            entity.Property(e => e.Id)
-                  .HasColumnName("id_pedido");
-
-            entity.Property(e => e.UsuarioId)
-                  .HasColumnName("id_usuario");
-
-            entity.Property(e => e.Total)
-                  .HasPrecision(10, 2)
-                  .HasColumnName("total");
-
-            entity.Property(e => e.Estado)
-                  .HasMaxLength(50)
-                  .HasColumnName("estado");
-
-            entity.Property(e => e.DireccionEntrega)
-                  .IsRequired()
-                  .HasMaxLength(500)
-                  .HasColumnName("direccion_entrega");
-
-            entity.Property(e => e.ReferenciaWompi)
-                  .HasColumnName("referencia_wompi");
-
-            entity.Property(e => e.DetallesJson)
-                  .HasColumnName("detalles_json")
-                  .HasColumnType("jsonb")
-                  .HasDefaultValueSql("'[]'::jsonb");
-
-            entity.Property(e => e.CreadoEn)
-                  .HasColumnName("creado_en")
-                  .HasDefaultValueSql("NOW()");
-
-            entity.Property(e => e.ActualizadoEn)
-                  .HasColumnName("actualizado_en")
-                  .HasDefaultValueSql("NOW()");
-
-            entity.HasIndex(e => e.Estado);
-            entity.HasIndex(e => e.ReferenciaWompi);
-
-            entity.HasOne(e => e.Usuario)
-                  .WithMany(u => u.Pedidos)
-                  .HasForeignKey(e => e.UsuarioId)
-                  .OnDelete(DeleteBehavior.Restrict);
-        });
     }
 }
