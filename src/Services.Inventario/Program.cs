@@ -4,12 +4,11 @@ using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Services.AddSharedInfrastructure(builder.Configuration); 
+
 // Add services to the container
 builder.Services.AddControllers();
-
-// Configure DbContext with PostgreSQL
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -28,19 +27,17 @@ builder.Services.AddFluentValidationClientsideAdapters();
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 // Add Health Checks
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ApplicationDbContext>();
+/* builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>(); */
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+   
 }
 
 app.UseCors("AllowGateway");
