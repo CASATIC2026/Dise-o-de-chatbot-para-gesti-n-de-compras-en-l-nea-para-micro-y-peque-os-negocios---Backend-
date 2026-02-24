@@ -16,6 +16,6 @@ public class Producto
     public DateTime ActualizadoEn { get; set; }
     public ICollection<PedidoProducto> PedidoProductos { get; set; } = new List<PedidoProducto>();
     public int CategoriaId { get; set; }
-    public Categoria Categoria { get; set; }
+    public Categoria? Categoria { get; set; }
     // Relación N:N → Un producto puede estar en muchos pedidos y un pedido puede tener muchos productos
 }

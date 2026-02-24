@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
+using Shared.Core; // Referencia a la librería 'sistema circulatorio'
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -15,10 +16,10 @@ builder.Configuration.AddEnvironmentVariables();
 
 // 2. CONFIGURACIÓN DE JWT
 var jwtSecret = builder.Configuration["JWT_SECRET"];
-if (string.IsNullOrEmpty(jwtSecret)) 
+if (string.IsNullOrEmpty(jwtSecret))
 {
     // Fallback por si el .env no carga en local, pero lo ideal es que venga del env
-    jwtSecret = "f9a2b8c7e6d5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b"; 
+    jwtSecret = "f9a2b8c7e6d5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b";
 }
 var key = Encoding.ASCII.GetBytes(jwtSecret);
 
@@ -45,8 +46,7 @@ builder.Services.AddAuthentication(x =>
 builder.Services.AddControllers();
 
 // DbContext
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSharedInfrastructure(builder.Configuration);
 
 // CORS
 builder.Services.AddCors(options =>
@@ -79,7 +79,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowGateway");
 
 // IMPORTANTE: Authentication siempre debe ir ANTES de Authorization
-app.UseAuthentication(); 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
