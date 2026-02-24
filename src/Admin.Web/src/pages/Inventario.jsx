@@ -9,10 +9,11 @@ function Inventario() {
     const [formData, setFormData] = useState({
         nombre: '',
         descripcion: '',
-        precio: '',
-        stock: '',
+        precio: 0,
+        stock: 0,
         imagenUrl: '',
         activo: true,
+
     });
 
     useEffect(() => {
@@ -39,8 +40,8 @@ function Inventario() {
             setFormData({
                 nombre: '',
                 descripcion: '',
-                precio: '',
-                stock: '',
+                precio: 0,
+                stock: 0,
                 imagenUrl: '',
                 activo: true,
             });
@@ -57,28 +58,64 @@ function Inventario() {
         e.preventDefault();
 
         try {
+            // CONSTRUYE UN OBJETO NUEVO SÓLO CON LOS DATOS NECESARIOS
+            const dataToSave = {
+                id: editingProduct ? Number(editingProduct.id) : Number(0), // Solo envía el ID si es edición
+                nombre: formData.nombre,
+                descripcion: formData.descripcion,
+                precio: Number(formData.precio),
+                stock: Number(formData.stock),
+                imagenUrl: formData.imagenUrl,
+                activo: Boolean(formData.activo),
+                categoriaId: editingProduct ? Number(editingProduct.categoriaId) : 1
+
+            };
+
+            console.log("Enviando datos limpios:", dataToSave);
+
             if (editingProduct) {
-                await api.put(`/admin/inventario/productos/${editingProduct.id}`, {
-                    ...formData,
-                    id: editingProduct.id,
-                });
+                await api.put(`/admin/inventario/productos/${editingProduct.id}`, dataToSave);
+                alert("¡Producto actualizado!");
             } else {
-                await api.post('/admin/inventario/productos', formData);
+                await api.post('/admin/inventario/productos', dataToSave);
+                alert("¡Producto agregado!");
             }
 
             fetchProductos();
             handleCloseModal();
+
+
         } catch (error) {
-            console.error('Error saving producto:', error);
-            alert('Error al guardar el producto');
+            console.error('Error completo objeto:', error);
+            if (error.response) {
+                // El servidor respondió con algo (400, 500, etc)
+                console.log('Datos del servidor:', error.response.data);
+            } else if (error.request) {
+                // La petición se hizo pero no hubo respuesta (El servidor se cayó o CORS)
+                console.log('No se recibió respuesta del servidor. Revisa si el microservicio de Inventario está caído.');
+            } else {
+                console.log('Error de configuración:', error.message);
+            }
+            alert('Error al guardar/modificar el producto');
         }
     };
+    const handleDeletePermanently = async (id) => {
+        if (!confirm('¿Estás seguro de eliminar este producto?')) return;
 
+        try {
+
+            await api.delete(`/admin/inventario/productos/${id}`);
+            fetchProductos();
+        } catch (error) {
+            console.error('Error deleting producto:', error);
+        }
+    }
     const handleDelete = async (id) => {
         if (!confirm('¿Estás seguro de desactivar este producto?')) return;
 
         try {
-            await api.delete(`/admin/inventario/productos/${id}`);
+
+            await api.delete(`/admin/inventario/productos/soft-delete/${id}`);
             fetchProductos();
         } catch (error) {
             console.error('Error deleting producto:', error);
@@ -130,7 +167,7 @@ function Inventario() {
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${producto.stock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                                         }`}>
-                                        {producto.stock} unidades
+                                        ${producto.stock.toLocaleString('es-CO')}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
@@ -149,9 +186,15 @@ function Inventario() {
                                         </button>
                                         <button
                                             onClick={() => handleDelete(producto.id)}
-                                            className="text-red-600 hover:text-red-800 font-medium"
+                                            className="text-green-600 hover:text-red-800 font-medium"
                                         >
                                             Desactivar
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePermanently(producto.id)}
+                                            className="text-red-600 hover:text-red-800 font-medium"
+                                        >
+                                            Eliminar
                                         </button>
                                     </div>
                                 </td>
@@ -209,7 +252,7 @@ function Inventario() {
                                     <input
                                         type="number"
                                         value={formData.stock}
-                                        onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                        onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value, 10) || 0 })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
                                         required
                                     />
