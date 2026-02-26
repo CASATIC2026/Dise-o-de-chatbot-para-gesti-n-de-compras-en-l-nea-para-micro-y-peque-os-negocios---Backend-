@@ -148,6 +148,7 @@ function Inventario() {
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                         </tr>
@@ -169,6 +170,9 @@ function Inventario() {
                                         }`}>
                                         ${producto.stock.toLocaleString('es-CO')}
                                     </span>
+                                </td>
+                                <td className="px-6 py-4 text-gray-900">
+                                    {producto.categoria.nombre}
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${producto.activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'

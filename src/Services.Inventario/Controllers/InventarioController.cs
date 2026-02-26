@@ -7,7 +7,7 @@ using Services.Inventario.Validators;
 namespace Services.Inventario.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/inventario")]
 public class InventarioController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -31,7 +31,8 @@ public class InventarioController : ControllerBase
         }
 
         var productos = await query
-            .OrderBy(p => p.Nombre)
+            .OrderBy(p => p.Nombre).
+            Include(p => p.Categoria)
             .ToListAsync();
 
         return Ok(productos);
