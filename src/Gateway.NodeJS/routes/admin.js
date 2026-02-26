@@ -7,13 +7,17 @@ import { authenticateToken } from '../middleware/Auth.js';
 
 const router = express.Router();
 
-const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5001';
-const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://localhost:5002';
+// Si no hay .env, usará el nombre del servicio de Docker por defecto
+const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://inventario-service:8080';
+const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://pagos-service:8080';
 
-// Apply authentication to all admin routes
+// Aplicar autenticación a todas las rutas de admin
 router.use(authenticateToken);
 
-// Proxy to Inventory Service
+/**
+ * Proxy genérico para Inventario
+ * Reenvía el token de autorización para superar la "doble validación" en C#
+ */
 router.all('/inventario/*', async (req, res) => {
     try {
         const path = req.params[0];
@@ -25,7 +29,9 @@ router.all('/inventario/*', async (req, res) => {
             data: req.body,
             params: req.query,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                // ENVIAR EL TOKEN AL MICROSERVICIO
+                'Authorization': req.headers.authorization 
             }
         });
 
@@ -39,7 +45,9 @@ router.all('/inventario/*', async (req, res) => {
     }
 });
 
-// Proxy to Payments Service
+/**
+ * Proxy genérico para Pagos
+ */
 router.all('/pagos/*', async (req, res) => {
     try {
         const path = req.params[0];
@@ -51,7 +59,8 @@ router.all('/pagos/*', async (req, res) => {
             data: req.body,
             params: req.query,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': req.headers.authorization
             }
         });
 
@@ -65,28 +74,38 @@ router.all('/pagos/*', async (req, res) => {
     }
 });
 
-// Dashboard statistics endpoint
+/**
+ * Endpoint del Dashboard
+ * Agrega datos de los microservicios enviando el token en cada petición
+ */
 router.get('/dashboard/stats', async (req, res) => {
     try {
-        // Aggregate data from multiple services
-        const [productosRes, pedidosRes] = await Promise.all([
-            axios.get(`${INVENTARIO_URL}/api/inventario/productos`),
-            // Add pedidos endpoint when implemented
+        const authHeader = req.headers.authorization;
+
+        // Llamada al microservicio de C# (Inventario)
+        const [productosRes] = await Promise.all([
+            axios.get(`${INVENTARIO_URL}/api/inventario/productos`, {
+                headers: { 'Authorization': authHeader }
+            }),
+            // Espacio para futuros microservicios (Pedidos, etc.)
             Promise.resolve({ data: [] })
         ]);
 
         const productos = productosRes.data;
-        const pedidos = pedidosRes.data;
+        const pedidos = []; // Placeholder
 
         res.json({
             totalProductos: productos.length,
-            productosActivos: productos.filter(p => p.activo).length,
+            productosActivos: productos.filter(p => p.activo !== false).length,
             totalPedidos: pedidos.length,
             stockBajo: productos.filter(p => p.stock < 10).length
         });
     } catch (error) {
         console.error('[Admin] Error fetching dashboard stats:', error.message);
-        res.status(500).json({ message: 'Error fetching statistics' });
+        res.status(500).json({ 
+            message: 'Error fetching statistics',
+            details: error.response?.data || error.message 
+        });
     }
 });
 

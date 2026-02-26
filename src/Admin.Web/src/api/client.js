@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api'; 
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -18,13 +18,17 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Handle 401 errors
+// Handle 401 errors (Sesión expirada o token inválido)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // Si el Gateway o los Microservicios rechazan el token (401)
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
-            window.location.href = '/';
+            // Solo redirecciona si no estamos ya en el login para evitar bucles
+            if (window.location.pathname !== '/') {
+                window.location.href = '/';
+            }
         }
         return Promise.reject(error);
     }

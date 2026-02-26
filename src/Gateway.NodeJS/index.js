@@ -29,6 +29,7 @@ app.get('/health', (req, res) => {
 app.use('/api/admin', adminRoutes);
 
 // Auth endpoint (simplified - in production use proper user authentication)
+
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
 
@@ -40,6 +41,7 @@ app.post('/api/auth/login', (req, res) => {
         res.status(401).json({ message: 'Invalid credentials' });
     }
 });
+
 
 // State management debug endpoint (development only)
 if (process.env.NODE_ENV === 'development') {

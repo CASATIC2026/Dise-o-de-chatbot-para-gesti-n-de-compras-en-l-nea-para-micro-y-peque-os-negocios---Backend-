@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Core.Entities;
 using Shared.Core.Mappings;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Shared.Core.Data;
 
@@ -38,19 +39,28 @@ public class ApplicationDbContext : DbContext
     /// </summary>
     /// <param name="modelBuilder">The builder being used to construct the model for this context.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    // Forzar el esquema ecommerce (Esto está perfecto)
+    modelBuilder.HasDefaultSchema("ecommerce");
+
+    foreach (var entity in modelBuilder.Model.GetEntityTypes())
     {
-        base.OnModelCreating(modelBuilder);
+        // 1. Obtener el nombre de la tabla definido en la clase (vía [Table] o por defecto)
+        var currentTableName = entity.GetTableName();
 
-        // Apply entity configurations from separate classes to keep this file clean.
-        modelBuilder.ApplyConfiguration(new CategoriaConfiguration());
-        modelBuilder.ApplyConfiguration(new ClienteConfiguration());
-        modelBuilder.ApplyConfiguration(new ConversacionConfiguration());
-        modelBuilder.ApplyConfiguration(new MensajeConfiguration());
-        modelBuilder.ApplyConfiguration(new PagoConfiguration());
-        modelBuilder.ApplyConfiguration(new PedidoConfiguration());
-        modelBuilder.ApplyConfiguration(new PedidoProductoConfiguration());
-        modelBuilder.ApplyConfiguration(new ProductoConfiguration());
-        modelBuilder.ApplyConfiguration(new UsuarioConfiguration());
+        // 2. Solo forzamos a minúsculas si NO hemos definido un nombre manual 
+        // para evitar que 'usuarios' se convierta en algo raro.
+        entity.SetTableName(currentTableName?.ToLower());
 
+        // 3. Forzar nombres de columnas a minúsculas para que coincidan con el SQL
+        foreach (var property in entity.GetProperties())
+        {
+            var storeObjectIdentifier = StoreObjectIdentifier.Table(entity.GetTableName()!, entity.GetSchema());
+            var currentColumnName = property.GetColumnName(storeObjectIdentifier);
+            property.SetColumnName(currentColumnName?.ToLower());
+        }
     }
+}
 }
