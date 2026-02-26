@@ -7,6 +7,7 @@ function Layout({ children, onLogout }) {
         { path: '/', label: 'Dashboard', icon: '📊' },
         { path: '/inventario', label: 'Inventario', icon: '📦' },
         { path: '/pedidos', label: 'Pedidos', icon: '🛒' },
+        { path: '/categorias', label: 'Categorias', icon: '🛒' },
     ];
 
     const isActive = (path) => location.pathname === path;

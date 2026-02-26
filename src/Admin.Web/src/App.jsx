@@ -5,6 +5,7 @@ import Inventario from './pages/Inventario';
 import Pedidos from './pages/Pedidos';
 import Login from './pages/Login';
 import { useState, useEffect } from 'react';
+import Categoria from './pages/Categoria';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -38,6 +39,7 @@ function App() {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/inventario" element={<Inventario />} />
                     <Route path="/pedidos" element={<Pedidos />} />
+                    <Route path="/categorias" element={<Categoria />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Layout>
