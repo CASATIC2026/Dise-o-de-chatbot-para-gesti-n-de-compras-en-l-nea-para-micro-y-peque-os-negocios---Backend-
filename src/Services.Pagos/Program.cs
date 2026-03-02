@@ -1,54 +1,85 @@
 using Microsoft.EntityFrameworkCore;
-using Shared.Core.Data;
-using Services.Pagos.Services;
+using Shared.Core; // Referencia a la librería 'sistema circulatorio'using Swashbuckle.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddControllers();
+namespace Services.Inventario;
 
-// Configure DbContext with PostgreSQL
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Register WompiService with HttpClient
-builder.Services.AddHttpClient<WompiService>();
-
-// Configure CORS
-builder.Services.AddCors(options =>
+public class Program
 {
-    options.AddPolicy("AllowGateway", policy =>
+    // Cambio: de 'static void Main' a 'static async Task Main'
+    public static async Task Main(string[] args)
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+        var builder = WebApplication.CreateBuilder(args);
 
-// Add Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+        // ... tus registros de servicios ...
+        builder.Services.AddSharedInfrastructure(builder.Configuration);
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
 
-// Add Health Checks
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ApplicationDbContext>();
+        var app = builder.Build();
 
-var app = builder.Build();
+        // --- PRUEBA DE CONEXIÓN EN CALIENTE ---
+        using (var scope = app.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
+            {
+                var context = services.GetRequiredService<Shared.Core.Data.ApplicationDbContext>();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+                Console.WriteLine("🔍 [SISTEMA]: Verificando conexión a PostgreSQL...");
+
+                // Ahora el await funcionará correctamente
+                if (await context.Database.CanConnectAsync())
+                {
+                    Console.WriteLine("✅ [CONEXIÓN EXITOSA]: El microservicio de Inventario está conectado a la DB.");
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ [ADVERTENCIA]: No se pudo establecer contacto con PostgreSQL.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [ERROR CRÍTICO]: Fallo al inyectar o conectar la DB: {ex.Message}");
+            }
+        }
+        // Esto aplicará cualquier migración pendiente al arrancar el contenedor
+        using (var scope = app.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<Shared.Core.Data.ApplicationDbContext>();
+
+            context.Database.Migrate();
+        }
+        // Aplicar migraciones automáticamente al iniciar
+        using (var scope = app.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
+            {
+                var context = services.GetRequiredService<Shared.Core.Data.ApplicationDbContext>();
+                if (context.Database.GetPendingMigrations().Any())
+                {
+                    context.Database.Migrate();
+                    Console.WriteLine("✅ Migraciones aplicadas con éxito.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al aplicar migraciones: {ex.Message}");
+            }
+        }
+
+        // ... resto del pipeline ...
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseAuthorization();
+        app.MapControllers();
+
+        app.Run();
+    }
 }
-
-app.UseCors("AllowGateway");
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-// Health check endpoint
-app.MapHealthChecks("/health");
-
-app.Run();

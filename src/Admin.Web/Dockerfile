@@ -1,28 +1,25 @@
-FROM node:20-alpine as build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
+# Copiamos los archivos de proyecto usando la nueva ruta relativa al contexto (raíz)
+COPY ["src/Services.Inventario/Services.Inventario.csproj", "Services.Inventario/"]
+COPY ["src/Shared.Core/Shared.Core.csproj", "Shared.Core/"]
+
+# Restauramos dependencias
+RUN dotnet restore "Services.Inventario/Services.Inventario.csproj"
+
+# Copiamos todo el contenido de la carpeta src (donde está Shared.Core y los servicios)
+COPY src/ .
+
+# Nos movemos a la carpeta del servicio para compilar
+WORKDIR "/src/Services.Inventario"
+RUN dotnet build "Services.Inventario.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "Services.Inventario.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci
-
-COPY . .
-RUN npm run build
-
-# Production stage with nginx
-FROM nginx:alpine
-
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Custom nginx config for React Router
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+COPY --from=publish /app/publish .
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Services.Inventario.dll"]

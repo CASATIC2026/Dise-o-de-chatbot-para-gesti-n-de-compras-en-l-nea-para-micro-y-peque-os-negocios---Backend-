@@ -13,6 +13,7 @@ function Layout({ children, onLogout }) {
         { path: '/pagos', label: 'Pagos', icon: '💲' },
         { path: '/conversaciones', label: 'Conversaciones', icon: '💬' },
         { path: '/mensajes', label: 'Mensajes', icon: '📨' },
+        { path: '/categorias', label: 'Categorias', icon: '🛒' },
     ];
 
     const isActive = (path) => location.pathname === path;

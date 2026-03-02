@@ -9,7 +9,7 @@ namespace Shared.Core.Mappings
         public void Configure(EntityTypeBuilder<Producto> builder)
         {
             //1.  Table name
-            builder.ToTable("PedidoProductos");
+            builder.ToTable("Productos");
             //2. Primary Key
             builder.HasKey(p => p.Id);
             //3. Propierties
