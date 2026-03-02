@@ -7,6 +7,12 @@ function Layout({ children, onLogout }) {
         { path: '/', label: 'Dashboard', icon: '📊' },
         { path: '/inventario', label: 'Inventario', icon: '📦' },
         { path: '/pedidos', label: 'Pedidos', icon: '🛒' },
+        { path: '/categorias', label: 'Categorias', icon: '🏷️' },
+        { path: '/clientes', label: 'Clientes', icon: '👥' },
+        { path: '/usuarios', label: 'Usuarios', icon: '👤' },
+        { path: '/pagos', label: 'Pagos', icon: '💲' },
+        { path: '/conversaciones', label: 'Conversaciones', icon: '💬' },
+        { path: '/mensajes', label: 'Mensajes', icon: '📨' },
         { path: '/categorias', label: 'Categorias', icon: '🛒' },
     ];
 

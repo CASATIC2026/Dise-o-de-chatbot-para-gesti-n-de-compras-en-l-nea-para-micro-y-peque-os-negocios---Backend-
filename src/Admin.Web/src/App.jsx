@@ -5,6 +5,11 @@ import Inventario from './pages/Inventario';
 import Pedidos from './pages/Pedidos';
 import Login from './pages/Login';
 import { useState, useEffect } from 'react';
+import Clientes from './pages/Clientes';
+import Usuarios from './pages/Usuarios';
+import Pagos from './pages/Pagos';
+import Conversaciones from './pages/Conversaciones';
+import Mensajes from './pages/Mensajes';
 import Categoria from './pages/Categoria';
 
 function App() {
@@ -39,6 +44,11 @@ function App() {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/inventario" element={<Inventario />} />
                     <Route path="/pedidos" element={<Pedidos />} />
+                    <Route path="/clientes" element={<Clientes />} />
+                    <Route path="/usuarios" element={<Usuarios />} />
+                    <Route path="/pagos" element={<Pagos />} />
+                    <Route path="/conversaciones" element={<Conversaciones />} />
+                    <Route path="/mensajes" element={<Mensajes />} />
                     <Route path="/categorias" element={<Categoria />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
