@@ -76,7 +76,8 @@ var app = builder.Build();
 // 4. PIPELINE DE MIDDLEWARE
 if (app.Environment.IsDevelopment())
 {
-   
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseCors("AllowGateway");

@@ -16,19 +16,19 @@ public class Pedido
     public EstadoPedido Estado { get; set; } = EstadoPedido.Pendiente;
     public decimal Total { get; set; }
     public string DireccionEntrega { get; set; } = string.Empty;
-    
+
     // JSONB column for order line items
     public string DetallesJson { get; set; } = "[]";
-    
+
     public string? ReferenciaWompi { get; set; }
     public DateTime CreadoEn { get; set; }
     public DateTime ActualizadoEn { get; set; }
-    
+
     // Navigation property
-    public Usuario Usuario { get; set; } = null!;
+    public Usuario? Usuario { get; set; } = null!;
     public ICollection<PedidoProducto> PedidoProductos { get; set; } = new List<PedidoProducto>();
     public int ClienteId { get; set; }
-    public Cliente Cliente { get; set; }
+    public Cliente? Cliente { get; set; }
     public Pago? Pago { get; set; }
-    
+
 }

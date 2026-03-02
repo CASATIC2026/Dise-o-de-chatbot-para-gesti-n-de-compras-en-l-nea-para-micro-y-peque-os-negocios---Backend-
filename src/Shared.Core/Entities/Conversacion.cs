@@ -9,7 +9,7 @@ namespace Shared.Core.Entities
 
         // Relación con Cliente
         public int ClienteId { get; set; }
-        public Cliente Cliente { get; set; }
+        public Cliente? Cliente { get; set; }
 
         public string? Asunto { get; set; }
 
