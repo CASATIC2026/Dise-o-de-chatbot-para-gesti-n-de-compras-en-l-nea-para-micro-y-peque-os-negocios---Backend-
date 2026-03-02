@@ -6,7 +6,7 @@ using Shared.Core.Entities;
 namespace Services.Inventario.Controllers;
 
 [ApiController]
-[Route("api/admin/conversaciones")]
+[Route("api/inventario")]
 public class ConversacionController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -18,8 +18,8 @@ public class ConversacionController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/admin/conversaciones
-    [HttpGet]
+    // GET: api/inventario/conversaciones
+    [HttpGet("conversaciones")]
     public async Task<ActionResult<IEnumerable<Conversacion>>> GetConversaciones()
     {
         var conversaciones = await _context.Conversaciones
@@ -29,8 +29,8 @@ public class ConversacionController : ControllerBase
         return Ok(conversaciones);
     }
 
-    // GET: api/admin/conversaciones/{id}
-    [HttpGet("{id}")]
+    // GET: api/inventario/conversaciones/{id}
+    [HttpGet("conversaciones/{id}")]
     public async Task<ActionResult<Conversacion>> GetConversacion(int id)
     {
         var conversacion = await _context.Conversaciones.FindAsync(id);
@@ -43,12 +43,14 @@ public class ConversacionController : ControllerBase
         return Ok(conversacion);
     }
 
-    // POST: api/admin/conversaciones
-    [HttpPost]
+    // POST: api/inventario/conversaciones
+    [HttpPost("conversaciones")]
     public async Task<ActionResult<Conversacion>> CreateConversacion([FromBody] Conversacion conversacion)
     {
         conversacion.CreadoEn = DateTime.UtcNow;
         conversacion.ActualizadoEn = DateTime.UtcNow;
+        //conversacion.Activa = conversacion.Activa;
+
 
         _context.Conversaciones.Add(conversacion);
         await _context.SaveChangesAsync();
@@ -58,8 +60,8 @@ public class ConversacionController : ControllerBase
         return CreatedAtAction(nameof(GetConversacion), new { id = conversacion.Id }, conversacion);
     }
 
-    // PUT: api/admin/conversaciones/{id}
-    [HttpPut("{id}")]
+    // PUT: api/inventario/conversaciones/{id}
+    [HttpPut("conversaciones/{id}")]
     public async Task<IActionResult> UpdateConversacion(int id, [FromBody] Conversacion conversacion)
     {
         if (id != conversacion.Id)
@@ -74,7 +76,7 @@ public class ConversacionController : ControllerBase
         }
 
         conversacionExistente.ClienteId = conversacion.ClienteId;
-        conversacionExistente.Estado = conversacion.Estado;
+        conversacionExistente.Activa = conversacion.Activa;
         conversacionExistente.ActualizadoEn = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -84,8 +86,8 @@ public class ConversacionController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/admin/conversaciones/{id}
-    [HttpDelete("{id}")]
+    // DELETE: api/inventario/conversaciones/{id}
+    [HttpDelete("conversaciones/{id}")]
     public async Task<IActionResult> DeleteConversacion(int id)
     {
         var conversacion = await _context.Conversaciones.FindAsync(id);
@@ -94,7 +96,7 @@ public class ConversacionController : ControllerBase
         {
             return NotFound(new { message = "Conversacion no encontrada" });
         }
-        
+
         _context.Conversaciones.Remove(conversacion);
         await _context.SaveChangesAsync();
 

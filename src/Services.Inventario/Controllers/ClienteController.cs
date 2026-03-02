@@ -6,7 +6,7 @@ using Shared.Core.Entities;
 namespace Services.Inventario.Controllers;
 
 [ApiController]
-[Route("api/admin/clientes")]
+[Route("api/inventario")]
 public class ClienteController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -18,8 +18,8 @@ public class ClienteController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/admin/clientes
-    [HttpGet]
+    // GET: api/inventario/clientes
+    [HttpGet("clientes")]
     public async Task<ActionResult<IEnumerable<Cliente>>> GetClientes()
     {
         var clientes = await _context.Clientes
@@ -29,8 +29,8 @@ public class ClienteController : ControllerBase
         return Ok(clientes);
     }
 
-    // GET: api/admin/clientes/{id}
-    [HttpGet("{id}")]
+    // GET: api/inventario/clientes/{id}
+    [HttpGet("clientes/{id}")]
     public async Task<ActionResult<Cliente>> GetCliente(int id)
     {
         var cliente = await _context.Clientes.FindAsync(id);
@@ -43,8 +43,8 @@ public class ClienteController : ControllerBase
         return Ok(cliente);
     }
 
-    // POST: api/admin/clientes
-    [HttpPost]
+    // POST: api/inventario/clientes
+    [HttpPost("clientes")]
     public async Task<ActionResult<Cliente>> CreateCliente([FromBody] Cliente cliente)
     {
         cliente.CreadoEn = DateTime.UtcNow;
@@ -58,8 +58,8 @@ public class ClienteController : ControllerBase
         return CreatedAtAction(nameof(GetCliente), new { id = cliente.Id }, cliente);
     }
 
-    // PUT: api/admin/clientes/{id}
-    [HttpPut("{id}")]
+    // PUT: api/inventario/clientes/{id}
+    [HttpPut("clientes/{id}")]
     public async Task<IActionResult> UpdateCliente(int id, [FromBody] Cliente cliente)
     {
         if (id != cliente.Id)
@@ -86,8 +86,8 @@ public class ClienteController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/admin/clientes/{id}
-    [HttpDelete("{id}")]
+    // DELETE: api/inventario/clientes/{id}
+    [HttpDelete("clientes/{id}")]
     public async Task<IActionResult> DeleteCliente(int id)
     {
         var cliente = await _context.Clientes.FindAsync(id);
@@ -96,7 +96,7 @@ public class ClienteController : ControllerBase
         {
             return NotFound(new { message = "Cliente no encontrado" });
         }
-        
+
         _context.Clientes.Remove(cliente);
         await _context.SaveChangesAsync();
 
