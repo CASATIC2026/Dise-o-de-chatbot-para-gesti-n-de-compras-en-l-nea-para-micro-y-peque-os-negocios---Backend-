@@ -17,8 +17,10 @@ namespace Shared.Core.Mappings
             builder.Property(u => u.WhatsAppId);
 
             builder.Property(u => u.Nombre).IsRequired().HasDefaultValue("");
-            builder.Property(u => u.Telefono).IsRequired();
-            builder.Property(u => u.HistorialConversacion);
+            builder.Property(u => u.Email);
+            builder.Property(u => u.ContrasenaHash);
+            builder.Property(u => u.Telefono);
+            builder.Property(u => u.HistorialConversacion).HasColumnType("jsonb");
 
             builder.Property(u => u.CreadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");
             builder.Property(u => u.ActualizadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");
