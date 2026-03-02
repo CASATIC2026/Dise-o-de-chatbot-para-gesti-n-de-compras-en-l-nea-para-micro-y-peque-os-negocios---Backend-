@@ -8,7 +8,7 @@ function Conversaciones() {
     const [editingConversacion, setEditingConversacion] = useState(null);
     const [formData, setFormData] = useState({
         clienteId: 0,
-        estado: 0 // 0: Activa, 1: Cerrada, etc.
+        activa: false // 0: Activa, 1: Cerrada, etc.
     });
 
     useEffect(() => {
@@ -17,7 +17,7 @@ function Conversaciones() {
 
     const fetchConversaciones = async () => {
         try {
-            const response = await api.get('/admin/conversaciones'); // Endpoint asumido
+            const response = await api.get('/admin/inventario/conversaciones'); // Endpoint asumido
             setConversaciones(response.data);
         } catch (error) {
             console.error('Error fetching conversaciones:', error);
@@ -34,7 +34,7 @@ function Conversaciones() {
             setEditingConversacion(null);
             setFormData({
                 clienteId: 0,
-                estado: 0
+                activa: true
             });
         }
         setShowModal(true);
@@ -50,19 +50,20 @@ function Conversaciones() {
 
         try {
             const dataToSave = {
+
                 id: editingConversacion ? Number(editingConversacion.id) : 0,
                 clienteId: Number(formData.clienteId),
-                estado: Number(formData.estado)
+                activa: formData.activa === "true" ? true : false
             };
 
             if (editingConversacion) {
-                await api.put(`/admin/conversaciones/${editingConversacion.id}`, dataToSave);
+                await api.put(`/admin/inventario/conversaciones/${editingConversacion.id}`, dataToSave);
                 alert("¡Conversación actualizada!");
             } else {
-                await api.post('/admin/conversaciones', dataToSave);
+                await api.post('/admin/inventario/conversaciones', dataToSave);
                 alert("¡Conversación agregada!");
             }
-
+            console.log("Datos enviados:", dataToSave, formData);
             fetchConversaciones();
             handleCloseModal();
 
@@ -76,7 +77,7 @@ function Conversaciones() {
         if (!confirm('¿Estás seguro de eliminar esta conversación?')) return;
 
         try {
-            await api.delete(`/admin/conversaciones/${id}`);
+            await api.delete(`/admin/inventario/conversaciones/${id}`);
             fetchConversaciones();
         } catch (error) {
             console.error('Error deleting conversacion:', error);
@@ -85,8 +86,8 @@ function Conversaciones() {
 
     const getEstadoText = (estadoEnum) => {
         switch (estadoEnum) {
-            case 0: return 'Activa';
-            case 1: return 'Cerrada';
+            case true: return 'Activa';
+            case false: return 'Cerrada';
             default: return 'Desconocida';
         }
     };
@@ -124,8 +125,8 @@ function Conversaciones() {
                             <tr key={conv.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900">{conv.clienteId}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${conv.estado === 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                        {getEstadoText(conv.estado)}
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${conv.activa === true ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                        {getEstadoText(conv.activa)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
@@ -151,13 +152,13 @@ function Conversaciones() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Cliente ID</label>
-                                <input type="number" value={formData.clienteId} onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
+                                <input type="number" min="1" step="1"  value={formData.clienteId} onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                                <select value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
-                                    <option value={0}>Activa</option>
-                                    <option value={1}>Cerrada</option>
+                                <select value={formData.activa} onChange={(e) => setFormData({ ...formData, activa: e.target.value }, console.log(formData.activa, e.target.value))} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
+                                    <option key={true} value={true}>Activa</option>
+                                    <option key={false} value={false}>Cerrada</option>
                                 </select>
                             </div>
                             <div className="flex space-x-3 pt-4">

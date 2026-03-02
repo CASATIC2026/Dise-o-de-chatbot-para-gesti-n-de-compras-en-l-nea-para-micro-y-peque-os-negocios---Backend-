@@ -19,7 +19,7 @@ function Clientes() {
 
     const fetchClientes = async () => {
         try {
-            const response = await api.get('/admin/clientes'); // Asumiendo este endpoint
+            const response = await api.get('/admin/inventario/clientes'); // Asumiendo este endpoint
             setClientes(response.data);
         } catch (error) {
             console.error('Error fetching clientes:', error);
@@ -62,10 +62,10 @@ function Clientes() {
             };
 
             if (editingCliente) {
-                await api.put(`/admin/clientes/${editingCliente.id}`, dataToSave);
+                await api.put(`/admin/inventario/clientes/${editingCliente.id}`, dataToSave);
                 alert("¡Cliente actualizado!");
             } else {
-                await api.post('/admin/clientes', dataToSave);
+                await api.post('/admin/inventario/clientes', dataToSave);
                 alert("¡Cliente agregado!");
             }
 
@@ -82,7 +82,7 @@ function Clientes() {
         if (!confirm('¿Estás seguro de eliminar este cliente?')) return;
 
         try {
-            await api.delete(`/admin/clientes/${id}`);
+            await api.delete(`/admin/inventario/clientes/${id}`);
             fetchClientes();
         } catch (error) {
             console.error('Error deleting cliente:', error);
