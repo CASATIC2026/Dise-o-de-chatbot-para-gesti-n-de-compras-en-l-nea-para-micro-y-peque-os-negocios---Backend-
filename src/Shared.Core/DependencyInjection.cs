@@ -20,7 +20,7 @@ public static class DependencyInjection
                 // IMPORTANTE: Le decimos a EF Core que las migraciones (tablas) 
                 // están definidas aquí mismo, en el proyecto Shared.Core
                 b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
-
+        //Eliminar el .EnableSensitiveDataLogging(); // <-- Solo para desarrollo .EnableSensitiveDataLogging()
         // Retornamos los servicios para permitir el encadenamiento (Fluent API)
         return services;
     }

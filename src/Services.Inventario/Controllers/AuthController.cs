@@ -27,8 +27,8 @@ public class AuthController : ControllerBase
         // 1. Buscamos al usuario en la tabla 'usuarios' del esquema 'ecommerce'
         var usuario = await _context.Usuarios
             .FirstOrDefaultAsync(u => u.Email == request.Email && u.ContrasenaHash == request.Password);
-
-        if (usuario == null) 
+        //Console.WriteLine($"Email: {request.Email}, Password: {request.Password}");
+        if (usuario == null)
             return Unauthorized(new { message = "Email o contraseña incorrectos" });
 
         // 2. Preparamos la llave secreta desde el .env
@@ -45,9 +45,9 @@ public class AuthController : ControllerBase
                 new Claim(ClaimTypes.Email, usuario.Email),
                 new Claim(ClaimTypes.Role, usuario.Rol ?? "Usuario")
             }),
-            Expires = DateTime.UtcNow.AddHours(8), // Basado en tu JWT_EXPIRATION=8h
+            Expires = DateTime.UtcNow.AddMinutes(30), // Basado en tu JWT_EXPIRATION=8h
             SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key), 
+                new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature)
         };
 
@@ -58,7 +58,8 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             Token = tokenHandler.WriteToken(token),
-            User = new {
+            User = new
+            {
                 usuario.Nombre,
                 usuario.Email,
                 usuario.Rol
