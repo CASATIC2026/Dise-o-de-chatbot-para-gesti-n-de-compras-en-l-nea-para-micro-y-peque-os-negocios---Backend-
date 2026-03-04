@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 
 function Login({ onLogin }) {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ function Login({ onLogin }) {
 
         try {
             const response = await axios.post('/api/auth/login', {
-                username,
+                email,
                 password,
             });
 
@@ -40,12 +40,12 @@ function Login({ onLogin }) {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Usuario
+                            Email/Correo Electronico
                         </label>
                         <input
                             type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                             placeholder="admin"
                             required
@@ -83,7 +83,7 @@ function Login({ onLogin }) {
 
                 <div className="mt-6 text-center text-sm text-gray-500">
                     <p>Credenciales por defecto:</p>
-                    <p className="font-mono">admin / admin123</p>
+                    <p className="font-mono">admin@example.com / admin123</p>
                 </div>
             </div>
         </div>

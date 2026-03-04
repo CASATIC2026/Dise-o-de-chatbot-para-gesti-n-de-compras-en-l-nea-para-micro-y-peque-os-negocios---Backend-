@@ -29,7 +29,7 @@ app.get('/health', (req, res) => {
 app.use('/api/admin', adminRoutes);
 
 // Auth endpoint (simplified - in production use proper user authentication)
-app.post('/api/auth/login', (req, res) => {
+/*app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
 
     // TODO: Implement proper authentication with database
@@ -38,6 +38,19 @@ app.post('/api/auth/login', (req, res) => {
         res.json({ token, username });
     } else {
         res.status(401).json({ message: 'Invalid credentials' });
+    }
+});*/
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const response = await fetch(`${INVENTARIO_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        res.status(500).json({ message: "Error conectando con el servicio de identidad" });
     }
 });
 
