@@ -12,7 +12,7 @@ using Shared.Core.Data;
 namespace Shared.Core.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260220215332_InitialCreate")]
+    [Migration("20260302202552_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -105,7 +105,9 @@ namespace Shared.Core.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activa")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime>("ActualizadoEn")
                         .ValueGeneratedOnAdd()
@@ -365,14 +367,25 @@ namespace Shared.Core.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("ContrasenaHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreadoEn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("HistorialConversacion")
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("Estado")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("HistorialConversacion")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -380,8 +393,10 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("");
 
+                    b.Property<string>("Rol")
+                        .HasColumnType("text");
+
                     b.Property<string>("Telefono")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<long?>("TelegramId")

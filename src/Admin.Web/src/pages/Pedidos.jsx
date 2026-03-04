@@ -22,7 +22,7 @@ function Pedidos() {
 
     const fetchPedidos = async () => {
         try {
-            const response = await api.get('/admin/pedidos'); // Endpoint asumido
+            const response = await api.get('/admin/inventario/pedidos'); // Endpoint asumido
             setPedidos(response.data);
         } catch (error) {
             console.error('Error fetching pedidos:', error);
@@ -71,10 +71,10 @@ function Pedidos() {
             };
 
             if (editingPedido) {
-                await api.put(`/admin/pedidos/${editingPedido.id}`, dataToSave);
+                await api.put(`/admin/inventario/pedidos/${editingPedido.id}`, dataToSave);
                 alert("¡Pedido actualizado!");
             } else {
-                await api.post('/admin/pedidos', dataToSave);
+                await api.post('/admin/inventario/pedidos', dataToSave);
                 alert("¡Pedido agregado!");
             }
 
@@ -91,7 +91,7 @@ function Pedidos() {
         if (!confirm('¿Estás seguro de eliminar este pedido?')) return;
 
         try {
-            await api.delete(`/admin/pedidos/${id}`);
+            await api.delete(`/admin/inventario/pedidos/${id}`);
             fetchPedidos();
         } catch (error) {
             console.error('Error deleting pedido:', error);

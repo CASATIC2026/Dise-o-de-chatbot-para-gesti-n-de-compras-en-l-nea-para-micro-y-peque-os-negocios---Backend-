@@ -6,7 +6,7 @@ using Shared.Core.Entities;
 namespace Services.Inventario.Controllers;
 
 [ApiController]
-[Route("api/admin/usuarios")]
+[Route("api/inventario")]
 public class UsuarioController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -18,8 +18,8 @@ public class UsuarioController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/admin/usuarios
-    [HttpGet]
+    // GET: api/inventario/usuarios
+    [HttpGet("usuarios")]
     public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
     {
         var usuarios = await _context.Usuarios
@@ -29,8 +29,8 @@ public class UsuarioController : ControllerBase
         return Ok(usuarios);
     }
 
-    // GET: api/admin/usuarios/{id}
-    [HttpGet("{id}")]
+    // GET: api/inventario/usuarios/{id}
+    [HttpGet("usuarios/{id}")]
     public async Task<ActionResult<Usuario>> GetUsuario(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
@@ -43,8 +43,8 @@ public class UsuarioController : ControllerBase
         return Ok(usuario);
     }
 
-    // POST: api/admin/usuarios
-    [HttpPost]
+    // POST: api/inventario/usuarios
+    [HttpPost("usuarios")]
     public async Task<ActionResult<Usuario>> CreateUsuario([FromBody] Usuario usuario)
     {
         usuario.CreadoEn = DateTime.UtcNow;
@@ -58,8 +58,8 @@ public class UsuarioController : ControllerBase
         return CreatedAtAction(nameof(GetUsuario), new { id = usuario.Id }, usuario);
     }
 
-    // PUT: api/admin/usuarios/{id}
-    [HttpPut("{id}")]
+    // PUT: api/inventario/usuarios/{id}
+    [HttpPut("usuarios/{id}")]
     public async Task<IActionResult> UpdateUsuario(int id, [FromBody] Usuario usuario)
     {
         if (id != usuario.Id)
@@ -78,7 +78,7 @@ public class UsuarioController : ControllerBase
         // Ideally handled securely via another method if it changes
         if (!string.IsNullOrEmpty(usuario.ContrasenaHash))
         {
-             usuarioExistente.ContrasenaHash = usuario.ContrasenaHash; 
+            usuarioExistente.ContrasenaHash = usuario.ContrasenaHash;
         }
         usuarioExistente.Rol = usuario.Rol;
         usuarioExistente.Estado = usuario.Estado;
@@ -92,8 +92,8 @@ public class UsuarioController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/admin/usuarios/{id}
-    [HttpDelete("{id}")]
+    // DELETE: api/inventario/usuarios/{id}
+    [HttpDelete("usuarios/{id}")]
     public async Task<IActionResult> DeleteUsuario(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
@@ -102,7 +102,7 @@ public class UsuarioController : ControllerBase
         {
             return NotFound(new { message = "Usuario no encontrado" });
         }
-        
+
         _context.Usuarios.Remove(usuario);
         await _context.SaveChangesAsync();
 

@@ -21,7 +21,7 @@ function Usuarios() {
 
     const fetchUsuarios = async () => {
         try {
-            const response = await api.get('/admin/usuarios'); // Asumiendo este endpoint
+            const response = await api.get('/admin/inventario/usuarios'); // Asumiendo este endpoint
             setUsuarios(response.data);
         } catch (error) {
             console.error('Error fetching usuarios:', error);
@@ -69,10 +69,10 @@ function Usuarios() {
             };
 
             if (editingUsuario) {
-                await api.put(`/admin/usuarios/${editingUsuario.id}`, dataToSave);
+                await api.put(`/admin/inventario/usuarios/${editingUsuario.id}`, dataToSave);
                 alert("¡Usuario actualizado!");
             } else {
-                await api.post('/admin/usuarios', dataToSave);
+                await api.post('/admin/inventario/usuarios', dataToSave);
                 alert("¡Usuario agregado!");
             }
 
@@ -89,7 +89,7 @@ function Usuarios() {
         if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
 
         try {
-            await api.delete(`/admin/usuarios/${id}`);
+            await api.delete(`/admin/inventario/usuarios/${id}`);
             fetchUsuarios();
         } catch (error) {
             console.error('Error deleting usuario:', error);

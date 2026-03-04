@@ -9,7 +9,7 @@ function Mensajes() {
     const [formData, setFormData] = useState({
         conversacionId: 0,
         contenido: '',
-        role: '' // "User" o "Assistant"
+        remitente: 0 // 1 - "Cliente" , 2 - "Soporte", 3 - "Sistema"
     });
 
     useEffect(() => {
@@ -18,7 +18,7 @@ function Mensajes() {
 
     const fetchMensajes = async () => {
         try {
-            const response = await api.get('/admin/mensajes'); // Endpoint asumido
+            const response = await api.get('/admin/inventario/mensajes'); // Endpoint asumido
             setMensajes(response.data);
         } catch (error) {
             console.error('Error fetching mensajes:', error);
@@ -36,7 +36,7 @@ function Mensajes() {
             setFormData({
                 conversacionId: 0,
                 contenido: '',
-                role: 'User'
+                remitente: 0
             });
         }
         setShowModal(true);
@@ -55,14 +55,14 @@ function Mensajes() {
                 id: editingMensaje ? Number(editingMensaje.id) : 0,
                 conversacionId: Number(formData.conversacionId),
                 contenido: formData.contenido,
-                role: formData.role
+                remitente: Number(formData.remitente)
             };
 
             if (editingMensaje) {
-                await api.put(`/admin/mensajes/${editingMensaje.id}`, dataToSave);
+                await api.put(`/admin/inventario/mensajes/${editingMensaje.id}`, dataToSave);
                 alert("¡Mensaje actualizado!");
             } else {
-                await api.post('/admin/mensajes', dataToSave);
+                await api.post('/admin/inventario/mensajes', dataToSave);
                 alert("¡Mensaje agregado!");
             }
 
@@ -75,11 +75,28 @@ function Mensajes() {
         }
     };
 
+    const getRemitenteColor = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return 'bg-yellow-100 text-yellow-800'; // Pendiente
+            case 2: return 'bg-blue-100 text-blue-800'; // Confirmado
+            case 3: return 'bg-green-100 text-green-800'; // Pagado            
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getRemitenteText = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return 'Cliente';
+            case 2: return 'Soporte';
+            case 3: return 'Sistema';
+        }
+    };
+
     const handleDeletePermanently = async (id) => {
         if (!confirm('¿Estás seguro de eliminar este mensaje?')) return;
 
         try {
-            await api.delete(`/admin/mensajes/${id}`);
+            await api.delete(`/admin/inventario/mensajes/${id}`);
             fetchMensajes();
         } catch (error) {
             console.error('Error deleting mensaje:', error);
@@ -110,7 +127,7 @@ function Mensajes() {
                     <thead className="bg-gray-50 border-b">
                         <tr>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Conversación ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Remitente</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Contenido</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                         </tr>
@@ -120,8 +137,8 @@ function Mensajes() {
                             <tr key={msg.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900">{msg.conversacionId}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${msg.role === 'User' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-                                        {msg.role}
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRemitenteColor(msg.remitente)}`}>
+                                        {getRemitenteText(msg.remitente)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-gray-900 truncate max-w-xs">{msg.contenido}</td>
@@ -151,10 +168,13 @@ function Mensajes() {
                                 <input type="number" value={formData.conversacionId} onChange={(e) => setFormData({ ...formData, conversacionId: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                                <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
-                                    <option value="User">User</option>
-                                    <option value="Assistant">Assistant</option>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Remitente</label>
+                                <select value={formData.remitente} onChange={(e) => setFormData({ ...formData, remitente: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
+
+                                    <option value={1}>Usuario</option>
+                                    <option value={2}>Soporte</option>
+                                    <option value={3}>Sistema</option>
+
                                 </select>
                             </div>
                             <div>

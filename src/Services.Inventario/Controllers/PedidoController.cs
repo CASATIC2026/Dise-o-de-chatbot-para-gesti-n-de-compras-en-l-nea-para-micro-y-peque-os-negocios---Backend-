@@ -6,7 +6,7 @@ using Shared.Core.Entities;
 namespace Services.Inventario.Controllers;
 
 [ApiController]
-[Route("api/admin/pedidos")]
+[Route("api/inventario")]
 public class PedidoController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -18,8 +18,8 @@ public class PedidoController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/admin/pedidos
-    [HttpGet]
+    // GET: api/inventario/pedidos
+    [HttpGet("pedidos")]
     public async Task<ActionResult<IEnumerable<Pedido>>> GetPedidos()
     {
         var pedidos = await _context.Pedidos
@@ -29,8 +29,8 @@ public class PedidoController : ControllerBase
         return Ok(pedidos);
     }
 
-    // GET: api/admin/pedidos/{id}
-    [HttpGet("{id}")]
+    // GET: api/inventario/pedidos/{id}
+    [HttpGet("pedidos/{id}")]
     public async Task<ActionResult<Pedido>> GetPedido(int id)
     {
         var pedido = await _context.Pedidos.FindAsync(id);
@@ -43,8 +43,8 @@ public class PedidoController : ControllerBase
         return Ok(pedido);
     }
 
-    // POST: api/admin/pedidos
-    [HttpPost]
+    // POST: api/inventario/pedidos
+    [HttpPost("pedidos")]
     public async Task<ActionResult<Pedido>> CreatePedido([FromBody] Pedido pedido)
     {
         pedido.CreadoEn = DateTime.UtcNow;
@@ -58,8 +58,8 @@ public class PedidoController : ControllerBase
         return CreatedAtAction(nameof(GetPedido), new { id = pedido.Id }, pedido);
     }
 
-    // PUT: api/admin/pedidos/{id}
-    [HttpPut("{id}")]
+    // PUT: api/inventario/pedidos/{id}
+    [HttpPut("pedidos/{id}")]
     public async Task<IActionResult> UpdatePedido(int id, [FromBody] Pedido pedido)
     {
         if (id != pedido.Id)
@@ -89,8 +89,8 @@ public class PedidoController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/admin/pedidos/{id}
-    [HttpDelete("{id}")]
+    // DELETE: api/inventario/pedidos/{id}
+    [HttpDelete("pedidos/{id}")]
     public async Task<IActionResult> DeletePedido(int id)
     {
         var pedido = await _context.Pedidos.FindAsync(id);
@@ -99,7 +99,7 @@ public class PedidoController : ControllerBase
         {
             return NotFound(new { message = "Pedido no encontrado" });
         }
-        
+
         _context.Pedidos.Remove(pedido);
         await _context.SaveChangesAsync();
 

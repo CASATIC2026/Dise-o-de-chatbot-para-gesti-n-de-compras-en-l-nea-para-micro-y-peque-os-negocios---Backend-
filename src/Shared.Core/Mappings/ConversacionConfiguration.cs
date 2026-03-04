@@ -14,7 +14,7 @@ namespace Shared.Core.Mappings
             builder.HasKey(p => p.Id);
             // 3. Propierties
             builder.Property(p => p.Asunto).HasMaxLength(200);
-            builder.Property(p => p.Activa).HasDefaultValueSql("true");
+            builder.Property(p => p.Activa).HasDefaultValue(true);
 
             builder.Property(p => p.CreadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");
             builder.Property(p => p.ActualizadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");
