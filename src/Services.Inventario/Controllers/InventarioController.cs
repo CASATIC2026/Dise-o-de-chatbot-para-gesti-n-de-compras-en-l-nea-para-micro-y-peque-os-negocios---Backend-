@@ -7,7 +7,7 @@ using Services.Inventario.Validators;
 namespace Services.Inventario.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/inventario")]
 public class InventarioController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -29,9 +29,10 @@ public class InventarioController : ControllerBase
         {
             query = query.Where(p => p.Activo);
         }
-
+        // Cargar la informacion del producto junto con la categoria listado ordenado por nombre de producto 
         var productos = await query
-            .OrderBy(p => p.Nombre)
+            .OrderBy(p => p.Nombre).
+            Include(p => p.Categoria)
             .ToListAsync();
 
         return Ok(productos);
@@ -80,7 +81,7 @@ public class InventarioController : ControllerBase
         {
             return NotFound(new { message = "Producto no encontrado" });
         }
-
+        // Actualizar solo los campos permitidos
         productoExistente.Nombre = producto.Nombre;
         productoExistente.Descripcion = producto.Descripcion;
         productoExistente.Precio = producto.Precio;
@@ -88,6 +89,7 @@ public class InventarioController : ControllerBase
         productoExistente.ImagenUrl = producto.ImagenUrl;
         productoExistente.Activo = producto.Activo;
         productoExistente.ActualizadoEn = DateTime.UtcNow;
+        productoExistente.CategoriaId = producto.CategoriaId;
 
         await _context.SaveChangesAsync();
 
