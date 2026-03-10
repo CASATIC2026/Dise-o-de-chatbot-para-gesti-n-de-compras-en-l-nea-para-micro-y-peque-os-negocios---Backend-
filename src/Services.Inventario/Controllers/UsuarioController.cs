@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
 using Shared.Core.Entities;
+using BCrypt.Net;
 
 namespace Services.Inventario.Controllers;
 
@@ -48,9 +49,12 @@ public class UsuarioController : ControllerBase
     [HttpPost("usuarios")]
     public async Task<ActionResult<Usuario>> CreateUsuario([FromBody] Usuario usuario)
     {
-        var passwordHasher = new PasswordHasher<Usuario>();
+        if (!string.IsNullOrEmpty(usuario.ContrasenaHash))
+        {
+            usuario.ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(usuario.ContrasenaHash);
+        }
 
-        usuario.ContrasenaHash = passwordHasher.HashPassword(usuario, usuario.ContrasenaHash); // Hash de la contraseña antes de guardarla
+
         usuario.CreadoEn = DateTime.UtcNow;
         usuario.ActualizadoEn = DateTime.UtcNow;
 
@@ -82,7 +86,7 @@ public class UsuarioController : ControllerBase
         // Ideally handled securely via another method if it changes
         if (!string.IsNullOrEmpty(usuario.ContrasenaHash))
         {
-            usuarioExistente.ContrasenaHash = usuario.ContrasenaHash;
+            usuarioExistente.ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(usuario.ContrasenaHash);
         }
         usuarioExistente.Rol = usuario.Rol;
         usuarioExistente.Estado = usuario.Estado;

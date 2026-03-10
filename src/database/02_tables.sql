@@ -1,4 +1,3 @@
-SET search_path TO ecommerce;
 
 CREATE TABLE categorias (
     id_categoria SERIAL PRIMARY KEY,

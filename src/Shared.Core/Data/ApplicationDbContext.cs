@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Core.Entities;
 using Shared.Core.Mappings;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Shared.Core.Data;
 
@@ -20,6 +18,7 @@ public class ApplicationDbContext : DbContext
         : base(options)
     {
     }
+
     /// <summary>
     /// Entity sets for database tables.
     /// </summary>
@@ -36,31 +35,15 @@ public class ApplicationDbContext : DbContext
 
     /// <summary>
     /// Configures the schema needed for the application context.
+    /// Applies all entity mappings from the Mappings folder.
     /// </summary>
     /// <param name="modelBuilder">The builder being used to construct the model for this context.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
-{
-    base.OnModelCreating(modelBuilder);
-
-    // Forzar el esquema ecommerce (Esto está perfecto)
-    modelBuilder.HasDefaultSchema("ecommerce");
-
-    foreach (var entity in modelBuilder.Model.GetEntityTypes())
     {
-        // 1. Obtener el nombre de la tabla definido en la clase (vía [Table] o por defecto)
-        var currentTableName = entity.GetTableName();
+        base.OnModelCreating(modelBuilder);
 
-        // 2. Solo forzamos a minúsculas si NO hemos definido un nombre manual 
-        // para evitar que 'usuarios' se convierta en algo raro.
-        entity.SetTableName(currentTableName?.ToLower());
-
-        // 3. Forzar nombres de columnas a minúsculas para que coincidan con el SQL
-        foreach (var property in entity.GetProperties())
-        {
-            var storeObjectIdentifier = StoreObjectIdentifier.Table(entity.GetTableName()!, entity.GetSchema());
-            var currentColumnName = property.GetColumnName(storeObjectIdentifier);
-            property.SetColumnName(currentColumnName?.ToLower());
-        }
+        // Aplica automáticamente todas las configuraciones
+        // que implementen IEntityTypeConfiguration en el ensamblado
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
-}
 }
