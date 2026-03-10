@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
@@ -47,6 +48,9 @@ public class UsuarioController : ControllerBase
     [HttpPost("usuarios")]
     public async Task<ActionResult<Usuario>> CreateUsuario([FromBody] Usuario usuario)
     {
+        var passwordHasher = new PasswordHasher<Usuario>();
+
+        usuario.ContrasenaHash = passwordHasher.HashPassword(usuario, usuario.ContrasenaHash); // Hash de la contraseña antes de guardarla
         usuario.CreadoEn = DateTime.UtcNow;
         usuario.ActualizadoEn = DateTime.UtcNow;
 
