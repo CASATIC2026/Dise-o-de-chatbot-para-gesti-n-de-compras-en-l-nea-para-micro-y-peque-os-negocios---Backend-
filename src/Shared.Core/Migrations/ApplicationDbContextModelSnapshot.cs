@@ -79,6 +79,9 @@ namespace Shared.Core.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("HistorialConversacion")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -87,6 +90,12 @@ namespace Shared.Core.Migrations
                     b.Property<string>("Telefono")
                         .HasMaxLength(35)
                         .HasColumnType("character varying(35)");
+
+                    b.Property<long?>("TelegramId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WhatsAppId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -378,11 +387,9 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("Estado")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("HistorialConversacion")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -390,16 +397,12 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("");
 
-                    b.Property<string>("Rol")
-                        .HasColumnType("text");
+                    b.Property<int>("Rol")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<string>("Telefono")
-                        .HasColumnType("text");
-
-                    b.Property<long?>("TelegramId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("WhatsAppId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");

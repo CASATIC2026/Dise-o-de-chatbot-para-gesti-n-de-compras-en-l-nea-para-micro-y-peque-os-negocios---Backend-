@@ -38,8 +38,11 @@ namespace Shared.Core.Migrations
                     Telefono = table.Column<string>(type: "character varying(35)", maxLength: 35, nullable: true),
                     Email = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
                     Direccion = table.Column<string>(type: "text", nullable: true),
+                    TelegramId = table.Column<long>(type: "bigint", nullable: true),
+                    WhatsAppId = table.Column<string>(type: "text", nullable: true),
                     CreadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    HistorialConversacion = table.Column<string>(type: "jsonb", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -55,12 +58,9 @@ namespace Shared.Core.Migrations
                     Nombre = table.Column<string>(type: "text", nullable: false, defaultValue: ""),
                     Email = table.Column<string>(type: "text", nullable: false),
                     ContrasenaHash = table.Column<string>(type: "text", nullable: false),
-                    Rol = table.Column<string>(type: "text", nullable: true),
-                    Estado = table.Column<bool>(type: "boolean", nullable: false),
-                    TelegramId = table.Column<long>(type: "bigint", nullable: true),
-                    WhatsAppId = table.Column<string>(type: "text", nullable: true),
+                    Rol = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    Estado = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     Telefono = table.Column<string>(type: "text", nullable: true),
-                    HistorialConversacion = table.Column<string>(type: "jsonb", nullable: false),
                     CreadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
