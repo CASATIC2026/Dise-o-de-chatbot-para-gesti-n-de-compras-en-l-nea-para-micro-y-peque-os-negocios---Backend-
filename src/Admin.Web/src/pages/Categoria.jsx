@@ -4,6 +4,7 @@ import api from '../api/client';
 function Categoria() {
     const [categorias, setCategorias] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingCategoria, setEditingCategoria] = useState(null);
     const [formData, setFormData] = useState({
@@ -19,7 +20,6 @@ function Categoria() {
         try {
             const response = await api.get('/admin/inventario/categorias');
             setCategorias(response.data);
-            //console.log('Categorias:', response.data);
         } catch (error) {
             console.error('Error fetching categorias:', error);
         } finally {
@@ -50,15 +50,11 @@ function Categoria() {
         e.preventDefault();
 
         try {
-            // CONSTRUYE UN OBJETO NUEVO SÓLO CON LOS DATOS NECESARIOS
             const dataToSave = {
-                id: editingCategoria ? Number(editingCategoria.id) : Number(0), // Solo envía el ID si es edición
+                id: editingCategoria ? Number(editingCategoria.id) : 0,
                 nombre: formData.nombre,
                 descripcion: formData.descripcion,
-
             };
-
-            console.log("Enviando datos limpios:", dataToSave);
 
             if (editingCategoria) {
                 await api.put(`/admin/inventario/categorias/${editingCategoria.id}`, dataToSave);
@@ -70,55 +66,63 @@ function Categoria() {
 
             fetchCategorias();
             handleCloseModal();
-
-
         } catch (error) {
-            console.error('Error completo objeto:', error);
-            if (error.response) {
-                // El servidor respondió con algo (400, 500, etc)
-                console.log('Datos del servidor:', error.response.data);
-            } else if (error.request) {
-                // La petición se hizo pero no hubo respuesta (El servidor se cayó o CORS)
-                console.log('No se recibió respuesta del servidor. Revisa si el microservicio de Inventario está caído.');
-            } else {
-                console.log('Error de configuración:', error.message);
-            }
-            alert('Error al guardar/modificar el objecto');
+            console.error('Error saving categoria:', error);
+            alert('Error al guardar/modificar el objeto');
         }
     };
+
     const handleDeletePermanently = async (id) => {
-        if (!confirm('¿Estás seguro de eliminar esta categoria?')) return;
+        if (!confirm('¿Estás seguro de eliminar esta categoría permanentemente?')) return;
 
         try {
-
             await api.delete(`/admin/inventario/categorias/${id}`);
             fetchCategorias();
         } catch (error) {
             console.error('Error deleting categoria:', error);
         }
-    }
+    };
 
+    const filteredCategorias = categorias.filter(cat =>
+        cat.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cat.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     if (loading) {
-        return <div className="text-center py-12">Cargando productos...</div>;
+        return <div className="text-center py-12">Cargando categorías...</div>;
     }
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Inventario</h1>
-                    <p className="text-gray-600 mt-2">Gestiona tu catálogo de categorias</p>
+                    <h1 className="text-3xl font-bold text-gray-800">Categorías</h1>
+                    <p className="text-gray-600 mt-2">Gestiona las familias de tus productos</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                >
-                    + Nueva Categoria
-                </button>
+
+                <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
+                    <div className="relative flex-1 sm:w-64">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar categorías..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        title="Nueva Categoria"
+                    >
+                        <span className="text-xl md:mr-2">➕</span>
+                        <span className="hidden md:inline">Nueva Categoria</span>
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-gray-50 border-b">
                         <tr>
@@ -128,12 +132,10 @@ function Categoria() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {categorias.map((categoria) => (
+                        {filteredCategorias.map((categoria) => (
                             <tr key={categoria.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4">
-                                    <div>
-                                        <div className="font-medium text-gray-900">{categoria.nombre}</div>
-                                    </div>
+                                    <div className="font-medium text-gray-900">{categoria.nombre}</div>
                                 </td>
                                 <td className="px-6 py-4 text-gray-900">
                                     <div className="text-sm text-gray-500">{categoria.descripcion}</div>
@@ -142,15 +144,17 @@ function Categoria() {
                                     <div className="flex space-x-2">
                                         <button
                                             onClick={() => handleOpenModal(categoria)}
-                                            className="text-primary-600 hover:text-primary-800 font-medium"
+                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                            title="Editar"
                                         >
-                                            Editar
+                                            ✏️
                                         </button>
                                         <button
                                             onClick={() => handleDeletePermanently(categoria.id)}
-                                            className="text-red-600 hover:text-red-800 font-medium"
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Eliminar"
                                         >
-                                            Eliminar
+                                            🗑️
                                         </button>
                                     </div>
                                 </td>
@@ -160,7 +164,6 @@ function Categoria() {
                 </table>
             </div>
 
-            {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -190,8 +193,6 @@ function Categoria() {
                                     required
                                 />
                             </div>
-
-
 
                             <div className="flex space-x-3 pt-4">
                                 <button
