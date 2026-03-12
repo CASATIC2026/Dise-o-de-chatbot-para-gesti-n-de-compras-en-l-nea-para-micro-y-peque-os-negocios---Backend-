@@ -63,7 +63,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Initialize Telegram Bot
-const TELEGRAM_BOT_URL = process.env.TELEGRAM_BOT_URL || 'http://host.docker.internal:5207'
+const TELEGRAM_BOT_URL = process.env.CHATBOT_SERVICE_URL || 'http://localhost:5003'
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5001';
 const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://localhost:5002';
@@ -97,7 +97,8 @@ app.listen(PORT, () => {
     console.log(`✅ Gateway server running on port ${PORT}`);
     console.log(`📦 Inventory Service: ${INVENTARIO_URL}`);
     console.log(`💳 Payments Service: ${PAGOS_URL}`);
-    console.log(`🤖 Telegram Bot: Active`);
+    console.log(`🤖 Telegram Bot: ${TELEGRAM_BOT_URL}`);
+
 });
 
 // Graceful shutdown

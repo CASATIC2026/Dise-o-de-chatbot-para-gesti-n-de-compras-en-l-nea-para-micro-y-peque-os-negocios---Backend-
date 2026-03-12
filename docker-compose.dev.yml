@@ -1,4 +1,3 @@
-
 services:
   # PostgreSQL Database
   postgres:
@@ -63,7 +62,23 @@ services:
     networks:
       - chatbot-network
 
-  # Node.js Gateway & Chatbot
+  # Chatbot Microservice (.NET 8)
+  chatbot-service:
+    build:
+      context: ./src
+      dockerfile: Services.Chatbot/Dockerfile.dev
+    container_name: chatbot-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./src/Services.Chatbot:/src/Services.Chatbot
+      - ./src/Shared.Core:/src/Shared.Core
+    ports:
+      - "5003:8080"
+    networks:
+      - chatbot-network
+
+  # Node.js Gateway
   gateway:
     build:
       context: ./src/Gateway.NodeJS
@@ -83,6 +98,7 @@ services:
       - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - INVENTARIO_SERVICE_URL=http://inventario-service:8080
       - PAGOS_SERVICE_URL=http://pagos-service:8080
+      - CHATBOT_SERVICE_URL=http://chatbot-service:8080
     volumes:
       - ./src/Gateway.NodeJS:/app
       - /app/node_modules
