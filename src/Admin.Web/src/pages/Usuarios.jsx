@@ -11,7 +11,7 @@ function Usuarios() {
         nombre: '',
         email: '',
         contrasenaHash: '',
-        rol: '',
+        rol: 1,
         estado: true,
         telefono: ''
     });
@@ -41,7 +41,7 @@ function Usuarios() {
                 nombre: '',
                 email: '',
                 contrasenaHash: '',
-                rol: '',
+                rol: 1,
                 estado: true,
                 telefono: ''
             });
@@ -63,10 +63,9 @@ function Usuarios() {
                 nombre: formData.nombre,
                 email: formData.email,
                 contrasenaHash: formData.contrasenaHash, // Idealmente esto se maneja distinto
-                rol: formData.rol,
+                rol: Number(formData.rol),
                 estado: Boolean(formData.estado),
                 telefono: formData.telefono,
-                historialConversacion: editingUsuario ? editingUsuario.historialConversacion : "[]"
             };
 
             if (editingUsuario) {
@@ -83,6 +82,21 @@ function Usuarios() {
         } catch (error) {
             console.error('Error:', error);
             alert('Error al guardar/modificar el usuario');
+        }
+    };
+
+    const getRolColor = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return 'bg-blue-100 text-blue-800';
+            case 2: return 'bg-green-100 text-green-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getRolText = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return 'Administrador';
+            case 2: return 'Vendedor';
         }
     };
 
@@ -153,7 +167,11 @@ function Usuarios() {
                             <tr key={usuario.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900">{usuario.nombre}</td>
                                 <td className="px-6 py-4 text-gray-900">{usuario.email}</td>
-                                <td className="px-6 py-4 text-gray-900">{usuario.rol || 'N/A'}</td>
+                                <td className="px-6 py-4 ">
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
+                                        {getRolText(usuario.rol)}
+                                    </span>
+                                </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                         {usuario.estado ? 'Activo' : 'Inactivo'}
@@ -208,7 +226,10 @@ function Usuarios() {
                             )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                                <input type="text" value={formData.rol || ''} onChange={(e) => setFormData({ ...formData, rol: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
+                                <select value={formData.rol} onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
+                                    <option value={1}>Administrador</option>
+                                    <option value={2}>Vendedor</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
