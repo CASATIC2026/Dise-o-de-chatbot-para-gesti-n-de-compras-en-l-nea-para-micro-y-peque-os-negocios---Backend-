@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shared.Core.Data;
@@ -11,9 +12,11 @@ using Shared.Core.Data;
 namespace Shared.Core.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260310195235_UpdateUsuarioPasswordHash")]
+    partial class UpdateUsuarioPasswordHash
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,9 +82,6 @@ namespace Shared.Core.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
-                    b.Property<string>("HistorialConversacion")
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -90,12 +90,6 @@ namespace Shared.Core.Migrations
                     b.Property<string>("Telefono")
                         .HasMaxLength(35)
                         .HasColumnType("character varying(35)");
-
-                    b.Property<long?>("TelegramId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("WhatsAppId")
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -391,9 +385,11 @@ namespace Shared.Core.Migrations
                         .HasDefaultValue("150");
 
                     b.Property<bool>("Estado")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("HistorialConversacion")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -401,12 +397,16 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("");
 
-                    b.Property<int>("Rol")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
+                    b.Property<string>("Rol")
+                        .HasColumnType("text");
 
                     b.Property<string>("Telefono")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("TelegramId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WhatsAppId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");

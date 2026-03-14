@@ -1,0 +1,51 @@
+[33m579a069[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mRodrigo-Benitez[m[33m, [m[1;31morigin/Rodrigo-Benitez[m[33m)[m HEAD@{0}: reset: moving to HEAD
+[33m579a069[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mRodrigo-Benitez[m[33m, [m[1;31morigin/Rodrigo-Benitez[m[33m)[m HEAD@{1}: checkout: moving from fix-auth-local to Rodrigo-Benitez
+[33m6f24fc0[m[33m ([m[1;31mfuente-vieja/fix-auth-local[m[33m, [m[1;32mfix-auth-local[m[33m)[m HEAD@{2}: reset: moving to HEAD
+[33m6f24fc0[m[33m ([m[1;31mfuente-vieja/fix-auth-local[m[33m, [m[1;32mfix-auth-local[m[33m)[m HEAD@{3}: commit: WIP: Cambios en Auth y Proxy de Vite (Error 500 pendiente)
+[33mff0729d[m[33m ([m[1;32mDeveloped[m[33m)[m HEAD@{4}: checkout: moving from Developed to fix-auth-local
+[33mff0729d[m[33m ([m[1;32mDeveloped[m[33m)[m HEAD@{5}: checkout: moving from Rodrigo-Benitez to Developed
+[33m579a069[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mRodrigo-Benitez[m[33m, [m[1;31morigin/Rodrigo-Benitez[m[33m)[m HEAD@{6}: pull origin Developed: Merge made by the 'ort' strategy.
+[33mc30e567[m HEAD@{7}: checkout: moving from Developed to Rodrigo-Benitez
+[33mff0729d[m[33m ([m[1;32mDeveloped[m[33m)[m HEAD@{8}: pull --tags origin Developed: Fast-forward
+[33m45bd52e[m HEAD@{9}: reset: moving to HEAD~
+[33md2dcd48[m HEAD@{10}: checkout: moving from Developed to Developed
+[33md2dcd48[m HEAD@{11}: reset: moving to HEAD~
+[33m4365b14[m HEAD@{12}: checkout: moving from Rodrigo-Benitez to Developed
+[33mc30e567[m HEAD@{13}: checkout: moving from Developed to Rodrigo-Benitez
+[33m4365b14[m HEAD@{14}: checkout: moving from Developed to Developed
+[33m4365b14[m HEAD@{15}: pull origin Developed: Merge made by the 'ort' strategy.
+[33md2dcd48[m HEAD@{16}: checkout: moving from Rodrigo-Benitez to Developed
+[33mc30e567[m HEAD@{17}: reset: moving to HEAD
+[33mc30e567[m HEAD@{18}: commit (merge): Finalizando merge: aceptados todos los cambios de Developed
+[33mf984bc3[m HEAD@{19}: reset: moving to HEAD
+[33mf984bc3[m HEAD@{20}: checkout: moving from Developed to Rodrigo-Benitez
+[33md2dcd48[m HEAD@{21}: commit: Guardando cambios temporales en vite config
+[33m45bd52e[m HEAD@{22}: checkout: moving from Developed to Developed
+[33m45bd52e[m HEAD@{23}: pull origin Developed: Fast-forward
+[33m4a42d6c[m HEAD@{24}: checkout: moving from Rodrigo-Benitez to Developed
+[33mf984bc3[m HEAD@{25}: reset: moving to HEAD
+[33mf984bc3[m HEAD@{26}: reset: moving to HEAD
+[33mf984bc3[m HEAD@{27}: commit: Respaldo local: Gateway configurado y Login funcionando
+[33m4aa178b[m HEAD@{28}: checkout: moving from Developed to Rodrigo-Benitez
+[33m4a42d6c[m HEAD@{29}: checkout: moving from Rodrigo-Benitez to Developed
+[33m4aa178b[m HEAD@{30}: reset: moving to HEAD
+[33m4aa178b[m HEAD@{31}: pull origin Developed: Fast-forward
+[33m7727f18[m HEAD@{32}: reset: moving to HEAD
+[33m7727f18[m HEAD@{33}: reset: moving to origin/Developed
+[33m7727f18[m HEAD@{34}: checkout: moving from Rodrigo-Benitez to Rodrigo-Benitez
+[33m7727f18[m HEAD@{35}: pull origin Developed: Fast-forward
+[33m66110be[m HEAD@{36}: checkout: moving from Rodrigo-Benitez to Rodrigo-Benitez
+[33m66110be[m HEAD@{37}: commit: feat: implementar validacion de JWT y mapeo de seguridad para usuarios
+[33m4a42d6c[m HEAD@{38}: checkout: moving from Developed to Rodrigo-Benitez
+[33m4a42d6c[m HEAD@{39}: checkout: moving from Rodrigo-Benitez to Developed
+[33m4a42d6c[m HEAD@{40}: checkout: moving from Developed to Rodrigo-Benitez
+[33m4a42d6c[m HEAD@{41}: checkout: moving from Rodrigo-Benitez to Developed
+[33m4a42d6c[m HEAD@{42}: pull --tags origin Developed: Fast-forward
+[33m3167281[m HEAD@{43}: pull --tags -r origin Rodrigo-Benitez (finish): returning to refs/heads/Rodrigo-Benitez
+[33m3167281[m HEAD@{44}: pull --tags -r origin Rodrigo-Benitez (start): checkout 31672815e9a5a28616bd5dccbd7eeefa3038a86d
+[33m4a42d6c[m HEAD@{45}: reset: moving to HEAD
+[33m4a42d6c[m HEAD@{46}: pull --tags origin Developed: Fast-forward
+[33m3167281[m HEAD@{47}: commit: feat: implementar mapeo de entidades para base de datos relacional
+[33m65f94ec[m[33m ([m[1;31morigin/testPR[m[33m, [m[1;32mLuis-Monge[m[33m)[m HEAD@{48}: checkout: moving from Luis-Monge to Rodrigo-Benitez
+[33m65f94ec[m[33m ([m[1;31morigin/testPR[m[33m, [m[1;32mLuis-Monge[m[33m)[m HEAD@{49}: checkout: moving from main to Luis-Monge
+[33m380ba02[m[33m ([m[1;32mmain[m[33m)[m HEAD@{50}: clone: from https://github.com/CASATIC2026/Dise-o-de-chatbot-para-gesti-n-de-compras-en-l-nea-para-micro-y-peque-os-negocios---Backend-.git
