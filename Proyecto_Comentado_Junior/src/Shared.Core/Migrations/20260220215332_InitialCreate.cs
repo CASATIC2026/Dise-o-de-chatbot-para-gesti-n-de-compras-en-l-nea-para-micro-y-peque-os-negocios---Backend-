@@ -52,15 +52,11 @@ namespace Shared.Core.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Nombre = table.Column<string>(type: "text", nullable: false, defaultValue: ""),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    ContrasenaHash = table.Column<string>(type: "text", nullable: false),
-                    Rol = table.Column<string>(type: "text", nullable: true),
-                    Estado = table.Column<bool>(type: "boolean", nullable: false),
                     TelegramId = table.Column<long>(type: "bigint", nullable: true),
                     WhatsAppId = table.Column<string>(type: "text", nullable: true),
-                    Telefono = table.Column<string>(type: "text", nullable: true),
-                    HistorialConversacion = table.Column<string>(type: "jsonb", nullable: false),
+                    Nombre = table.Column<string>(type: "text", nullable: false, defaultValue: ""),
+                    Telefono = table.Column<string>(type: "text", nullable: false),
+                    HistorialConversacion = table.Column<string>(type: "text", nullable: false),
                     CreadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
@@ -104,7 +100,7 @@ namespace Shared.Core.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ClienteId = table.Column<int>(type: "integer", nullable: false),
                     Asunto = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    Activa = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    Activa = table.Column<bool>(type: "boolean", nullable: false),
                     CreadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },

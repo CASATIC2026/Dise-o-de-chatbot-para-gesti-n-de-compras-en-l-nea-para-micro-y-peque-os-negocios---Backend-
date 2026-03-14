@@ -4,6 +4,7 @@ import api from '../api/client';
 function Pagos() {
     const [pagos, setPagos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingPago, setEditingPago] = useState(null);
     const [formData, setFormData] = useState({
@@ -102,26 +103,47 @@ function Pagos() {
         }
     };
 
+    const filteredPagos = pagos.filter(pago =>
+        pago.referenciaTransaccion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pago.metodoPago.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pago.monto.toString().includes(searchTerm)
+    );
+
     if (loading) {
         return <div className="text-center py-12">Cargando pagos...</div>;
     }
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Pagos</h1>
                     <p className="text-gray-600 mt-2">Gestiona el historial de transacciones</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                >
-                    + Nuevo Pago
-                </button>
+
+                <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
+                    <div className="relative flex-1 sm:w-64">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar pagos..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        title="Nuevo Pago"
+                    >
+                        <span className="text-xl md:mr-2">➕</span>
+                        <span className="hidden md:inline">Nuevo Pago</span>
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-gray-50 border-b">
                         <tr>
@@ -134,14 +156,14 @@ function Pagos() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {pagos.map((pago) => (
+                        {filteredPagos.map((pago) => (
                             <tr key={pago.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900">{pago.pedidoId}</td>
                                 <td className="px-6 py-4 text-gray-900">${pago.monto.toLocaleString('es-CO')}</td>
                                 <td className="px-6 py-4 text-gray-900">{pago.metodoPago}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${pago.estado === 2 ? 'bg-green-100 text-green-800' :
-                                            pago.estado === 1 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                        pago.estado === 1 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                                         }`}>
                                         {getEstadoText(pago.estado)}
                                     </span>
@@ -149,8 +171,20 @@ function Pagos() {
                                 <td className="px-6 py-4 text-gray-500 text-sm">{pago.referenciaTransaccion}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex space-x-2">
-                                        <button onClick={() => handleOpenModal(pago)} className="text-primary-600 hover:text-primary-800 font-medium">Editar</button>
-                                        <button onClick={() => handleDeletePermanently(pago.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                        <button
+                                            onClick={() => handleOpenModal(pago)}
+                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                            title="Editar"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePermanently(pago.id)}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Eliminar"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

@@ -44,7 +44,7 @@ public class AuthController : ControllerBase
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Nombre),
                 new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Role, usuario.Rol ?? "Usuario")
+                new Claim(ClaimTypes.Role, usuario.Rol.ToString() ?? "Administrador")
             }),
             Expires = DateTime.UtcNow.AddMinutes(30), // Basado en tu JWT_EXPIRATION=8h
             SigningCredentials = new SigningCredentials(

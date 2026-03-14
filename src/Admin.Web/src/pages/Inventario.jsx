@@ -4,7 +4,10 @@ import api from '../api/client';
 function Inventario() {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [showImagePreview, setShowImagePreview] = useState(false);
+    const [previewImageUrl, setPreviewImageUrl] = useState('');
     const [editingProduct, setEditingProduct] = useState(null);
     const [formData, setFormData] = useState({
         nombre: '',
@@ -68,6 +71,16 @@ function Inventario() {
     const handleCloseModal = () => {
         setShowModal(false);
         setEditingProduct(null);
+    };
+
+    const handleOpenImagePreview = (url) => {
+        setPreviewImageUrl(url);
+        setShowImagePreview(true);
+    };
+
+    const handleCloseImagePreview = () => {
+        setShowImagePreview(false);
+        setPreviewImageUrl('');
     };
 
     const handleSubmit = async (e) => {
@@ -141,26 +154,47 @@ function Inventario() {
         }
     };
 
+    const filteredProductos = productos.filter(producto =>
+        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        producto.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        producto.categoriaId.toString().includes(searchTerm)
+    );
+
     if (loading) {
         return <div className="text-center py-12">Cargando productos...</div>;
     }
     const hasError = wasSubmitted && !formData.categoriaId; // Solo muestra el error si se ha intentado enviar el formulario y no se ha seleccionado categoría
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Inventario</h1>
                     <p className="text-gray-600 mt-2">Gestiona tu catálogo de productos</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                >
-                    + Nuevo Producto
-                </button>
+
+                <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
+                    <div className="relative flex-1 sm:w-64">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar productos..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        title="Nuevo Producto"
+                    >
+                        <span className="text-xl md:mr-2">➕</span>
+                        <span className="hidden md:inline">Nuevo Producto</span>
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-gray-50 border-b">
                         <tr>
@@ -173,7 +207,7 @@ function Inventario() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {productos.map((producto) => (
+                        {filteredProductos.map((producto) => (
                             <tr key={producto.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4">
                                     <div>
@@ -202,22 +236,32 @@ function Inventario() {
                                 <td className="px-6 py-4">
                                     <div className="flex space-x-2">
                                         <button
-                                            onClick={() => handleOpenModal(producto)}
-                                            className="text-primary-600 hover:text-primary-800 font-medium"
+                                            onClick={() => handleOpenImagePreview(producto.imagenUrl)}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="Ver Imagen"
                                         >
-                                            Editar
+                                            👁️
+                                        </button>
+                                        <button
+                                            onClick={() => handleOpenModal(producto)}
+                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                            title="Editar"
+                                        >
+                                            ✏️
                                         </button>
                                         <button
                                             onClick={() => handleDelete(producto.id)}
-                                            className="text-green-600 hover:text-red-800 font-medium"
+                                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                                            title="Desactivar"
                                         >
-                                            Desactivar
+                                            🚫
                                         </button>
                                         <button
                                             onClick={() => handleDeletePermanently(producto.id)}
-                                            className="text-red-600 hover:text-red-800 font-medium"
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Eliminar"
                                         >
-                                            Eliminar
+                                            🗑️
                                         </button>
                                     </div>
                                 </td>
@@ -360,6 +404,33 @@ function Inventario() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Image Preview Modal */}
+            {showImagePreview && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4"
+                    onClick={handleCloseImagePreview}
+                >
+                    <div className="relative bg-white rounded-xl p-2 max-w-2xl w-full">
+                        <button
+                            className="absolute -top-10 right-0 text-white text-3xl"
+                            onClick={handleCloseImagePreview}
+                        >
+                            ×
+                        </button>
+                        {previewImageUrl ? (
+                            <img
+                                src={previewImageUrl}
+                                alt="Vista previa del producto"
+                                className="w-full h-auto max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                            />
+                        ) : (
+                            <div className="p-12 text-center text-gray-500">
+                                No hay imagen disponible para este producto
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

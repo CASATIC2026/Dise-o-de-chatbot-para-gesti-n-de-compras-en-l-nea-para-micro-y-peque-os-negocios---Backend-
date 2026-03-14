@@ -4,13 +4,14 @@ import api from '../api/client';
 function Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingUsuario, setEditingUsuario] = useState(null);
     const [formData, setFormData] = useState({
         nombre: '',
         email: '',
         contrasenaHash: '',
-        rol: '',
+        rol: 1,
         estado: true,
         telefono: ''
     });
@@ -40,7 +41,7 @@ function Usuarios() {
                 nombre: '',
                 email: '',
                 contrasenaHash: '',
-                rol: '',
+                rol: 1,
                 estado: true,
                 telefono: ''
             });
@@ -62,10 +63,9 @@ function Usuarios() {
                 nombre: formData.nombre,
                 email: formData.email,
                 contrasenaHash: formData.contrasenaHash, // Idealmente esto se maneja distinto
-                rol: formData.rol,
+                rol: Number(formData.rol),
                 estado: Boolean(formData.estado),
                 telefono: formData.telefono,
-                historialConversacion: editingUsuario ? editingUsuario.historialConversacion : "[]"
             };
 
             if (editingUsuario) {
@@ -85,6 +85,21 @@ function Usuarios() {
         }
     };
 
+    const getRolColor = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return 'bg-blue-100 text-blue-800';
+            case 2: return 'bg-green-100 text-green-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getRolText = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return 'Administrador';
+            case 2: return 'Vendedor';
+        }
+    };
+
     const handleDeletePermanently = async (id) => {
         if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
 
@@ -96,26 +111,47 @@ function Usuarios() {
         }
     }
 
+    const filteredUsuarios = usuarios.filter(user =>
+        user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.rol.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (loading) {
         return <div className="text-center py-12">Cargando usuarios...</div>;
     }
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Usuarios</h1>
-                    <p className="text-gray-600 mt-2">Gestiona los usuarios del sistema</p>
+                    <p className="text-gray-600 mt-2">Gestiona los accesos al panel administrativo</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                >
-                    + Nuevo Usuario
-                </button>
+
+                <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
+                    <div className="relative flex-1 sm:w-64">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar usuarios..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        title="Nuevo Usuario"
+                    >
+                        <span className="text-xl md:mr-2">➕</span>
+                        <span className="hidden md:inline">Nuevo Usuario</span>
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-gray-50 border-b">
                         <tr>
@@ -127,11 +163,15 @@ function Usuarios() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {usuarios.map((usuario) => (
+                        {filteredUsuarios.map((usuario) => (
                             <tr key={usuario.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900">{usuario.nombre}</td>
                                 <td className="px-6 py-4 text-gray-900">{usuario.email}</td>
-                                <td className="px-6 py-4 text-gray-900">{usuario.rol || 'N/A'}</td>
+                                <td className="px-6 py-4 ">
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
+                                        {getRolText(usuario.rol)}
+                                    </span>
+                                </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                         {usuario.estado ? 'Activo' : 'Inactivo'}
@@ -139,8 +179,20 @@ function Usuarios() {
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex space-x-2">
-                                        <button onClick={() => handleOpenModal(usuario)} className="text-primary-600 hover:text-primary-800 font-medium">Editar</button>
-                                        <button onClick={() => handleDeletePermanently(usuario.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                        <button
+                                            onClick={() => handleOpenModal(usuario)}
+                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                            title="Editar"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePermanently(usuario.id)}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Eliminar"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -174,7 +226,10 @@ function Usuarios() {
                             )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                                <input type="text" value={formData.rol || ''} onChange={(e) => setFormData({ ...formData, rol: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
+                                <select value={formData.rol} onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
+                                    <option value={1}>Administrador</option>
+                                    <option value={2}>Vendedor</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
