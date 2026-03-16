@@ -19,16 +19,23 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Update update, [FromServices] ITelegramBotClient bot, [FromServices] UpdateHandler handleUpdateService, CancellationToken ct)
+    public async Task<IActionResult> Post([FromBody] Update update,
+    [FromServices] ITelegramBotClient bot,
+    [FromServices] UpdateHandler handleUpdateService,
+    CancellationToken ct)
     {
-        if (Request.Headers["X-Telegram-Bot-Api-Secret-Token"] != Config.Value.SecretToken)
-            return Forbid();
+        // Usamos string.Equals para evitar errores de referencia nula y asegurar comparación segura
+        var receivedToken = Request.Headers["X-Telegram-Bot-Api-Secret-Token"].ToString();
+        if (receivedToken != Config.Value.SecretToken)
+            return Forbid(); // O return Unauthorized();
         try
         {
+            // Procesamiento del mensaje
             await handleUpdateService.HandleUpdateAsync(bot, update, ct);
         }
         catch (Exception exception)
         {
+            // Manejo de errores
             await handleUpdateService.HandleErrorAsync(bot, exception, Telegram.Bot.Polling.HandleErrorSource.HandleUpdateError, ct);
         }
         return Ok();

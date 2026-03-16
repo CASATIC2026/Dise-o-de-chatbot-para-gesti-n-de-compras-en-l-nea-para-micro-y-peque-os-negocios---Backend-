@@ -14,7 +14,7 @@ public class Pedido
     public int Id { get; set; }
 
     // FK Usuario
-    public int UsuarioId { get; set; }
+    public int? UsuarioId { get; set; }
 
     // FK Cliente
     public int ClienteId { get; set; }
@@ -39,8 +39,8 @@ public class Pedido
     public DateTime ActualizadoEn { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    public Usuario Usuario { get; set; } = null!;
-    public Cliente Cliente { get; set; } = null!;
+    public Usuario? Usuario { get; set; } = null!;
+    public Cliente? Cliente { get; set; } = null!;
     public Pago? Pago { get; set; }
 
     public ICollection<PedidoProducto> PedidoProductos { get; set; } = new List<PedidoProducto>();

@@ -261,7 +261,7 @@ namespace Shared.Core.Migrations
                     b.Property<decimal>("Total")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("UsuarioId")
+                    b.Property<int?>("UsuarioId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -375,9 +375,8 @@ namespace Shared.Core.Migrations
 
                     b.Property<string>("ContrasenaHash")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("255");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -386,9 +385,7 @@ namespace Shared.Core.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("150");
+                        .HasColumnType("text");
 
                     b.Property<bool>("Estado")
                         .ValueGeneratedOnAdd()
@@ -458,8 +455,7 @@ namespace Shared.Core.Migrations
                     b.HasOne("Shared.Core.Entities.Usuario", "Usuario")
                         .WithMany("Pedidos")
                         .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Cliente");
 
