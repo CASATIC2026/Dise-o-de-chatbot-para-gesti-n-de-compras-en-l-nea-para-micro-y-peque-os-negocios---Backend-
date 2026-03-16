@@ -1,5 +1,7 @@
-using System.Text;
+using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Services.Pagos.Models;
 
 namespace Services.Pagos.Services;
 
@@ -8,184 +10,144 @@ public class WompiService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WompiService> _logger;
-    private readonly string _publicKey;
-    private readonly string _privateKey;
-    private readonly string _baseUrl;
 
     public WompiService(HttpClient httpClient, IConfiguration configuration, ILogger<WompiService> logger)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
-        
-        _publicKey = _configuration["Wompi:PublicKey"] ?? throw new InvalidOperationException("Wompi PublicKey not configured");
-        _privateKey = _configuration["Wompi:PrivateKey"] ?? throw new InvalidOperationException("Wompi PrivateKey not configured");
-        _baseUrl = "https://sandbox.wompi.co/v1"; // Use production URL in production
     }
 
-    public async Task<WompiTransactionResponse> CrearTransaccion(WompiTransactionRequest request)
+    // 1️⃣ Obtener token OAuth de Wompi
+    private async Task<string> ObtenerTokenAsync()
+    {
+        var clientId = _configuration["Wompi:ClientId"];
+        var clientSecret = _configuration["Wompi:ClientSecret"];
+
+        var content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string,string>("grant_type", "client_credentials"),
+            new KeyValuePair<string,string>("client_id", clientId ?? ""),
+            new KeyValuePair<string,string>("client_secret", clientSecret ?? ""),
+            new KeyValuePair<string,string>("audience", "wompi_api")
+        });
+
+        var response = await _httpClient.PostAsync(
+            "https://id.wompi.sv/connect/token",
+            content
+        );
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Error obteniendo token de Wompi: {Error}", responseContent);
+            return string.Empty;
+        }
+
+        var authResponse = JsonSerializer.Deserialize<WompiAuthResponse>(responseContent);
+
+        if (authResponse == null || string.IsNullOrEmpty(authResponse.AccessToken))
+        {
+            _logger.LogError("Token de Wompi vacío o inválido.");
+            return string.Empty;
+        }
+        _logger.LogInformation("ClientId usado: {ClientId}", clientId);
+        _logger.LogInformation("ClientSecret length: {Length}", clientSecret?.Length);
+        _logger.LogInformation("Token de Wompi obtenido correctamente.");
+
+        return authResponse.AccessToken;
+    }
+
+    // 2️⃣ Crear enlace de pago
+    public async Task<WompiTransactionResponse> CrearEnlacePago(WompiTransactionRequest request)
     {
         try
         {
+            var token = await ObtenerTokenAsync();
+
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new Exception("No se pudo obtener el token de Wompi.");
+            }
+
             var payload = new
             {
-                amount_in_cents = (int)(request.Monto * 100), // Convert to cents
-                currency = "COP",
-                customer_email = request.Email,
-                payment_method = new
+                identificadorEnlaceComercio = request.Referencia,
+                monto = request.Monto,
+                nombreProducto = "Pedido " + request.Referencia,
+
+                formaPago = new
                 {
-                    type = "CARD",
-                    installments = 1
+                    permitirTarjetaCreditoDebido = true
                 },
-                reference = request.Referencia,
-                redirect_url = request.RedirectUrl
+
+                configuracion = new
+                {
+                    urlRedirect = request.RedirectUrl,
+                    esRecurrente = false,
+                    notificarTransaccionCliente = true,
+                    emailsNotificacion = "rodrigobenitez.ag@gmail.com"
+                    
+                },
+
+                limitesDeUso = new
+                {
+                    cantidadMaximaPagosExitosos = 1
+                }
             };
 
-            var jsonContent = JsonSerializer.Serialize(payload);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-            
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_privateKey}");
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _httpClient.PostAsync($"{_baseUrl}/transactions", content);
+            var response = await _httpClient.PostAsJsonAsync(
+                "https://api.wompi.sv/EnlacePago",
+                payload
+            );
+
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Error creating Wompi transaction: {StatusCode} - {Response}", 
-                    response.StatusCode, responseContent);
-                
+                _logger.LogError("Error Wompi SV: {Response}", responseContent);
+
                 return new WompiTransactionResponse
                 {
                     Success = false,
-                    Error = $"Error al crear transacción: {response.StatusCode}"
+                    Error = responseContent
                 };
             }
 
-            var result = JsonSerializer.Deserialize<WompiApiResponse>(responseContent, new JsonSerializerOptions
+            var result = JsonSerializer.Deserialize<WompiEnlaceResponse>(responseContent);
+
+            if (result == null)
             {
-                PropertyNameCaseInsensitive = true
-            });
-
-            _logger.LogInformation("Wompi transaction created: {TransactionId}", result?.Data?.Id);
-
-            return new WompiTransactionResponse
-            {
-                Success = true,
-                TransactionId = result?.Data?.Id ?? string.Empty,
-                PaymentLink = result?.Data?.PaymentLink ?? string.Empty,
-                Status = result?.Data?.Status ?? "PENDING"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception creating Wompi transaction");
-            return new WompiTransactionResponse
-            {
-                Success = false,
-                Error = ex.Message
-            };
-        }
-    }
-
-    public async Task<WompiTransactionStatus> ConsultarTransaccion(string transactionId)
-    {
-        try
-        {
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_publicKey}");
-
-            var response = await _httpClient.GetAsync($"{_baseUrl}/transactions/{transactionId}");
-            var responseContent = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Error querying Wompi transaction: {StatusCode} - {Response}", 
-                    response.StatusCode, responseContent);
-                
-                return new WompiTransactionStatus
+                return new WompiTransactionResponse
                 {
                     Success = false,
-                    Error = $"Error al consultar transacción: {response.StatusCode}"
+                    Error = "Respuesta inválida de Wompi"
                 };
             }
 
-            var result = JsonSerializer.Deserialize<WompiTransactionQueryResponse>(responseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            _logger.LogInformation("Enlace de pago creado correctamente: {Url}", result.UrlEnlace);
 
-            return new WompiTransactionStatus
+            return new WompiTransactionResponse
             {
                 Success = true,
-                TransactionId = result?.Data?.Id ?? transactionId,
-                Status = result?.Data?.Status ?? "UNKNOWN",
-                Reference = result?.Data?.Reference ?? string.Empty,
-                AmountInCents = result?.Data?.AmountInCents ?? 0
+                TransactionId = result.IdEnlace.ToString(),
+                PaymentLink = result.UrlEnlace,
+                Status = "ACTIVO"
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception querying Wompi transaction: {TransactionId}", transactionId);
-            return new WompiTransactionStatus
+            _logger.LogError(ex, "Error creando enlace Wompi SV");
+
+            return new WompiTransactionResponse
             {
                 Success = false,
                 Error = ex.Message
             };
         }
     }
-}
-
-// Request/Response Models
-public class WompiTransactionRequest
-{
-    public decimal Monto { get; set; }
-    public string Email { get; set; } = string.Empty;
-    public string Referencia { get; set; } = string.Empty;
-    public string RedirectUrl { get; set; } = string.Empty;
-}
-
-public class WompiTransactionResponse
-{
-    public bool Success { get; set; }
-    public string TransactionId { get; set; } = string.Empty;
-    public string PaymentLink { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string? Error { get; set; }
-}
-
-public class WompiTransactionStatus
-{
-    public bool Success { get; set; }
-    public string TransactionId { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string Reference { get; set; } = string.Empty;
-    public int AmountInCents { get; set; }
-    public string? Error { get; set; }
-}
-
-// Wompi API Response Models
-public class WompiApiResponse
-{
-    public WompiData? Data { get; set; }
-}
-
-public class WompiData
-{
-    public string Id { get; set; } = string.Empty;
-    public string PaymentLink { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-}
-
-public class WompiTransactionQueryResponse
-{
-    public WompiTransactionData? Data { get; set; }
-}
-
-public class WompiTransactionData
-{
-    public string Id { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string Reference { get; set; } = string.Empty;
-    public int AmountInCents { get; set; }
 }

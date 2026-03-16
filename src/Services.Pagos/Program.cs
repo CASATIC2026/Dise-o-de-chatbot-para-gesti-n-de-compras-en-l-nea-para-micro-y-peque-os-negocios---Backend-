@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Core; // Referencia a la librería 'sistema circulatorio'using Swashbuckle.AspNetCore;
+using Services.Pagos.Services;
 
-
-namespace Services.Inventario;
+namespace Services.Pagos;
 
 public class Program
 {
@@ -12,6 +12,8 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // ... tus registros de servicios ...
+        builder.WebHost.UseUrls("http://0.0.0.0:8080");
+        builder.Services.AddHttpClient<WompiService>();
         builder.Services.AddSharedInfrastructure(builder.Configuration);
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();

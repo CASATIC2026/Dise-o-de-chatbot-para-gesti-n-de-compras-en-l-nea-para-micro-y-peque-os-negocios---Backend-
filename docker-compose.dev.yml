@@ -52,8 +52,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
-      - Wompi__PublicKey=${WOMPI_PUBLIC_KEY}
-      - Wompi__PrivateKey=${WOMPI_PRIVATE_KEY}
+      - Wompi__ClientId=${WOMPI_PUBLIC_KEY}
+      - Wompi__ClientSecret=${WOMPI_PRIVATE_KEY}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
     volumes:
       - ./src/Services.Pagos:/src/Services.Pagos
