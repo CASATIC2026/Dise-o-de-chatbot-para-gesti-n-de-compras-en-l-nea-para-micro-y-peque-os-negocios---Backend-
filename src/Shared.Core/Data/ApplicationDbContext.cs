@@ -42,8 +42,14 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Aplica automáticamente todas las configuraciones
-        // que implementen IEntityTypeConfiguration en el ensamblado
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        modelBuilder.ApplyConfiguration(new CategoriaConfiguration());
+        modelBuilder.ApplyConfiguration(new ClienteConfiguration());
+        modelBuilder.ApplyConfiguration(new ConversacionConfiguration());
+        modelBuilder.ApplyConfiguration(new MensajeConfiguration());
+        modelBuilder.ApplyConfiguration(new PagoConfiguration());
+        modelBuilder.ApplyConfiguration(new PedidoConfiguration());
+        modelBuilder.ApplyConfiguration(new PedidoProductoConfiguration());
+        modelBuilder.ApplyConfiguration(new ProductoConfiguration());
+        modelBuilder.ApplyConfiguration(new UsuarioConfiguration());
     }
 }

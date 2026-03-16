@@ -26,7 +26,22 @@ public class AuthController : ControllerBase
     {
         var usuario = await _context.Usuarios
             .FirstOrDefaultAsync(u => u.Email == request.Email);
-        Console.WriteLine($"Email: {request.Email}, Password: {request.Password}");
+        
+        /*Console.WriteLine($"Email: {request.Email}, Password: {request.Password}");
+        Console.WriteLine("Hash en DB: {hash}" + usuario.ContrasenaHash + " " + usuario.ContrasenaHash.Length);
+        Console.WriteLine(BCrypt.Net.BCrypt.HashPassword(request.Password));
+        if (usuario == null)
+        {
+            Console.WriteLine("Usuario no encontrado en la DB");
+            return Unauthorized();
+        }
+        bool esValido = BCrypt.Net.BCrypt.Verify(request.Password.Trim(), usuario.ContrasenaHash.Trim());
+        if (!esValido)
+        {
+            Console.WriteLine("Contraseña incorrecta");
+            return Unauthorized();
+        }*/
+
         if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Password, usuario.ContrasenaHash))
         {
             return Unauthorized(new { message = "Email o contraseña incorrectos" });

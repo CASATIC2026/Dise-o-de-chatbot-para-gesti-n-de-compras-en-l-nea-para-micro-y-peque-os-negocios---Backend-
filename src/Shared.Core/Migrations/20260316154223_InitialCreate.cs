@@ -57,7 +57,7 @@ namespace Shared.Core.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Nombre = table.Column<string>(type: "text", nullable: false, defaultValue: ""),
                     Email = table.Column<string>(type: "text", nullable: false),
-                    ContrasenaHash = table.Column<string>(type: "text", nullable: false),
+                    ContrasenaHash = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Rol = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
                     Estado = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     Telefono = table.Column<string>(type: "text", nullable: true),
@@ -125,15 +125,15 @@ namespace Shared.Core.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UsuarioId = table.Column<int>(type: "integer", nullable: false),
+                    UsuarioId = table.Column<int>(type: "integer", nullable: true),
+                    ClienteId = table.Column<int>(type: "integer", nullable: false),
                     Estado = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     Total = table.Column<decimal>(type: "numeric", nullable: false),
                     DireccionEntrega = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false, defaultValue: ""),
                     DetallesJson = table.Column<string>(type: "text", nullable: false),
                     ReferenciaWompi = table.Column<string>(type: "text", nullable: true),
                     CreadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    ClienteId = table.Column<int>(type: "integer", nullable: false)
+                    ActualizadoEn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
