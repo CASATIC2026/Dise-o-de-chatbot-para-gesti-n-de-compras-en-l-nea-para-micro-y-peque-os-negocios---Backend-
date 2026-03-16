@@ -18,7 +18,8 @@ builder.Services.AddHttpClient("GatewayApi", client =>
     client.BaseAddress = new Uri(gatewayUrl);
 }
 );
-
+builder.Services.AddScoped<IMenuUI, CategoriasModule>();
+builder.Services.AddScoped<ICatalogoUI, ProductosModule>();
 builder.Services.AddScoped<Webhook.Controllers.Services.UpdateHandler>();
 
 builder.Services.AddControllers();

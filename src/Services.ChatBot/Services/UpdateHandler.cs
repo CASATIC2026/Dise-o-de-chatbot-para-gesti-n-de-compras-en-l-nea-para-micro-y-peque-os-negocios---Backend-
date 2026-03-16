@@ -1,3 +1,4 @@
+using Services.ChatBot.DTOs;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -8,10 +9,10 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Webhook.Controllers.Services;
 
-public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger) : IUpdateHandler
+public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger, IHttpClientFactory httpClientFactory) : IUpdateHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
-
+    private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
     {
         logger.LogInformation("HandleError: {Exception}", exception);
@@ -25,18 +26,106 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
         cancellationToken.ThrowIfCancellationRequested();
         await (update switch
         {
-            { Message: { } message }                        => OnMessage(message),
-            { EditedMessage: { } message }                  => OnMessage(message),
-            { CallbackQuery: { } callbackQuery }            => OnCallbackQuery(callbackQuery),
-            { InlineQuery: { } inlineQuery }                => OnInlineQuery(inlineQuery),
-            { ChosenInlineResult: { } chosenInlineResult }  => OnChosenInlineResult(chosenInlineResult),
-            { Poll: { } poll }                              => OnPoll(poll),
-            { PollAnswer: { } pollAnswer }                  => OnPollAnswer(pollAnswer),
+            { Message: { Text: { } text } message } => OnMessage(message, text),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+            _ => Task.CompletedTask
+        });
+    }
+
+    private async Task OnMessage(Message msg, string text)
+    {
+        if (text == "/start" || text.ToLower().Contains("Catalogo"))
+        {
+            await SendCategories(msg.Chat.Id, 0);
+        }
+        else
+        {
+            await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
+        }
+    }
+
+    private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
+    {
+        var data = callbackQuerry.Data;
+        if (string.IsNullOrEmpty(data)) return;
+
+        var parts = data.Split('_');
+        string action = parts[0];
+        var parts = cb.Data.Split('_');
+        var action = parts[0];
+
+        if (action == "pcat") {
+            var data = await inventario.GetCategorias(int.Parse(parts[1]));
+            // Usamos la interfaz de categorías
+            var markup = menuUI.ConstruirCategorias(data, int.Parse(parts[1]));
+            await bot.EditMessageText(cb.Message.Chat, cb.Message.MessageId, "📂 Menú:", replyMarkup: markup);
+        } 
+        else if (action == "cat" || action == "pprod") {
+            int catId = int.Parse(parts[1]);
+            int page = parts.Length > 2 ? int.Parse(parts[2]) : 0;
+            
+            var data = await inventario.GetProductos(catId, page);
+            // Usamos la interfaz de productos
+            var markup = catalogoUI.ConstruirProductos(data, catId, page);
+            await bot.EditMessageText(cb.Message.Chat, cb.Message.MessageId, "🛍 Productos:", replyMarkup: markup);
+        }
+
+        /*await (action switch
+        {
+            "pcat" => SendCategories(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), callbackQuerry.Message.MessageId),
+            "cat" => SendProducts(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), 0, callbackQuerry.Message.MessageId),
+            "pprod" => SendProducts(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), int.Parse(parts[2]), callbackQuerry.Message.MessageId),
+            _ => Task.CompletedTask
+        });
+
+        await bot.AnswerCallbackQuery(callbackQuerry.Id);*/
+    }
+
+    /*private async Task SendCategories(long chatId, int page, int? messageId = null)
+    {
+        var response = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
+
+        if (response == null || !response.Items.Any()) return;
+
+        var buttons = response.Items.Select(c =>
+        new[] { InlineKeyboardButton.WithCallbackData(c.Nombre, $"cat_{c.Id}") }).ToList();
+
+        //navegacion 
+        var navRow = new List<InlineKeyboardButton>();
+        if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pcat_{page - 1}"));
+        if ((page + 1) * 4 < response.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pcat_{page + 1}"));
+
+        if (navRow.Any()) buttons.Add(navRow.ToArray());
+
+        string text = $"📂 *Categorías* (Página {page + 1})\nSelecciona una para ver productos:";
+
+        if (messageId.HasValue)
+        {
+            await bot.EditMessageText(chatId, messageId.Value, text, parseMode: ParseMode.Markdown, replyMarkup: new InlineKeyboardMarkup(buttons));
+        }
+        else
+        {
+            await bot.SendMessage(chatId, text, parseMode: ParseMode.Markdown, replyMarkup: new InlineKeyboardMarkup(buttons));
+        }
+    }
+
+    /*public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await (update switch
+        {
+            { Message: { } message } => OnMessage(message),
+            { EditedMessage: { } message } => OnMessage(message),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+            { InlineQuery: { } inlineQuery } => OnInlineQuery(inlineQuery),
+            { ChosenInlineResult: { } chosenInlineResult } => OnChosenInlineResult(chosenInlineResult),
+            { Poll: { } poll } => OnPoll(poll),
+            { PollAnswer: { } pollAnswer } => OnPollAnswer(pollAnswer),
             // ChannelPost:
             // EditedChannelPost:
             // ShippingQuery:
             // PreCheckoutQuery:
-            _                                               => UnknownUpdateHandlerAsync(update)
+            _ => UnknownUpdateHandlerAsync(update)
         });
     }
 
@@ -183,5 +272,5 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
     {
         logger.LogInformation("Unknown update type: {UpdateType}", update.Type);
         return Task.CompletedTask;
-    }
+    }*/
 }
