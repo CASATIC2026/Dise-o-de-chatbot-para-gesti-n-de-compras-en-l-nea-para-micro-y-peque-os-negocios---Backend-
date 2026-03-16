@@ -75,7 +75,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     volumes:
-      - ./src/Services.Chatbot:/src/Services.Chatbot
+      - ./src/Services.Chatbot:/src/Services.ChatBot
       - ./src/Shared.Core:/src/Shared.Core
     ports:
       - "5003:8080"

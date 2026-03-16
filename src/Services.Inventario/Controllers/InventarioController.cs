@@ -137,6 +137,21 @@ public class InventarioController : ControllerBase
 
         return NoContent();
     }
+
+    //Personal Queries 
+    [HttpGet("productos/list-4")]
+    public async Task<ActionResult<IEnumerable<Producto>>> GetProductosList(
+        [FromQuery] int page = 0, [FromQuery] int pageSize = 4
+    )
+    {
+        var total = await _context.Productos.CountAsync();
+        var Productos = await _context.Productos.
+        Skip(page * pageSize).
+        Take(pageSize).
+        ToListAsync();
+
+        return Ok(new PagedResult<Producto> { Items = Productos, TotalCount = total });
+    }
     // POST: api/inventario/reservar
     [HttpPost("reservar")]
     public async Task<IActionResult> ReservarStock([FromBody] ReservaProductoRequest request)
