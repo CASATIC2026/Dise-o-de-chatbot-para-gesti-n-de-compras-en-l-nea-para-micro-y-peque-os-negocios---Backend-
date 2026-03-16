@@ -15,7 +15,7 @@ namespace Shared.Core.Entities
 
         // Relación con Conversacion
         public int ConversacionId { get; set; }
-        public Conversacion Conversacion { get; set; }
+        public Conversacion? Conversacion { get; set; }
 
         public string Contenido { get; set; } = string.Empty;
 

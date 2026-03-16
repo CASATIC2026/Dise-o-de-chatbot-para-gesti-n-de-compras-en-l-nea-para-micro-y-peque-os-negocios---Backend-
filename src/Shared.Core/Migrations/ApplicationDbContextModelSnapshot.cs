@@ -79,6 +79,9 @@ namespace Shared.Core.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("HistorialConversacion")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -87,6 +90,12 @@ namespace Shared.Core.Migrations
                     b.Property<string>("Telefono")
                         .HasMaxLength(35)
                         .HasColumnType("character varying(35)");
+
+                    b.Property<long?>("TelegramId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WhatsAppId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -102,7 +111,9 @@ namespace Shared.Core.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activa")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime>("ActualizadoEn")
                         .ValueGeneratedOnAdd()
@@ -362,14 +373,27 @@ namespace Shared.Core.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("ContrasenaHash")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("255");
+
                     b.Property<DateTime>("CreadoEn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("HistorialConversacion")
+                    b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("150");
+
+                    b.Property<bool>("Estado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -377,14 +401,12 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("");
 
+                    b.Property<int>("Rol")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("Telefono")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long?>("TelegramId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("WhatsAppId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");

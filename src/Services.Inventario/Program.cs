@@ -43,7 +43,11 @@ builder.Services.AddAuthentication(x =>
 });
 
 // 3. SERVICIOS BASE
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    // Evita problemas de referencias circulares al serializar entidades con relaciones
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 
 // DbContext
 builder.Services.AddSharedInfrastructure(builder.Configuration);

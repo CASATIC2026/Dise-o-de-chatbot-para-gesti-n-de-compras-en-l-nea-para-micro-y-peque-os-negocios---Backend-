@@ -8,6 +8,7 @@ import ChatbotEngine from './services/ChatbotEngine.js';
 import StateManager from './services/StateManager.js';
 import adminRoutes from './routes/admin.js';
 import { generateToken } from './middleware/Auth.js';
+import axios from 'axios';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,7 +30,7 @@ app.get('/health', (req, res) => {
 app.use('/api/admin', adminRoutes);
 
 // Auth endpoint (simplified - in production use proper user authentication)
-app.post('/api/auth/login', (req, res) => {
+/*app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
 
     // TODO: Implement proper authentication with database
@@ -38,6 +39,19 @@ app.post('/api/auth/login', (req, res) => {
         res.json({ token, username });
     } else {
         res.status(401).json({ message: 'Invalid credentials' });
+    }
+});*/
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const response = await fetch(`${INVENTARIO_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        res.status(500).json({ message: "Error conectando con el servicio de identidad" });
     }
 });
 
@@ -49,6 +63,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Initialize Telegram Bot
+const TELEGRAM_BOT_URL = process.env.CHATBOT_SERVICE_URL || 'http://localhost:5003'
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5001';
 const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://localhost:5002';
@@ -59,14 +74,31 @@ if (!TELEGRAM_BOT_TOKEN) {
 }
 
 console.log('🤖 Initializing Telegram Bot...');
-const chatbot = new ChatbotEngine(TELEGRAM_BOT_TOKEN, INVENTARIO_URL, PAGOS_URL);
+//const chatbot = new ChatbotEngine(TELEGRAM_BOT_TOKEN, INVENTARIO_URL, PAGOS_URL);
+app.post('/api/webhook', async (req, res) => {
+    try {
+        const telegramUpdate = req.body;
+
+        await axios.post(TELEGRAM_BOT_URL + '/api/bot', telegramUpdate, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Telegram-Bot-Api-Secret-Token': 'SOME-SECRET-STRING'
+            }
+        });
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error reenviando a .NET:", error);
+        res.sendStatus(500);
+    }
+});
 
 // Start server
 app.listen(PORT, () => {
     console.log(`✅ Gateway server running on port ${PORT}`);
     console.log(`📦 Inventory Service: ${INVENTARIO_URL}`);
     console.log(`💳 Payments Service: ${PAGOS_URL}`);
-    console.log(`🤖 Telegram Bot: Active`);
+    console.log(`🤖 Telegram Bot: ${TELEGRAM_BOT_URL}`);
+
 });
 
 // Graceful shutdown

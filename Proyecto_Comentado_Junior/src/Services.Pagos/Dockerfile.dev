@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj and restore dependencies
+COPY ["Services.Pagos/Services.Pagos.csproj", "Services.Pagos/"]
+COPY ["Shared.Core/Shared.Core.csproj", "Shared.Core/"]
+RUN dotnet restore "Services.Pagos/Services.Pagos.csproj"
+
+# Copy everything else and build
+COPY . .
+WORKDIR "/src/Services.Pagos"
+
+# En desarrollo no publicamos; usamos el SDK para observar cambios
+EXPOSE 8080
+CMD ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:8080", "--non-interactive"]

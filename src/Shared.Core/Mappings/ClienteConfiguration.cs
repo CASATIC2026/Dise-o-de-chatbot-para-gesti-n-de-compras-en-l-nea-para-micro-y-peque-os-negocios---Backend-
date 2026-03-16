@@ -18,6 +18,9 @@ namespace Shared.Core.Mappings
             builder.Property(c => c.Email).HasMaxLength(120);
             builder.Property(c => c.CreadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");
             builder.Property(c => c.ActualizadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            builder.Property(c => c.TelegramId);
+            builder.Property(c => c.WhatsAppId);
+            builder.Property(c => c.HistorialConversacion).HasColumnType("jsonb");
             // 4. Relations
             //One to Many
             builder.HasMany(c => c.Pedidos).
