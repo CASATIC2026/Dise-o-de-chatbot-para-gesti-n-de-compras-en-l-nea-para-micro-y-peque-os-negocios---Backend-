@@ -7,6 +7,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 using Services.ChatBot.Interfaces;
+using Shared.Core.Entities;
 
 namespace Webhook.Controllers.Services;
 
@@ -14,7 +15,8 @@ public class UpdateHandler(ITelegramBotClient bot,
 ILogger<UpdateHandler> logger,
 IHttpClientFactory httpClientFactory,
 IMenuUI menuUI,
-ICatalogoUI catalogoUI
+ICatalogoUI catalogoUI,
+IBotPersistencia _persistencia
 ) : IUpdateHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
@@ -29,6 +31,25 @@ ICatalogoUI catalogoUI
 
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
+        if (update.CallbackQuery is not { } cb) return;
+        var conv = await _persistencia.ObtenerConversacionActiva(cb.From.Id);
+        if (conv != null)
+        {
+            var tiempoLimite = TimeSpan.FromSeconds(120);
+            var inactividad = DateTime.UtcNow - conv.ActualizadoEn;
+
+            bool esMessajeValido = cb.Message.MessageId.ToString() == conv.Asunto;
+            bool estaEnTiempo = inactividad < tiempoLimite;
+
+            if (!esMessajeValido || !estaEnTiempo)
+            {
+                await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
+                await _utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado");
+                return;
+            }
+        }
+        if (conv != null) await _persistencia.RegistrarMensaje(conv.Id, $"Clic en: {cb.Data}", TipoRemitente.Cliente);
+
         cancellationToken.ThrowIfCancellationRequested();
         await (update switch
         {
@@ -69,6 +90,9 @@ ICatalogoUI catalogoUI
 
     private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
     {
+
+
+        //Logica de consumo de productos
         var rf = callbackQuerry.Data;
         if (string.IsNullOrEmpty(rf)) return;
 
