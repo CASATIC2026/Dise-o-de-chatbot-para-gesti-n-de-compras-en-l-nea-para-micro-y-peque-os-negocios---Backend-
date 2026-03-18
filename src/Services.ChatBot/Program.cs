@@ -1,6 +1,7 @@
 using Telegram.Bot;
 using Webhook.Controllers;
-
+using Services.ChatBot.Interfaces;
+using Services.ChatBot.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Setup bot configuration

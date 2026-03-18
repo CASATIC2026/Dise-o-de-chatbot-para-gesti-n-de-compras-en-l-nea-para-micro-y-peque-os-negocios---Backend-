@@ -6,10 +6,16 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
+using Services.ChatBot.Interfaces;
 
 namespace Webhook.Controllers.Services;
 
-public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger, IHttpClientFactory httpClientFactory) : IUpdateHandler
+public class UpdateHandler(ITelegramBotClient bot,
+ILogger<UpdateHandler> logger,
+IHttpClientFactory httpClientFactory,
+IMenuUI menuUI,
+ICatalogoUI catalogoUI
+) : IUpdateHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
     private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
@@ -31,43 +37,75 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
             _ => Task.CompletedTask
         });
     }
+    async Task<Message> RemoveKeyboard(Message msg)
+    {
+        return await bot.EditMessageText(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
+    }
 
     private async Task OnMessage(Message msg, string text)
     {
         if (text == "/start" || text.ToLower().Contains("Catalogo"))
         {
-            await SendCategories(msg.Chat.Id, 0);
+            CallbackQuery callbackQuerry = new CallbackQuery
+            {
+                Data = "pcat_0",
+                Message = new Message
+                {
+                    Chat = msg.Chat
+                }
+            };
+
+            _ = OnCallbackQuery(callbackQuerry);
         }
         else
         {
             await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
         }
+        if (text == "/remove")
+        {
+            await RemoveKeyboard(msg);
+        }
     }
 
     private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
     {
-        var data = callbackQuerry.Data;
-        if (string.IsNullOrEmpty(data)) return;
+        var rf = callbackQuerry.Data;
+        if (string.IsNullOrEmpty(rf)) return;
 
-        var parts = data.Split('_');
-        string action = parts[0];
-        var parts = cb.Data.Split('_');
+        var parts = rf.Split('_');
         var action = parts[0];
-
-        if (action == "pcat") {
-            var data = await inventario.GetCategorias(int.Parse(parts[1]));
+        Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}");
+        //Console.WriteLine(action.ToString());
+        if (action == "pcat")
+        {
+            int page = int.Parse(parts[1]);
+            var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
+            if (data == null || !data.Items.Any()) return;
             // Usamos la interfaz de categorías
-            var markup = menuUI.ConstruirCategorias(data, int.Parse(parts[1]));
-            await bot.EditMessageText(cb.Message.Chat, cb.Message.MessageId, "📂 Menú:", replyMarkup: markup);
-        } 
-        else if (action == "cat" || action == "pprod") {
+            var markup = menuUI.BuildUICategorias(data, page);
+            //Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}, Markup {data.TotalCount}");
+            if (callbackQuerry.Message.MessageId == null || callbackQuerry.Message.MessageId == 0)
+                await bot.SendMessage(callbackQuerry.Message!.Chat, "📂 Menú:", replyMarkup: markup);
+            else
+                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, "📂 Menú:", replyMarkup: markup);
+        }
+        else if (action == "cat" || action == "pprod")
+        {
             int catId = int.Parse(parts[1]);
             int page = parts.Length > 2 ? int.Parse(parts[2]) : 0;
-            
-            var data = await inventario.GetProductos(catId, page);
-            // Usamos la interfaz de productos
-            var markup = catalogoUI.ConstruirProductos(data, catId, page);
-            await bot.EditMessageText(cb.Message.Chat, cb.Message.MessageId, "🛍 Productos:", replyMarkup: markup);
+            Console.WriteLine($"CatId {callbackQuerry.Data}, Page {page}");
+            var data = await _gateway.GetFromJsonAsync<PagedResult<ProductoDTO>>($"productos/list-4/{catId}?page={page}&pageSize=4");
+            var categoria = await _gateway.GetFromJsonAsync<CategoriaDTO>($"categorias/{catId}");
+            var markup = catalogoUI.BuildUIProductos(data, catId, page);
+            if (data == null || !data.Items.Any())
+            {
+                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n No se encontraron Productos:", replyMarkup: markup);
+            }
+            else
+            {
+                // Usamos la interfaz de productos                
+                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n 🛍 Productos:", replyMarkup: markup);
+            }
         }
 
         /*await (action switch
@@ -81,7 +119,11 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
         await bot.AnswerCallbackQuery(callbackQuerry.Id);*/
     }
 
-    /*private async Task SendCategories(long chatId, int page, int? messageId = null)
+    /*
+    
+    
+
+    private async Task SendCategories(long chatId, int page, int? messageId = null)
     {
         var response = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
 
