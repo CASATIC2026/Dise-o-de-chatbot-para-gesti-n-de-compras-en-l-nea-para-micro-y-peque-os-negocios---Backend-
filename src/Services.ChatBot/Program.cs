@@ -2,6 +2,7 @@ using Telegram.Bot;
 using Webhook.Controllers;
 using Services.ChatBot.Interfaces;
 using Services.ChatBot.Models;
+using Webhook.Controllers.Controllers;
 var builder = WebApplication.CreateBuilder(args);
 
 // Setup bot configuration
@@ -22,7 +23,8 @@ builder.Services.AddHttpClient("GatewayApi", client =>
 builder.Services.AddScoped<IMenuUI, CategoriasModule>();
 builder.Services.AddScoped<ICatalogoUI, ProductosModule>();
 builder.Services.AddScoped<Webhook.Controllers.Services.UpdateHandler>();
-
+builder.Services.AddScoped<IUtilsUI, UtilsModule>();
+builder.Services.AddScoped<IBotPersistencia, SqlBotPersistence>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
