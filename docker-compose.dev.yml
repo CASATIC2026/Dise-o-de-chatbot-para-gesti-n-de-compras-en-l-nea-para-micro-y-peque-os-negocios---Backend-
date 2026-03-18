@@ -27,13 +27,14 @@ services:
     container_name: inventario-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      # CAMBIO: Host=postgres para coincidir con el nombre del servicio arriba
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
     volumes:
       - ./src/Services.Inventario:/src/Services.Inventario
       - ./src/Shared.Core:/src/Shared.Core
+      - /src/Shared.Core/bin
+      - /src/Shared.Core/obj
     ports:
       - "5001:8080"
     depends_on:
@@ -42,7 +43,6 @@ services:
     networks:
       - chatbot-network
 
-  # Node.js Gateway & Chatbot
   # Payments Microservice (.NET 8)
   pagos-service:
     build:
@@ -58,6 +58,8 @@ services:
     volumes:
       - ./src/Services.Pagos:/src/Services.Pagos
       - ./src/Shared.Core:/src/Shared.Core
+      - /src/Shared.Core/bin
+      - /src/Shared.Core/obj
     ports:
       - "5002:8080"
     depends_on:
@@ -77,6 +79,8 @@ services:
     volumes:
       - ./src/Services.Chatbot:/src/Services.Chatbot
       - ./src/Shared.Core:/src/Shared.Core
+      - /src/Shared.Core/bin
+      - /src/Shared.Core/obj
     ports:
       - "5003:8080"
     networks:
@@ -101,7 +105,7 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - INVENTARIO_SERVICE_URL=http://inventario-service:8080
-      - PAGOS_SERVICE_URL=http://pagos-service:8080
+      - PAGOS_SERVICE_URL=http://inventario-service:8080
       - CHATBOT_SERVICE_URL=http://chatbot-service:8080
     volumes:
       - ./src/Gateway.NodeJS:/app
@@ -111,6 +115,7 @@ services:
     depends_on:
       - postgres
       - inventario-service
+      - pagos-service
     networks:
       - chatbot-network
 
