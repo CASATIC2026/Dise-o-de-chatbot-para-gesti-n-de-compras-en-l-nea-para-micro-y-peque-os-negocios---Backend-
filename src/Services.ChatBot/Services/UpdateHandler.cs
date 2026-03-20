@@ -8,6 +8,7 @@ using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Entities;
+using Shared.Core.Entities;
 
 namespace Webhook.Controllers.Services;
 
