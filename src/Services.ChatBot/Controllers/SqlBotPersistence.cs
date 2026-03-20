@@ -10,21 +10,34 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 {
     public async Task<Conversacion?> ObtenerConversacionActiva(long clienteId)
     {
-        return await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == clienteId && c.Activa == true);
+        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == clienteId);
+        if (cliente == null ) return null;
+        return await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == cliente.Id && c.Activa == true);
     }
 
-    public async Task ActualizarConversacion(int clienteId, int messageId, bool activa)
+    public async Task ActualizarConversacion(long clienteId, int messageId, bool activa)
     {
-        var conv = await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == clienteId);
-        if (conv != null)
+        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == clienteId);
+        var elder = await context.Conversaciones.Where(c => c.ClienteId == cliente!.Id && c.Activa).ToListAsync();
+
+        foreach (var v in elder)
         {
-            conv = new Conversacion { ClienteId = (int)clienteId, CreadoEn = DateTime.UtcNow };
-            context.Conversaciones.Add(conv);
+            v.Activa = false;
+            v.ActualizadoEn = DateTime.UtcNow;
         }
-        else { return; }
+        
+        //var conv = await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == cliente!.Id);
+        var conv = await ObtenerConversacionActiva(cliente!.Id);
+        Console.WriteLine("conversacion", conv);
+        if (conv == null)
+        {
+            conv = new Conversacion { ClienteId = (int)cliente!.Id, CreadoEn = DateTime.UtcNow };
+            context.Conversaciones.Add(conv);
+        } else { return; }
         conv.Asunto = messageId.ToString();
         conv.Activa = true;
         conv.ActualizadoEn = DateTime.UtcNow;
+
         await context.SaveChangesAsync();
     }
 
@@ -37,8 +50,28 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             Remitente = remitente,
             FechaEnvio = DateTime.UtcNow
         });
-
+        context.Conversaciones.FirstOrDefault(c=> c.Id == conversacionId).ActualizadoEn = DateTime.UtcNow;
         await context.SaveChangesAsync();
+    }
+
+    public async Task RegistrarCliente(long TelegramId, string nombre)
+    {
+        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
+        //Console.WriteLine("s"+cliente.TelegramId);
+        if (cliente == null)
+        {
+            Console.WriteLine("s"+TelegramId +" "+nombre );
+            context.Clientes.Add(
+                new Cliente
+                {
+                    TelegramId = TelegramId,
+                    Nombre = nombre ?? "Usuario Telegram",
+                    CreadoEn = DateTime.UtcNow,
+                    ActualizadoEn = DateTime.UtcNow
+                }
+            );
+            await context.SaveChangesAsync();
+        }
     }
 
 }

@@ -8,6 +8,7 @@ using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Entities;
+using Shared.Core.Entities;
 
 namespace Webhook.Controllers.Services;
 
@@ -32,6 +33,13 @@ IBotPersistencia _persistencia
 
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
+        if (update.Message is { Text: { } } msg)
+        {
+            await OnMessage(msg, msg.Text);
+            return;
+        }
+
+
         if (update.CallbackQuery is not { } cb) return;
         var conv = await _persistencia.ObtenerConversacionActiva(cb.From.Id);
         if (conv != null)
@@ -68,6 +76,13 @@ IBotPersistencia _persistencia
     {
         if (text == "/start" || text.ToLower().Contains("Catalogo"))
         {
+
+            var telegramId = msg.From.Id;
+            var name = msg.From.FirstName + "" + msg.From.LastName;
+            await _persistencia.RegistrarCliente(telegramId, name.Trim());
+            var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>("categorias/list-6?page=0&pageSize=6");
+            var markup = menuUI.BuildUICategorias(data, 0);
+            Console.WriteLine("Punto A");
             CallbackQuery callbackQuerry = new CallbackQuery
             {
                 Data = "pcat_0",
@@ -76,8 +91,23 @@ IBotPersistencia _persistencia
                     Chat = msg.Chat
                 }
             };
+            Console.WriteLine("Punto B "+msg.Id );
 
-            _ = OnCallbackQuery(callbackQuerry);
+            //var enviado = await bot.SendMessage(msg.Chat, "📂 Menú:",OnCallbackQuery(callbackQuerry));
+            //var enviado = OnCallbackQuery(callbackQuerry);
+
+            // 3. Enviar el menú
+            var enviado = await bot.SendMessage(msg.Chat, "📂 *Bienvenido al Catálogo*\nSelecciona una categoría:",
+                parseMode: ParseMode.Markdown,
+                replyMarkup: markup);
+            Console.WriteLine("id msg" + enviado.Id);
+            await _persistencia.ActualizarConversacion(msg.From.Id, enviado.Id, true);
+
+            var conv = await _persistencia.ObtenerConversacionActiva(msg.From.Id);
+            if (conv != null)
+            {
+                await _persistencia.RegistrarMensaje(conv.Id, "Comando /start ejecutado", TipoRemitente.Cliente);
+            }
         }
         else
         {
@@ -100,7 +130,7 @@ IBotPersistencia _persistencia
         var parts = rf.Split('_');
         var action = parts[0];
         Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}");
-        //Console.WriteLine(action.ToString());
+        Console.WriteLine(action);
         if (action == "pcat")
         {
             int page = int.Parse(parts[1]);
