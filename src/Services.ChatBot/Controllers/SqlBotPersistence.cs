@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Data;
 using Shared.Core.Entities;
@@ -73,5 +72,73 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             await context.SaveChangesAsync();
         }
     }
+    
+    public async Task<(bool Success, string msg)> AgregarProducto(long TelegramId, int productoId, int cantidad)
+    {
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            //Verificar cliente en base
+            var cliente = await context.Clientes.FirstOrDefaultAsync(c=> c.TelegramId == TelegramId);
+            if (cliente == null) return (false, "Cliente no encontrado. Escribe /start para iniciar una nueva compra");
 
+            //Verificar disponibilidad de stock
+            var producto = await context.Productos.FindAsync(productoId);
+            if (producto == null || !producto.Activo) return (false, "Producto no disponible");
+            if (producto.StockDisponible < cantidad || producto.StockReservado <= 0) return (false, "Lo sentimos, no queda stock suficiente.");
+
+            //Verificar si existen pedidos
+            var pedido = await context.Pedidos
+            .Include(p => p.PedidoProductos)
+            .FirstOrDefaultAsync(p => p.ClienteId == cliente.Id 
+            && p.Estado == EstadoPedido.Pendiente);
+
+            if (pedido == null)
+            {
+                pedido = new Pedido
+                {
+                  ClienteId = cliente.Id,
+                  Estado = EstadoPedido.Pendiente,
+                  CreadoEn = DateTime.UtcNow,
+                  ActualizadoEn = DateTime.UtcNow,
+                  Total = 0
+                };
+                context.Pedidos.Add(pedido);
+                await context.SaveChangesAsync();
+            }
+
+            //Gestion de Carrito en PedidoProducto
+            var item = pedido.PedidoProductos.FirstOrDefault(p => p.ProductoId == productoId);
+
+            if (item == null) //Validar la cantidad de entrada!
+            {
+                item = new PedidoProducto
+                {
+                    PedidoId = pedido.Id,
+                    ProductoId = productoId,
+                    Cantidad = cantidad,
+                    PrecioUnitario = producto.Precio,
+                    CreadoEn = DateTime.UtcNow
+                    
+                };
+                context.PedidoProductos.Add(item);
+                
+            } else
+            {
+                item.Cantidad += cantidad;
+            }
+
+            producto.StockReservado += cantidad;
+            pedido.ActualizadoEn = DateTime.UtcNow;
+            pedido.Total += (producto.Precio * cantidad); //Actualizar al descartar producto!
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return (true,$"{producto.Nombre} añadido al carrito");
+        }catch(Exception e)
+        {
+            await transaction.RollbackAsync();
+            return (false,"Error al procesar la reserva"+ e.Message );
+        }
+    }
 }

@@ -4,11 +4,9 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.ReplyMarkups;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Entities;
-using Shared.Core.Entities;
+
 
 namespace Webhook.Controllers.Services;
 
@@ -53,7 +51,7 @@ IBotPersistencia _persistencia
             if (!esMessajeValido || !estaEnTiempo)
             {
                 await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
-                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado");
+                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado", null);
                 return;
             }
         }
@@ -91,7 +89,7 @@ IBotPersistencia _persistencia
                     Chat = msg.Chat
                 }
             };
-            Console.WriteLine("Punto B "+msg.Id );
+            Console.WriteLine("Punto B " + msg.Id);
 
             //var enviado = await bot.SendMessage(msg.Chat, "📂 Menú:",OnCallbackQuery(callbackQuerry));
             //var enviado = OnCallbackQuery(callbackQuerry);
@@ -161,6 +159,26 @@ IBotPersistencia _persistencia
                 // Usamos la interfaz de productos                
                 await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n 🛍 Productos:", replyMarkup: markup);
             }
+        }
+        if(action == "prod")
+        {
+            int prodId = int.Parse(parts[1]);
+            var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
+
+            Console.WriteLine($"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}");
+            await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}", replyMarkup: null);
+            //await utilsUI.InvalidarMenu(callbackQuerry.Message.Chat.Id, callbackQuerry.Message.MessageId, "Selección procesada.", action);
+        }
+        if (action.StartsWith("add_prod_"))
+        {
+            int prodId = int.Parse(action.Replace("add_prod_", ""));
+
+            var resultado = await _persistencia.AgregarProducto(callbackQuerry.From.Id, prodId, 1);
+            if (resultado.Success)
+
+                await bot.AnswerCallbackQuery(callbackQuerry.Id, resultado.msg);
+            else
+                await bot.AnswerCallbackQuery(callbackQuerry.Id, $"Error: {resultado.msg}", showAlert: true);
         }
 
         /*await (action switch
