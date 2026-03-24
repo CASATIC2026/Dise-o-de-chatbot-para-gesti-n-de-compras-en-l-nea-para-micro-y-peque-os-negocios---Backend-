@@ -4,11 +4,13 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.ReplyMarkups;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Entities;
+using Telegram.Bot.Types.ReplyMarkups;
+using Shared.Core.Data;
 using Shared.Core.Entities;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace Webhook.Controllers.Services;
 
@@ -18,7 +20,8 @@ IHttpClientFactory httpClientFactory,
 IMenuUI menuUI,
 ICatalogoUI catalogoUI,
 IUtilsUI utilsUI,
-IBotPersistencia _persistencia
+IBotPersistencia _persistencia,
+ApplicationDbContext context
 ) : IUpdateHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
@@ -53,7 +56,7 @@ IBotPersistencia _persistencia
             if (!esMessajeValido || !estaEnTiempo)
             {
                 await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
-                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado");
+                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado", null);
                 return;
             }
         }
@@ -74,6 +77,14 @@ IBotPersistencia _persistencia
 
     private async Task OnMessage(Message msg, string text)
     {
+        var conv = await _persistencia.ObtenerConversacionActiva(msg.From.Id);        
+        if(conv == null) return;
+
+        var lastMsg = await context.Mensajes.Where(m => 
+        m.ConversacionId == conv.Id)
+        .OrderByDescending(m => m.FechaEnvio)
+        .FirstOrDefaultAsync();
+        
         if (text == "/start" || text.ToLower().Contains("Catalogo"))
         {
 
@@ -91,7 +102,7 @@ IBotPersistencia _persistencia
                     Chat = msg.Chat
                 }
             };
-            Console.WriteLine("Punto B "+msg.Id );
+            Console.WriteLine("Punto B " + msg.Id);
 
             //var enviado = await bot.SendMessage(msg.Chat, "📂 Menú:",OnCallbackQuery(callbackQuerry));
             //var enviado = OnCallbackQuery(callbackQuerry);
@@ -102,27 +113,37 @@ IBotPersistencia _persistencia
                 replyMarkup: markup);
             Console.WriteLine("id msg" + enviado.Id);
             await _persistencia.ActualizarConversacion(msg.From.Id, enviado.Id, true);
-
-            var conv = await _persistencia.ObtenerConversacionActiva(msg.From.Id);
+                    
             if (conv != null)
             {
                 await _persistencia.RegistrarMensaje(conv.Id, "Comando /start ejecutado", TipoRemitente.Cliente);
             }
-        }
-        else
-        {
-            await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
-        }
+            return;
+        }        
         if (text == "/remove")
         {
             await RemoveKeyboard(msg);
         }
+        if(lastMsg != null && lastMsg.Remitente == TipoRemitente.Sistema && lastMsg.Contenido.Contains("[ID:")){
+            if (int.TryParse(text, out int cantidad) && cantidad > 0)
+            {
+                int prodId = int.Parse(lastMsg.Contenido.Split(":")[1].Split("]")[0]);
+                var res = await _persistencia.AgregarProducto(msg.From.Id, prodId, cantidad);
+
+                await bot.SendMessage(msg.Chat, res.msg);
+                return;
+            }
+            else
+            {
+                await bot.SendMessage(msg.Chat.Id, "Valor invalido. Por favor, solo numeros mayores a 0.");
+                return;
+            }
+        }
+        await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
     }
 
     private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
     {
-
-
         //Logica de consumo de productos
         var rf = callbackQuerry.Data;
         if (string.IsNullOrEmpty(rf)) return;
@@ -131,6 +152,7 @@ IBotPersistencia _persistencia
         var action = parts[0];
         Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}");
         Console.WriteLine(action);
+        
         if (action == "pcat")
         {
             int page = int.Parse(parts[1]);
@@ -161,6 +183,106 @@ IBotPersistencia _persistencia
                 // Usamos la interfaz de productos                
                 await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n 🛍 Productos:", replyMarkup: markup);
             }
+        }
+        if(action == "prod")
+        {
+            int prodId = int.Parse(parts[1]);
+            int catId = int.Parse(parts[2]);
+            int page = int.Parse(parts[3]);
+
+            var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
+
+            string msg = $"📦 {data.Nombre}\n"+ 
+            $"\n\tPrecio: ${data.Precio}"+
+            $"\n\tStock: {data.StockDisponible}";
+            
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("-", $"dec_{prodId}"),
+                    InlineKeyboardButton.WithCallbackData("1", $"none"),
+                    InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}"),
+                    InlineKeyboardButton.WithCallbackData("+", $"inc_{prodId}")
+                },
+
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Anadir", $"add_prod_{prodId}_1")
+                },
+
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Volver", $"cat_{catId}_{page}")
+                }
+            });
+
+            await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, msg, replyMarkup: keyboard);
+
+            Console.WriteLine($"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}");
+            //await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}", replyMarkup: null);
+            //await utilsUI.InvalidarMenu(callbackQuerry.Message.Chat.Id, callbackQuerry.Message.MessageId, "Selección procesada.", action);
+        }
+        if (action == "inc" || action == "dec")
+        {
+            int prodId = int.Parse(parts[1]);
+            int catId = int.Parse(parts[2]);
+            int page = int.Parse(parts[3]);
+            var currentMkp = callbackQuerry.Message!.ReplyMarkup;
+
+            int currentQty = int.Parse(currentMkp.InlineKeyboard.ElementAt(0).ElementAt(1).Text);
+
+            if (action == "inc") currentQty++;
+            else if( currentQty > 1) currentQty--;
+
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("-", $"dec_{prodId}"),
+                    InlineKeyboardButton.WithCallbackData($"{currentQty}", $"none"),
+                    InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}"),
+                    InlineKeyboardButton.WithCallbackData("+", $"inc_{prodId}")
+                },
+
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData($"Anadir {currentQty}", $"add_prod_{prodId}_{currentQty}")
+                },
+
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Volver", $"cat_{catId}_{page}")
+                }
+            });
+
+            await bot.EditMessageReplyMarkup(callbackQuerry.Message.Chat.Id, callbackQuerry.Message.MessageId, keyboard);
+        }
+        if( action == "edit_qty")
+        {
+            int prodId = int.Parse(parts[1]);
+
+            string instruction = $"[ID: {prodId}] Por favor, ingresa la cantidad deseada para el producto";
+
+            var send = await bot.SendMessage(callbackQuerry.Message!.Chat, instruction);
+
+            var conv = await _persistencia.ObtenerConversacionActiva(callbackQuerry.From.Id);
+            if(conv != null)
+            {
+                await _persistencia.RegistrarMensaje(conv.Id, instruction, TipoRemitente.Sistema);
+            }            
+        }
+        if (rf.StartsWith("add_prod_"))
+        {
+            //int prodId = int.Parse(action.Replace("add_prod_", ""));
+            
+            int prodId = int.Parse(parts[2]);
+            int cantidad = int.Parse(parts[3]);
+            var resultado = await _persistencia.AgregarProducto(callbackQuerry.From.Id, prodId, cantidad);
+            if (resultado.Success)
+                await bot.AnswerCallbackQuery(callbackQuerry.Id, resultado.msg);
+            else
+                await bot.AnswerCallbackQuery(callbackQuerry.Id, $"Error: {resultado.msg}", showAlert: true);
         }
 
         /*await (action switch
