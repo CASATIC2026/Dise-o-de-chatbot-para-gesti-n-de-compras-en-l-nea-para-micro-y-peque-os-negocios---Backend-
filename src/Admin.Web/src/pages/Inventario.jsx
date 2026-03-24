@@ -13,7 +13,7 @@ function Inventario() {
         nombre: '',
         descripcion: '',
         precio: 0,
-        stock: 0,
+        stockTotal: 0,
         imagenUrl: '',
         activo: true
 
@@ -59,7 +59,7 @@ function Inventario() {
                 nombre: '',
                 descripcion: '',
                 precio: 0,
-                stock: 0,
+                stockTotal: 0,
                 imagenUrl: '',
                 activo: true
 
@@ -97,7 +97,7 @@ function Inventario() {
                 nombre: formData.nombre,
                 descripcion: formData.descripcion,
                 precio: Number(formData.precio),
-                stock: Number(formData.stock),
+                stockTotal: Number(formData.stockTotal),
                 imagenUrl: formData.imagenUrl,
                 activo: Boolean(formData.activo),
                 categoriaId: Number(formData.categoriaId)
@@ -199,8 +199,10 @@ function Inventario() {
                     <thead className="bg-gray-50 border-b">
                         <tr>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>                            
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Disponible</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Reservado</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
@@ -218,11 +220,17 @@ function Inventario() {
                                 <td className="px-6 py-4 text-gray-900">
                                     ${producto.precio.toLocaleString('es-CO')}
                                 </td>
+                                <td className="px-6 py-4 text-gray-900">
+                                    {producto.stockDisponible}
+                                </td>
+                                <td className="px-6 py-4 text-gray-900">
+                                    {producto.stockReservado}
+                                </td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${producto.stock < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${producto.stockTotal < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                                         }`}>
-                                        {producto.stock}
-                                    </span>
+                                        {producto.stockTotal}
+                                    </span>                                    
                                 </td>
                                 <td className="px-6 py-4 text-gray-900">
                                     {producto.categoria.nombre}
@@ -350,13 +358,13 @@ function Inventario() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
                                     <input
                                         type="number"
-                                        value={formData.stock}
+                                        value={formData.stockTotal}
                                         onKeyDown={(e) => ["e", "E", "+", "-", ",", "."].includes(e.key) && e.preventDefault()}// Evita la entrada de caracteres no numéricos
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             // Permite solo números enteros positivos
                                             if (val === "" || /^\d+$/.test(val)) {
-                                                setFormData({ ...formData, stock: val });
+                                                setFormData({ ...formData, stockTotal: val });
                                             }
                                         }}
                                         min="0"
