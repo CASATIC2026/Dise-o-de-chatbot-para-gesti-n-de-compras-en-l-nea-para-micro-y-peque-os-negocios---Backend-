@@ -16,7 +16,9 @@ namespace Shared.Core.Mappings
             builder.Property(p => p.Nombre).HasMaxLength(50);
             builder.Property(p => p.Descripcion).HasMaxLength(200);
             builder.Property(p => p.Precio).IsRequired();
-            builder.Property(p => p.Stock).IsRequired();
+            builder.Property(p => p.StockTotal).IsRequired();
+            builder.Property(p => p.StockReservado).HasDefaultValue(0);
+            builder.Property(p => p.StockDisponible).HasComputedColumnSql("\"StockTotal\" -\"StockReservado\"", stored: true);
             builder.Property(p => p.ImagenUrl).IsRequired();
             builder.Property(p => p.Activo).HasDefaultValue(true);
             builder.Property(p => p.CreadoEn).HasDefaultValueSql("CURRENT_TIMESTAMP");

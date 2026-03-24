@@ -12,7 +12,7 @@ using Shared.Core.Data;
 namespace Shared.Core.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260316154223_InitialCreate")]
+    [Migration("20260324044959_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -353,7 +353,17 @@ namespace Shared.Core.Migrations
                     b.Property<decimal>("Precio")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("Stock")
+                    b.Property<int?>("StockDisponible")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer")
+                        .HasComputedColumnSql("\"StockTotal\" -\"StockReservado\"", true);
+
+                    b.Property<int?>("StockReservado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("StockTotal")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
