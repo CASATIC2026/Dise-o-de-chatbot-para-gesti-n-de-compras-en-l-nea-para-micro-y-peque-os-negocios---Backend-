@@ -1,3 +1,4 @@
+using Services.ChatBot.DTOs;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -5,13 +6,23 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
+using Services.ChatBot.Interfaces;
+using Shared.Core.Entities;
+using Shared.Core.Entities;
 
 namespace Webhook.Controllers.Services;
 
-public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger) : IUpdateHandler
+public class UpdateHandler(ITelegramBotClient bot,
+ILogger<UpdateHandler> logger,
+IHttpClientFactory httpClientFactory,
+IMenuUI menuUI,
+ICatalogoUI catalogoUI,
+IUtilsUI utilsUI,
+IBotPersistencia _persistencia
+) : IUpdateHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
-
+    private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
     {
         logger.LogInformation("HandleError: {Exception}", exception);
@@ -22,21 +33,196 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
 
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
+        if (update.Message is { Text: { } } msg)
+        {
+            await OnMessage(msg, msg.Text);
+            return;
+        }
+
+
+        if (update.CallbackQuery is not { } cb) return;
+        var conv = await _persistencia.ObtenerConversacionActiva(cb.From.Id);
+        if (conv != null)
+        {
+            var tiempoLimite = TimeSpan.FromSeconds(120);
+            var inactividad = DateTime.UtcNow - conv.ActualizadoEn;
+
+            bool esMessajeValido = cb.Message!.MessageId.ToString() == conv.Asunto;
+            bool estaEnTiempo = inactividad < tiempoLimite;
+
+            if (!esMessajeValido || !estaEnTiempo)
+            {
+                await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
+                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado");
+                return;
+            }
+        }
+        if (conv != null) await _persistencia.RegistrarMensaje(conv.Id, $"Clic en: {cb.Data}", TipoRemitente.Cliente);
+
         cancellationToken.ThrowIfCancellationRequested();
         await (update switch
         {
-            { Message: { } message }                        => OnMessage(message),
-            { EditedMessage: { } message }                  => OnMessage(message),
-            { CallbackQuery: { } callbackQuery }            => OnCallbackQuery(callbackQuery),
-            { InlineQuery: { } inlineQuery }                => OnInlineQuery(inlineQuery),
-            { ChosenInlineResult: { } chosenInlineResult }  => OnChosenInlineResult(chosenInlineResult),
-            { Poll: { } poll }                              => OnPoll(poll),
-            { PollAnswer: { } pollAnswer }                  => OnPollAnswer(pollAnswer),
+            { Message: { Text: { } text } message } => OnMessage(message, text),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+            _ => Task.CompletedTask
+        });
+    }
+    async Task<Message> RemoveKeyboard(Message msg)
+    {
+        return await bot.EditMessageText(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
+    }
+
+    private async Task OnMessage(Message msg, string text)
+    {
+        if (text == "/start" || text.ToLower().Contains("Catalogo"))
+        {
+
+            var telegramId = msg.From.Id;
+            var name = msg.From.FirstName + "" + msg.From.LastName;
+            await _persistencia.RegistrarCliente(telegramId, name.Trim());
+            var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>("categorias/list-6?page=0&pageSize=6");
+            var markup = menuUI.BuildUICategorias(data, 0);
+            Console.WriteLine("Punto A");
+            CallbackQuery callbackQuerry = new CallbackQuery
+            {
+                Data = "pcat_0",
+                Message = new Message
+                {
+                    Chat = msg.Chat
+                }
+            };
+            Console.WriteLine("Punto B "+msg.Id );
+
+            //var enviado = await bot.SendMessage(msg.Chat, "📂 Menú:",OnCallbackQuery(callbackQuerry));
+            //var enviado = OnCallbackQuery(callbackQuerry);
+
+            // 3. Enviar el menú
+            var enviado = await bot.SendMessage(msg.Chat, "📂 *Bienvenido al Catálogo*\nSelecciona una categoría:",
+                parseMode: ParseMode.Markdown,
+                replyMarkup: markup);
+            Console.WriteLine("id msg" + enviado.Id);
+            await _persistencia.ActualizarConversacion(msg.From.Id, enviado.Id, true);
+
+            var conv = await _persistencia.ObtenerConversacionActiva(msg.From.Id);
+            if (conv != null)
+            {
+                await _persistencia.RegistrarMensaje(conv.Id, "Comando /start ejecutado", TipoRemitente.Cliente);
+            }
+        }
+        else
+        {
+            await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
+        }
+        if (text == "/remove")
+        {
+            await RemoveKeyboard(msg);
+        }
+    }
+
+    private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
+    {
+
+
+        //Logica de consumo de productos
+        var rf = callbackQuerry.Data;
+        if (string.IsNullOrEmpty(rf)) return;
+
+        var parts = rf.Split('_');
+        var action = parts[0];
+        Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}");
+        Console.WriteLine(action);
+        if (action == "pcat")
+        {
+            int page = int.Parse(parts[1]);
+            var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
+            if (data == null || !data.Items.Any()) return;
+            // Usamos la interfaz de categorías
+            var markup = menuUI.BuildUICategorias(data, page);
+            //Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}, Markup {data.TotalCount}");
+            if (callbackQuerry.Message.MessageId == 0)
+                await bot.SendMessage(callbackQuerry.Message!.Chat, "📂 Menú:", replyMarkup: markup);
+            else
+                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, "📂 Menú:", replyMarkup: markup);
+        }
+        else if (action == "cat" || action == "pprod")
+        {
+            int catId = int.Parse(parts[1]);
+            int page = parts.Length > 2 ? int.Parse(parts[2]) : 0;
+            Console.WriteLine($"CatId {callbackQuerry.Data}, Page {page}");
+            var data = await _gateway.GetFromJsonAsync<PagedResult<ProductoDTO>>($"productos/list-4/{catId}?page={page}&pageSize=4");
+            var categoria = await _gateway.GetFromJsonAsync<CategoriaDTO>($"categorias/{catId}");
+            var markup = catalogoUI.BuildUIProductos(data, catId, page);
+            if (data == null || !data.Items.Any())
+            {
+                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n No se encontraron Productos:", replyMarkup: markup);
+            }
+            else
+            {
+                // Usamos la interfaz de productos                
+                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n 🛍 Productos:", replyMarkup: markup);
+            }
+        }
+
+        /*await (action switch
+        {
+            "pcat" => SendCategories(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), callbackQuerry.Message.MessageId),
+            "cat" => SendProducts(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), 0, callbackQuerry.Message.MessageId),
+            "pprod" => SendProducts(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), int.Parse(parts[2]), callbackQuerry.Message.MessageId),
+            _ => Task.CompletedTask
+        });
+
+        await bot.AnswerCallbackQuery(callbackQuerry.Id);*/
+    }
+
+    /*
+    
+    
+
+    private async Task SendCategories(long chatId, int page, int? messageId = null)
+    {
+        var response = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
+
+        if (response == null || !response.Items.Any()) return;
+
+        var buttons = response.Items.Select(c =>
+        new[] { InlineKeyboardButton.WithCallbackData(c.Nombre, $"cat_{c.Id}") }).ToList();
+
+        //navegacion 
+        var navRow = new List<InlineKeyboardButton>();
+        if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pcat_{page - 1}"));
+        if ((page + 1) * 4 < response.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pcat_{page + 1}"));
+
+        if (navRow.Any()) buttons.Add(navRow.ToArray());
+
+        string text = $"📂 *Categorías* (Página {page + 1})\nSelecciona una para ver productos:";
+
+        if (messageId.HasValue)
+        {
+            await bot.EditMessageText(chatId, messageId.Value, text, parseMode: ParseMode.Markdown, replyMarkup: new InlineKeyboardMarkup(buttons));
+        }
+        else
+        {
+            await bot.SendMessage(chatId, text, parseMode: ParseMode.Markdown, replyMarkup: new InlineKeyboardMarkup(buttons));
+        }
+    }
+
+    /*public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await (update switch
+        {
+            { Message: { } message } => OnMessage(message),
+            { EditedMessage: { } message } => OnMessage(message),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+            { InlineQuery: { } inlineQuery } => OnInlineQuery(inlineQuery),
+            { ChosenInlineResult: { } chosenInlineResult } => OnChosenInlineResult(chosenInlineResult),
+            { Poll: { } poll } => OnPoll(poll),
+            { PollAnswer: { } pollAnswer } => OnPollAnswer(pollAnswer),
             // ChannelPost:
             // EditedChannelPost:
             // ShippingQuery:
             // PreCheckoutQuery:
-            _                                               => UnknownUpdateHandlerAsync(update)
+            _ => UnknownUpdateHandlerAsync(update)
         });
     }
 
@@ -183,5 +369,5 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
     {
         logger.LogInformation("Unknown update type: {UpdateType}", update.Type);
         return Task.CompletedTask;
-    }
+    }*/
 }

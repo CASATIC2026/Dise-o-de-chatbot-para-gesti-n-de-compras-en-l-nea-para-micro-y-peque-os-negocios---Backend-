@@ -77,7 +77,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     volumes:
-      - ./src/Services.Chatbot:/src/Services.Chatbot
+      - ./src/Services.Chatbot:/src/Services.ChatBot
       - ./src/Shared.Core:/src/Shared.Core
       - /src/Shared.Core/bin
       - /src/Shared.Core/obj

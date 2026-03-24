@@ -92,6 +92,36 @@ app.post('/api/webhook', async (req, res) => {
     }
 });
 
+/**
+ * Proxy interno: El Bot llama aquí para obtener datos del Inventario
+ * Ruta: /api/proxy/inventario/productos?page=0...
+ */
+app.get('/api/proxy/inventario/*', async (req, res) => {
+    // Extraemos la parte de la URL después de /inventario/
+    // Ejemplo: si el bot llama a /api/proxy/inventario/categorias, subPath es 'categorias'
+    const subPath = req.params[0];
+    const targetUrl = `${INVENTARIO_URL}/api/inventario/${subPath}`;
+    console.log(`📡 Reenviando a: ${targetUrl}`);
+    try {
+        const response = await axios({
+            method: 'GET',
+            url: targetUrl,
+            params: req.query, // Pasa los parámetros de paginación (?page=0&take=6)
+            headers: {
+                'Content-Type': 'application/json'
+                // Aquí podrías añadir un token interno si quieres más seguridad
+            }
+        });
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error(`❌ Error ruteando al Inventario (${subPath}):`, error.message);
+        res.status(error.response?.status || 500).json({
+            message: "Error en el microservicio de inventario",
+            details: error.message
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`✅ Gateway server running on port ${PORT}`);
