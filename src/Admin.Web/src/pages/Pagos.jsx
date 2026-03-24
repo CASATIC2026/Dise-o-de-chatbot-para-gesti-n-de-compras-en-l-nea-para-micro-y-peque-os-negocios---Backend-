@@ -21,22 +21,22 @@ function Pagos() {
     }, []);
 
     const fetchPagos = async () => {
-    try {
-        setLoading(true);
-        // Usamos axios directo con la URL que confirmamos que funciona
-        // saltándonos el "client.js" solo para esta prueba
-        const response = await axios.get('http://localhost:5001/api/pagos', {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-        }); 
-        setPagos(response.data);
-    } catch (error) {
-        console.error('Error fetching pagos:', error);
-    } finally {
-        setLoading(false);
-    }
-};
+        try {
+            setLoading(true);
+            // Usamos axios directo con la URL que confirmamos que funciona
+            // saltándonos el "client.js" solo para esta prueba
+            const response = await axios.get('http://localhost:5001/api/pagos', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            setPagos(response.data);
+        } catch (error) {
+            console.error('Error fetching pagos:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleOpenModal = (pago = null) => {
         if (pago) {
@@ -86,11 +86,13 @@ function Pagos() {
 
             fetchPagos();
             handleCloseModal();
+            alert("¡Inserción exitosa!");
         } catch (error) {
             console.error('Error al guardar:', error);
             alert('Error al procesar la solicitud');
         }
     };
+
 
     const obtenerEstadoInfo = (estado) => {
         const estados = {
@@ -213,7 +215,7 @@ function Pagos() {
                                     <input type="number" step="0.01" value={formData.monto} onChange={(e) => setFormData({ ...formData, monto: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Método de Pago</label>
                                 <input type="text" placeholder="Ej: Tarjeta, Efectivo, Transferencia" value={formData.metodoPago} onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />

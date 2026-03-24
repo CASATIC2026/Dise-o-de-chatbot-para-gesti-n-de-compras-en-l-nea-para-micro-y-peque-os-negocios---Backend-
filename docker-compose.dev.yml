@@ -52,8 +52,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
-      - Wompi__ClientId=${WOMPI_PUBLIC_KEY}
-      - Wompi__ClientSecret=${WOMPI_PRIVATE_KEY}
+      - Wompi__ClientId=${WOMPI_CLIENT_ID}
+      - Wompi__ClientSecret=${WOMPI_CLIENT_SECRET}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
     volumes:
       - ./src/Services.Pagos:/src/Services.Pagos
@@ -100,12 +100,12 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
+      - Wompi__ClientId=${WOMPI_CLIENT_ID}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - INVENTARIO_SERVICE_URL=http://inventario-service:8080
-      - PAGOS_SERVICE_URL=http://inventario-service:8080
+      - PAGOS_SERVICE_URL=http://pagos-service:8080
       - CHATBOT_SERVICE_URL=http://chatbot-service:8080
     volumes:
       - ./src/Gateway.NodeJS:/app
