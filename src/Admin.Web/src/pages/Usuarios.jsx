@@ -87,9 +87,9 @@ function Usuarios() {
 
     const getRolColor = (remitenteEnum) => {
         switch (remitenteEnum) {
-            case 1: return 'bg-blue-100 text-blue-800';
-            case 2: return 'bg-green-100 text-green-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 1: return 'bg-primary-100 text-primary-800 border-primary-200';
+            case 2: return 'bg-tertiary-100 text-tertiary-800 border-tertiary-200';
+            default: return 'bg-neutral-100 text-neutral-800 border-neutral-200';
         }
     };
 
@@ -97,6 +97,7 @@ function Usuarios() {
         switch (remitenteEnum) {
             case 1: return 'Administrador';
             case 2: return 'Vendedor';
+            default: return 'Desconocido';
         }
     };
 
@@ -112,138 +113,231 @@ function Usuarios() {
     }
 
     const filteredUsuarios = usuarios.filter(user =>
-        user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.rol.toLowerCase().includes(searchTerm.toLowerCase())
+        (user.nombre && user.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.rol && user.rol.toString().includes(searchTerm))
     );
 
     if (loading) {
-        return <div className="text-center py-12">Cargando usuarios...</div>;
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
     }
 
     return (
-        <div>
+        <div className="animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Usuarios</h1>
-                    <p className="text-gray-600 mt-2">Gestiona los accesos al panel administrativo</p>
+                    <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Usuarios</h1>
+                    <p className="text-neutral-500 mt-2">Gestiona los accesos al panel administrativo</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
-                    <div className="relative flex-1 sm:w-64">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                    <div className="relative flex-1 sm:w-72">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
                         <input
                             type="text"
                             placeholder="Buscar usuarios..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all shadow-sm"
                         />
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-primary-500/30 hover:bg-primary-700 hover:shadow-md hover:shadow-primary-500/40 transition-all flex items-center justify-center whitespace-nowrap gap-2"
                         title="Nuevo Usuario"
                     >
-                        <span className="text-xl md:mr-2">➕</span>
-                        <span className="hidden md:inline">Nuevo Usuario</span>
+                        <span className="text-lg">➕</span>
+                        <span>Nuevo Usuario</span>
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                        <tr>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {filteredUsuarios.map((usuario) => (
-                            <tr key={usuario.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium text-gray-900">{usuario.nombre}</td>
-                                <td className="px-6 py-4 text-gray-900">{usuario.email}</td>
-                                <td className="px-6 py-4 ">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
-                                        {getRolText(usuario.rol)}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {usuario.estado ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => handleOpenModal(usuario)}
-                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                            title="Editar"
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePermanently(usuario.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Eliminar"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </td>
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-neutral-50/50 border-b border-neutral-200">
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Usuario</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Contacto</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Rol</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100">
+                            {filteredUsuarios.map((usuario) => (
+                                <tr key={usuario.id} className="hover:bg-neutral-50/50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-neutral-100 text-primary-600 flex items-center justify-center font-bold text-lg">
+                                                {usuario.nombre ? usuario.nombre.charAt(0).toUpperCase() : 'U'}
+                                            </div>
+                                            <div className="font-bold text-neutral-900">{usuario.nombre}</div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-medium text-neutral-600 mb-0.5">{usuario.email}</div>
+                                        <div className="text-xs text-neutral-500"><span className="mr-1">📞</span>{usuario.telefono || 'N/A'}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${getRolColor(usuario.rol)}`}>
+                                            {getRolText(usuario.rol)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`w-2 h-2 rounded-full ${usuario.estado ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`}></div>
+                                            <span className={`text-sm font-semibold ${usuario.estado ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                                {usuario.estado ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => handleOpenModal(usuario)}
+                                                className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100"
+                                                title="Editar"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePermanently(usuario.id)}
+                                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                                title="Eliminar"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {filteredUsuarios.length === 0 && (
+                        <div className="flex flex-col justify-center items-center py-16 text-neutral-500">
+                            <span className="text-5xl mb-4">🛡️</span>
+                            <span className="font-medium">No se encontraron usuarios.</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl text-gray-700 font-bold mb-6">
-                            {editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
-                        </h2>
+                <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                            <h2 className="text-xl text-neutral-900 font-bold tracking-tight">
+                                {editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
+                            </h2>
+                            <button onClick={handleCloseModal} className="text-neutral-400 hover:text-neutral-600 bg-neutral-50 hover:bg-neutral-100 rounded-lg p-1.5 transition-colors">
+                                ✕
+                            </button>
+                        </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                                <input type="text" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
-                            </div>
-                            {!editingUsuario && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                                    <input type="password" value={formData.contrasenaHash} onChange={(e) => setFormData({ ...formData, contrasenaHash: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
+                        <div className="p-6 overflow-y-auto">
+                            <form id="usuarioForm" onSubmit={handleSubmit} className="space-y-5">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Nombre <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={formData.nombre}
+                                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                            placeholder="Ej. Ana Gómez"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Email <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                            placeholder="admin@ejemplo.com"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                                <select value={formData.rol} onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
-                                    <option value={1}>Administrador</option>
-                                    <option value={2}>Vendedor</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                                <input type="text" value={formData.telefono || ''} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                            <div className="flex items-center">
-                                <input type="checkbox" checked={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.checked })} className="w-4 h-4 text-primary-600" />
-                                <label className="ml-2 text-sm text-gray-700">Usuario activo</label>
-                            </div>
-                            <div className="flex space-x-3 pt-4">
-                                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700">Guardar</button>
-                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
-                            </div>
-                        </form>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {!editingUsuario && (
+                                        <div>
+                                            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Contraseña <span className="text-red-500">*</span></label>
+                                            <input
+                                                type="password"
+                                                value={formData.contrasenaHash}
+                                                onChange={(e) => setFormData({ ...formData, contrasenaHash: e.target.value })}
+                                                className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                                                required
+                                            />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Teléfono</label>
+                                        <input
+                                            type="text"
+                                            value={formData.telefono || ''}
+                                            onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                            placeholder="+57..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Rol <span className="text-red-500">*</span></label>
+                                        <select
+                                            value={formData.rol}
+                                            onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
+                                            required
+                                        >
+                                            <option value={1}>Administrador</option>
+                                            <option value={2}>Vendedor</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col justify-end pb-2">
+                                        <label className="relative inline-flex items-center cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={formData.estado}
+                                                onChange={(e) => setFormData({ ...formData, estado: e.target.checked })}
+                                            />
+                                            <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 transition-colors"></div>
+                                            <span className="ml-3 text-sm font-semibold text-neutral-700">Usuario Activo</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="p-6 border-t border-neutral-100 bg-neutral-50 rounded-b-2xl flex gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCloseModal}
+                                className="flex-1 bg-white border border-neutral-200 text-neutral-700 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-neutral-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="usuarioForm"
+                                className="flex-1 bg-primary-600 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:bg-primary-700 hover:shadow-primary-500/30 transition-all"
+                            >
+                                Guardar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

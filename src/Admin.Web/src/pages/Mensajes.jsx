@@ -78,18 +78,28 @@ function Mensajes() {
 
     const getRemitenteColor = (remitenteEnum) => {
         switch (remitenteEnum) {
-            case 1: return 'bg-yellow-100 text-yellow-800'; // Pendiente
-            case 2: return 'bg-blue-100 text-blue-800'; // Confirmado
-            case 3: return 'bg-green-100 text-green-800'; // Pagado            
-            default: return 'bg-gray-100 text-gray-800';
+            case 1: return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 2: return 'bg-primary-100 text-primary-700 border-primary-200';
+            case 3: return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            default: return 'bg-neutral-100 text-neutral-600 border-neutral-200';
         }
     };
+
+    const getRemitenteIcon = (remitenteEnum) => {
+        switch (remitenteEnum) {
+            case 1: return '👤';
+            case 2: return '🎧';
+            case 3: return '🤖';
+            default: return '❓';
+        }
+    }
 
     const getRemitenteText = (remitenteEnum) => {
         switch (remitenteEnum) {
             case 1: return 'Cliente';
             case 2: return 'Soporte';
             case 3: return 'Sistema';
+            default: return 'Desconocido';
         }
     };
 
@@ -105,120 +115,181 @@ function Mensajes() {
     }
 
     const filteredMensajes = mensajes.filter(msg =>
-        msg.contenido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        msg.remitente.toLowerCase().includes(searchTerm.toLowerCase())
+        (msg.contenido && msg.contenido.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (msg.remitente && msg.remitente.toString().toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     if (loading) {
-        return <div className="text-center py-12">Cargando mensajes...</div>;
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
     }
 
     return (
-        <div>
+        <div className="animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Mensajes</h1>
-                    <p className="text-gray-600 mt-2">Bandeja de entrada y salida del bot</p>
+                    <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Mensajes</h1>
+                    <p className="text-neutral-500 mt-2">Bandeja de entrada y salida del bot</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
-                    <div className="relative flex-1 sm:w-64">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                    <div className="relative flex-1 sm:w-72">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
                         <input
                             type="text"
                             placeholder="Buscar mensajes..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all shadow-sm"
                         />
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-primary-500/30 hover:bg-primary-700 hover:shadow-md hover:shadow-primary-500/40 transition-all flex items-center justify-center whitespace-nowrap gap-2"
                         title="Nuevo Mensaje"
                     >
-                        <span className="text-xl md:mr-2">➕</span>
-                        <span className="hidden md:inline">Nuevo Mensaje</span>
+                        <span className="text-lg">➕</span>
+                        <span>Nuevo Mensaje</span>
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                        <tr>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Conversación ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Remitente</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Contenido</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {filteredMensajes.map((msg) => (
-                            <tr key={msg.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium text-gray-900">{msg.conversacionId}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRemitenteColor(msg.remitente)}`}>
-                                        {getRemitenteText(msg.remitente)}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-gray-900 truncate max-w-xs">{msg.contenido}</td>
-                                <td className="px-6 py-4">
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => handleOpenModal(msg)}
-                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                            title="Editar"
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePermanently(msg.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Eliminar"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </td>
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-neutral-50/50 border-b border-neutral-200">
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider whitespace-nowrap">Conversación</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Remitente</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider w-1/2">Contenido</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100">
+                            {filteredMensajes.map((msg) => (
+                                <tr key={msg.id} className="hover:bg-neutral-50/50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-neutral-900 border border-neutral-200 bg-white rounded-md px-2 py-1 inline-block text-sm">
+                                            #{msg.conversacionId}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold border flex items-center gap-1.5 w-max ${getRemitenteColor(msg.remitente)}`}>
+                                            <span>{getRemitenteIcon(msg.remitente)}</span>
+                                            {getRemitenteText(msg.remitente)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-neutral-700 text-sm max-w-lg line-clamp-2 bg-neutral-50 p-2 rounded-lg border border-neutral-100">
+                                            {msg.contenido}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <button
+                                                onClick={() => handleOpenModal(msg)}
+                                                className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100"
+                                                title="Editar"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePermanently(msg.id)}
+                                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                                title="Eliminar"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {filteredMensajes.length === 0 && (
+                        <div className="flex flex-col justify-center items-center py-16 text-neutral-500">
+                            <span className="text-5xl mb-4">📨</span>
+                            <span className="font-medium">No se encontraron mensajes.</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl text-gray-700 font-bold mb-6">
-                            {editingMensaje ? 'Editar Mensaje' : 'Nuevo Mensaje'}
-                        </h2>
+                <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                            <h2 className="text-xl text-neutral-900 font-bold tracking-tight">
+                                {editingMensaje ? 'Editar Mensaje' : 'Nuevo Mensaje'}
+                            </h2>
+                            <button onClick={handleCloseModal} className="text-neutral-400 hover:text-neutral-600 bg-neutral-50 hover:bg-neutral-100 rounded-lg p-1.5 transition-colors">
+                                ✕
+                            </button>
+                        </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Conversación ID</label>
-                                <input type="number" value={formData.conversacionId} onChange={(e) => setFormData({ ...formData, conversacionId: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Remitente</label>
-                                <select value={formData.remitente} onChange={(e) => setFormData({ ...formData, remitente: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
+                        <div className="p-6 overflow-y-auto">
+                            <form id="mensajeForm" onSubmit={handleSubmit} className="space-y-5">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Conversación ID <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="number"
+                                            value={formData.conversacionId}
+                                            onChange={(e) => setFormData({ ...formData, conversacionId: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-mono"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Remitente <span className="text-red-500">*</span></label>
+                                        <select
+                                            value={formData.remitente}
+                                            onChange={(e) => setFormData({ ...formData, remitente: Number(e.target.value) })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-medium"
+                                            required
+                                        >
+                                            <option value={1}>👤 Cliente</option>
+                                            <option value={2}>🎧 Soporte</option>
+                                            <option value={3}>🤖 Sistema</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                    <option value={1}>Usuario</option>
-                                    <option value={2}>Soporte</option>
-                                    <option value={3}>Sistema</option>
+                                <div>
+                                    <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Contenido <span className="text-red-500">*</span></label>
+                                    <textarea
+                                        value={formData.contenido}
+                                        onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
+                                        className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all resize-y min-h-[120px]"
+                                        placeholder="Escribe el mensaje aquí..."
+                                        rows="4"
+                                        required
+                                    />
+                                </div>
+                            </form>
+                        </div>
 
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contenido</label>
-                                <textarea value={formData.contenido} onChange={(e) => setFormData({ ...formData, contenido: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" rows="4" required />
-                            </div>
-                            <div className="flex space-x-3 pt-4">
-                                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700">Guardar</button>
-                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
-                            </div>
-                        </form>
+                        <div className="p-6 border-t border-neutral-100 bg-neutral-50 rounded-b-2xl flex gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCloseModal}
+                                className="flex-1 bg-white border border-neutral-200 text-neutral-700 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-neutral-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="mensajeForm"
+                                className="flex-1 bg-primary-600 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:bg-primary-700 hover:shadow-primary-500/30 transition-all"
+                            >
+                                Guardar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

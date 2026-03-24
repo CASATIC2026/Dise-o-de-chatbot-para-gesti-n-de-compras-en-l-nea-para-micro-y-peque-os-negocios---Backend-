@@ -10,7 +10,7 @@ function Pedidos() {
     const [formData, setFormData] = useState({
         usuarioId: 0,
         clienteId: 0,
-        estado: 0, // 0: Pendiente, 1: Confirmado, 2: Pagado, 3: Enviado, 4: Cancelado
+        estado: 0,
         total: 0,
         direccionEntrega: '',
         detallesJson: '[]',
@@ -23,7 +23,7 @@ function Pedidos() {
 
     const fetchPedidos = async () => {
         try {
-            const response = await api.get('/admin/inventario/pedidos'); // Endpoint asumido
+            const response = await api.get('/admin/inventario/pedidos');
             setPedidos(response.data);
         } catch (error) {
             console.error('Error fetching pedidos:', error);
@@ -99,14 +99,14 @@ function Pedidos() {
         }
     }
 
-    const getEstadoColor = (estadoEnum) => {
+    const getEstadoStyles = (estadoEnum) => {
         switch (estadoEnum) {
-            case 0: return 'bg-yellow-100 text-yellow-800'; // Pendiente
-            case 1: return 'bg-blue-100 text-blue-800'; // Confirmado
-            case 2: return 'bg-green-100 text-green-800'; // Pagado
-            case 3: return 'bg-purple-100 text-purple-800'; // Enviado
-            case 4: return 'bg-red-100 text-red-800'; // Cancelado
-            default: return 'bg-gray-100 text-gray-800';
+            case 0: return 'bg-yellow-50 text-yellow-700 border-yellow-200'; // Pendiente
+            case 1: return 'bg-blue-50 text-blue-700 border-blue-200'; // Confirmado
+            case 2: return 'bg-green-50 text-green-700 border-green-200'; // Pagado
+            case 3: return 'bg-purple-50 text-purple-700 border-purple-200'; // Enviado
+            case 4: return 'bg-red-50 text-red-700 border-red-200'; // Cancelado
+            default: return 'bg-neutral-50 text-neutral-700 border-neutral-200';
         }
     };
 
@@ -123,153 +123,226 @@ function Pedidos() {
 
     const filteredPedidos = pedidos.filter(pedido =>
         pedido.clienteId.toString().includes(searchTerm) ||
-        pedido.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getEstadoText(pedido.estado).toLowerCase().includes(searchTerm.toLowerCase()) ||
         pedido.total.toString().includes(searchTerm)
     );
 
     if (loading) {
-        return <div className="text-center py-12">Cargando pedidos...</div>;
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
     }
 
     return (
-        <div>
+        <div className="animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Pedidos</h1>
-                    <p className="text-gray-600 mt-2">Gestiona las órdenes de compra de tus clientes</p>
+                    <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Pedidos</h1>
+                    <p className="text-neutral-500 mt-2">Gestiona las órdenes de compra y su estado en tiempo real</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
-                    <div className="relative flex-1 sm:w-64">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                    <div className="relative flex-1 sm:w-72">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
                         <input
                             type="text"
                             placeholder="Buscar pedidos..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all shadow-sm"
                         />
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-primary-500/30 hover:bg-primary-700 hover:shadow-md hover:shadow-primary-500/40 transition-all flex items-center justify-center whitespace-nowrap gap-2"
                         title="Nuevo Pedido"
                     >
-                        <span className="text-xl md:mr-2">➕</span>
-                        <span className="hidden md:inline">Nuevo Pedido</span>
+                        <span className="text-lg">➕</span>
+                        <span>Nuevo Pedido</span>
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                        <tr>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Usuario ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Cliente ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Dirección</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {filteredPedidos.map((pedido) => (
-                            <tr key={pedido.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium text-gray-900">#{pedido.id}</td>
-                                <td className="px-6 py-4 text-gray-900">{pedido.usuarioId}</td>
-                                <td className="px-6 py-4 text-gray-900">{pedido.clienteId}</td>
-                                <td className="px-6 py-4 text-gray-600 text-sm truncate max-w-xs">{pedido.direccionEntrega}</td>
-                                <td className="px-6 py-4 text-gray-900 font-medium">
-                                    ${Number(pedido.total).toLocaleString('es-CO')}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(pedido.estado)}`}>
-                                        {getEstadoText(pedido.estado)}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => handleOpenModal(pedido)}
-                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                            title="Editar"
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePermanently(pedido.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Eliminar"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </td>
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-neutral-50/50 border-b border-neutral-200">
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">ID</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Cliente / Usuario</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Dirección</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Total</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100">
+                            {filteredPedidos.map((pedido) => (
+                                <tr key={pedido.id} className="hover:bg-neutral-50/50 transition-colors">
+                                    <td className="px-6 py-4 font-bold text-neutral-900">
+                                        #{pedido.id.toString().padStart(4, '0')}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="font-semibold text-neutral-900">ID: {pedido.clienteId}</div>
+                                        <div className="text-xs text-neutral-500">Usr: {pedido.usuarioId}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-medium text-neutral-700 truncate max-w-xs" title={pedido.direccionEntrega}>
+                                            {pedido.direccionEntrega || <span className="text-neutral-400 italic">No especificada</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 font-bold text-neutral-900">
+                                        ${Number(pedido.total).toLocaleString('es-CO')}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex px-2.5 py-1 rounded-md text-xs font-bold border ${getEstadoStyles(pedido.estado)}`}>
+                                            {getEstadoText(pedido.estado)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => handleOpenModal(pedido)}
+                                                className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100"
+                                                title="Editar"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePermanently(pedido.id)}
+                                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                                title="Eliminar"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
 
-                {pedidos.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        No hay pedidos registrados
-                    </div>
-                )}
+                    {filteredPedidos.length === 0 && (
+                        <div className="flex flex-col justify-center items-center py-16 text-neutral-500">
+                            <span className="text-5xl mb-4">📭</span>
+                            <span className="font-medium">No se encontraron pedidos.</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl text-gray-700 font-bold mb-6">
-                            {editingPedido ? 'Editar Pedido' : 'Nuevo Pedido'}
-                        </h2>
+                <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                            <h2 className="text-xl text-neutral-900 font-bold tracking-tight">
+                                {editingPedido ? 'Editar Pedido' : 'Nuevo Pedido'}
+                            </h2>
+                            <button onClick={handleCloseModal} className="text-neutral-400 hover:text-neutral-600 bg-neutral-50 hover:bg-neutral-100 rounded-lg p-1.5 transition-colors">
+                                ✕
+                            </button>
+                        </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Usuario ID</label>
-                                    <input type="number" value={formData.usuarioId} onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
+                        <div className="p-6 overflow-y-auto">
+                            <form id="pedidoForm" onSubmit={handleSubmit} className="space-y-5">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Usuario ID</label>
+                                        <input
+                                            type="number"
+                                            value={formData.usuarioId}
+                                            onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Cliente ID</label>
+                                        <input
+                                            type="number"
+                                            value={formData.clienteId}
+                                            onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                            required
+                                        />
+                                    </div>
                                 </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Cliente ID</label>
-                                    <input type="number" value={formData.clienteId} onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
+                                    <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Total ($)</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">$</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={formData.total}
+                                            onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                                            className="w-full pl-8 pr-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
-                                <input type="number" step="0.01" value={formData.total} onChange={(e) => setFormData({ ...formData, total: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Estado del Pedido</label>
+                                    <select
+                                        value={formData.estado}
+                                        onChange={(e) => setFormData({ ...formData, estado: Number(e.target.value) })}
+                                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                        required
+                                    >
+                                        <option value={0}>⏳ Pendiente</option>
+                                        <option value={1}>✅ Confirmado</option>
+                                        <option value={2}>💰 Pagado</option>
+                                        <option value={3}>🚚 Enviado</option>
+                                        <option value={4}>❌ Cancelado</option>
+                                    </select>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                                <select value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: Number(e.target.value) })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" required>
-                                    <option value={0}>Pendiente</option>
-                                    <option value={1}>Confirmado</option>
-                                    <option value={2}>Pagado</option>
-                                    <option value={3}>Enviado</option>
-                                    <option value={4}>Cancelado</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Dirección de Entrega</label>
+                                    <textarea
+                                        value={formData.direccionEntrega || ''}
+                                        onChange={(e) => setFormData({ ...formData, direccionEntrega: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all resize-none"
+                                        rows="2"
+                                        placeholder="Ingrese la dirección completa..."
+                                        required
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección Entrega</label>
-                                <textarea value={formData.direccionEntrega || ''} onChange={(e) => setFormData({ ...formData, direccionEntrega: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" rows="2" required />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-neutral-700 mb-1.5">Referencia Wompi</label>
+                                    <input
+                                        type="text"
+                                        value={formData.referenciaWompi || ''}
+                                        onChange={(e) => setFormData({ ...formData, referenciaWompi: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
+                                        placeholder="Opcional..."
+                                    />
+                                </div>
+                            </form>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Referencia Wompi</label>
-                                <input type="text" value={formData.referenciaWompi || ''} onChange={(e) => setFormData({ ...formData, referenciaWompi: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
-                            </div>
-
-                            <div className="flex space-x-3 pt-4">
-                                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700">Guardar</button>
-                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300">Cancelar</button>
-                            </div>
-                        </form>
+                        <div className="p-6 border-t border-neutral-100 bg-neutral-50 rounded-b-2xl flex gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCloseModal}
+                                className="flex-1 bg-white border border-neutral-200 text-neutral-700 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-neutral-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="pedidoForm"
+                                className="flex-1 bg-primary-600 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:bg-primary-700 hover:shadow-primary-500/30 transition-all"
+                            >
+                                Guardar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
