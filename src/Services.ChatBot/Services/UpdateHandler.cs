@@ -57,6 +57,7 @@ ApplicationDbContext context
             {
                 await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
                 await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado", null);
+                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado", null);
                 return;
             }
         }
@@ -102,6 +103,7 @@ ApplicationDbContext context
                     Chat = msg.Chat
                 }
             };
+            Console.WriteLine("Punto B " + msg.Id);
             Console.WriteLine("Punto B " + msg.Id);
 
             //var enviado = await bot.SendMessage(msg.Chat, "📂 Menú:",OnCallbackQuery(callbackQuerry));
