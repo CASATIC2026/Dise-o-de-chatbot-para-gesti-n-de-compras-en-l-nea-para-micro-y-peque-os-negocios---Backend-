@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Services.Pagos.Services; // Asegúrate de que este sea el namespace de tu WompiService
 using Services.Pagos.Models;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using Services.Pagos.Models; // Para encontrar WompiEnlaceRequest
 
 namespace Services.Pagos.Controllers;
 
@@ -19,46 +22,60 @@ public class WompiController : ControllerBase
         _httpClientFactory = httpClientFactory;
     }
 
-    [HttpPost("crear-enlace")]
-    public async Task<IActionResult> CrearEnlace([FromBody] WompiTransactionRequest request)
+    [HttpPost("crear-enlace-automatico/{pedidoId}")]
+    public async Task<IActionResult> CrearEnlaceAutomatico(int pedidoId)
     {
-        var resultado = await _wompiService.CrearEnlacePago(request);
+        using var client = new HttpClient();
+        // IMPORTANTE: Puerto 8080 interno de Docker
+        var url = $"http://inventario-service:8080/api/pagos/pedido/{pedidoId}";
 
-        if (!resultado.Success)
+        try
         {
-            return BadRequest(new { message = "Error al crear enlace", error = resultado.Error });
-        }
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return BadRequest($"No se encontró el pedido {pedidoId} en Inventario.");
 
-        return Ok(new 
-        { 
-            url = resultado.PaymentLink, 
-            referencia = request.Referencia,
-            idWompi = resultado.TransactionId 
-        });
-    }
+            var contenido = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var pagoDb = JsonSerializer.Deserialize<PagoDto>(contenido, options);
 
-    [HttpPost("webhook/wompi")]
-    public async Task<IActionResult> ProcesarNotificacionWompi([FromBody] WompiWebhookRequest request)
-    {
-        if (request == null) return BadRequest();
+            if (pagoDb == null || (pagoDb.Monto <= 0 && pagoDb.Total <= 0))
+                return BadRequest("Monto inválido recibido del Inventario.");
 
-        // 1. Solo procesar si fue aprobado
-        if (request.Estado.ToUpper() == "APPROVED")
-        {
-            var cliente = _httpClientFactory.CreateClient();
+            // Usamos el monto que venga (monto o total)
+            decimal montoFinal = pagoDb.Monto > 0 ? pagoDb.Monto : pagoDb.Total;
 
-            // 2. Llamada interna al microservicio de Inventario (Puerto interno 8080)
-            var response = await cliente.PutAsync(
-                $"http://inventario-service:8080/api/pagos/actualizar-por-referencia/{request.Referencia}", 
-                null
-            );
-
-            if (response.IsSuccessStatusCode)
+            var solicitudWompi = new WompiTransactionRequest
             {
-                return Ok(new { message = "Dashboard actualizado" });
-            }
-        }
+                Monto = montoFinal,
+                Referencia = $"PAGO-{pedidoId}-{DateTime.Now.Ticks}", // Referencia dinámica
+                RedirectUrl = "https://tu-sitio.com/confirmacion"
+            };
 
-        return Ok(); // Wompi requiere 200 siempre
+            var resultado = await _wompiService.CrearEnlacePago(solicitudWompi);
+
+            if (!resultado.Success)
+                return StatusCode(500, new { error = "Error Wompi", detalle = resultado.Error });
+
+            return Ok(new
+            {
+                url = resultado.PaymentLink,
+                montoCobrado = montoFinal,
+                referencia = solicitudWompi.Referencia
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
+
+
+    public class PagoDto
+    {
+        public decimal Monto { get; set; }
+        public decimal Total { get; set; } // Por si el JSON viene con 'total'
+        public string ReferenciaTransaccion { get; set; } = string.Empty;
+    }
+
 }

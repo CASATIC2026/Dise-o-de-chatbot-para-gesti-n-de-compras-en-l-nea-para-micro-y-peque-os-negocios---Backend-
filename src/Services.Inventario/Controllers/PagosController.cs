@@ -48,6 +48,21 @@ public class PagosController : ControllerBase
         return Ok(pago);
     }
 
+    [HttpGet("pedido/{pedidoId}")]
+    public async Task<ActionResult<Pago>> GetPagoPorPedido(int pedidoId)
+    {
+        var pago = await  _context.Pagos
+            .Include(p => p.Pedido)
+            .FirstOrDefaultAsync(p => pedidoId == pedidoId);
+
+        if(pago == null)
+        {
+            return NotFound(new { message = $"No se encontró un pago para el pedido {pedidoId}"});
+        }
+
+        return Ok(pago);
+    }
+
     // POST: api/pagos
     [HttpPost]
     public async Task<ActionResult<Pago>> CreatePago([FromBody] Pago pago)
