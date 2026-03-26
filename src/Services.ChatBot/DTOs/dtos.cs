@@ -17,5 +17,7 @@ namespace Services.ChatBot.DTOs
         public int Id { get; set; } = 0;
         public string Nombre { get; set; } = "";
         public decimal Precio { get; set; }
+
+        public int StockDisponible {get; set;}
     }
 }

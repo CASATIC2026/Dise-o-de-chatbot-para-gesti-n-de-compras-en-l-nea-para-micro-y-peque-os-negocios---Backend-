@@ -6,6 +6,7 @@ using Webhook.Controllers.Controllers;
 using FluentValidation.AspNetCore;
 using Shared.Core.Data;
 using Shared.Core;
+using Services.ChatBot.Utils;
 var builder = WebApplication.CreateBuilder(args);
 
 // Setup bot configuration
@@ -32,6 +33,7 @@ builder.Services.AddScoped<IUtilsUI, UtilsModule>();
 builder.Services.AddScoped<IBotPersistencia, SqlBotPersistence>();
 builder.Services.AddControllers();
 
+builder.Services.AddHostedService<StockReleaseWorker>();
 // DbContext
 builder.Services.AddSharedInfrastructure(builder.Configuration);
 
@@ -53,6 +55,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
+
 
 var app = builder.Build();
 

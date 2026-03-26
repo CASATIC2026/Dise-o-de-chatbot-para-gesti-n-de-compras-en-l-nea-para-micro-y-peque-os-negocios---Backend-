@@ -5,16 +5,17 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace Services.ChatBot.Models;
 public class UtilsModule(ITelegramBotClient bot) : IUtilsUI
 {
-    public async Task InvalidarMenu(long chatId, int messageId, string textoAviso)
+    public async Task InvalidarMenu(long chatId, int messageId, string textoAviso, string action)
     {
         try
         {
+            
             await bot.EditMessageText(
                 chatId: chatId,
                 messageId: messageId,
                 text: $"Alert: {textoAviso}\nUsa el comando /start para iniciar una nueva compra",
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                replyMarkup: null // Eliminar el teclado inline
+                replyMarkup: null // Eliminar el teclado inline  
             );
         }catch(Exception ex)
         {
