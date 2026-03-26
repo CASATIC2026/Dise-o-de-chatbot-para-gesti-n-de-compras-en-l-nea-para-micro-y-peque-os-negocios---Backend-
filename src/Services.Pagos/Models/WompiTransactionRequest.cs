@@ -8,3 +8,4 @@ public class WompiTransactionRequest
     public string Referencia { get; set; } = "";
     public string RedirectUrl { get; set; } = "";
 }
+

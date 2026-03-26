@@ -24,6 +24,6 @@ export function authenticateToken(req, res, next) {
 
 export function generateToken(payload) {
     //const expiration = process.env.JWT_EXPIRATION || '8h';
-    const expiration = '30m';
+    const expiration = '8h';
     return jwt.sign(payload, JWT_SECRET, { expiresIn: expiration });
 }

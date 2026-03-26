@@ -17,7 +17,7 @@ namespace Shared.Core.Entities
 
         // Relación con Pedido
         public int PedidoId { get; set; }
-        public Pedido Pedido { get; set; }
+        public virtual Pedido? Pedido { get; set; }
 
         public decimal Monto { get; set; }
 
