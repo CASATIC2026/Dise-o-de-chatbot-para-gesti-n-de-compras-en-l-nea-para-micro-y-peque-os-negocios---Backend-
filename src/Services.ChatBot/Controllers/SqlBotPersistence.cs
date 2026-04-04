@@ -143,4 +143,12 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al procesar la reserva" + e.Message);
         }
     }
+
+    public async Task<Pedido?> ObtenerPedidoActivo(long TelegramId)
+    {
+        return await context.Pedidos
+        .Include(p => p.PedidoProductos)
+        .ThenInclude(pp => pp.Producto)
+        .FirstOrDefaultAsync(p => p.Cliente.TelegramId == TelegramId && p.Estado == EstadoPedido.Pendiente);
+    }
 }

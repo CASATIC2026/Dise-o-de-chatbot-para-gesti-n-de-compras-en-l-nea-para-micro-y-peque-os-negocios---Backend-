@@ -8,5 +8,7 @@ namespace Services.ChatBot.Interfaces
     {
         InlineKeyboardMarkup BuildUIProductos(PagedResult<ProductoDTO> data, int catId, int page);
         InlineKeyboardMarkup BuildUIDetalleProducto(int prodId, int catId, int page, int cantidadActual);
+
+        InlineKeyboardMarkup BuildUICategorias(PagedResult<CategoriaDTO> data, int page);
     }
 }
