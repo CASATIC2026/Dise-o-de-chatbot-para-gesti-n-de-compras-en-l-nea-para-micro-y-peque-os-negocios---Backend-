@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models; // <-- Agrega esta para Swagger
-using Microsoft.Extensions.Diagnostics.HealthChecks; // <-- Agrega esta para HealthChecks
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Service.Inventario.Hubs; // <-- Agrega esta para HealthChecks
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,14 +58,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowGateway", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // URLs de React y Gateway
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Ahora sí, con orígenes específicos, esto funciona
     });
 });
 
 // FluentValidation (Actualizado para evitar warnings de obsolescencia)
 builder.Services.AddFluentValidationAutoValidation();
+
+//Hub para notificaciones
+builder.Services.AddSignalR();
+
 
 // Swagger y HealthChecks
 builder.Services.AddEndpointsApiExplorer();
@@ -88,5 +94,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
+
+app.MapHub<NotificationHub>("/notificationHub");
+
 
 app.Run();

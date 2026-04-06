@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
 using Shared.Core.Entities;
+using Microsoft.AspNetCore.SignalR; // <-- Agregado
+using Service.Inventario.Hubs;      // <-- Agregado (Asegúrate que el namespace coincida con tu NotificationHub)
 
 namespace Services.Inventario.Controllers;
 
@@ -11,11 +13,17 @@ public class PedidoController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PedidoController> _logger;
+    private readonly IHubContext<NotificationHub> _hubContext; // <-- Agregado
 
-    public PedidoController(ApplicationDbContext context, ILogger<PedidoController> logger)
+    // Constructor actualizado con la inyección del Hub
+    public PedidoController(
+        ApplicationDbContext context, 
+        ILogger<PedidoController> logger,
+        IHubContext<NotificationHub> hubContext) 
     {
         _context = context;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     // GET: api/inventario/pedidos
@@ -55,6 +63,16 @@ public class PedidoController : ControllerBase
 
         _logger.LogInformation("Pedido creado: {PedidoId}", pedido.Id);
 
+        // --- NOTIFICACIÓN EN TIEMPO REAL ---
+        // Este objeto es el que recibirá React para actualizar la "Actividad Reciente"
+        await _hubContext.Clients.All.SendAsync("ReceiveNotification", new 
+        {
+            titulo = "Nuevo pedido recibido",
+            mensaje = $"Se ha generado el pedido #{pedido.Id} por ${pedido.Total}",
+            tipo = "success", 
+            fecha = DateTime.Now
+        });
+
         return CreatedAtAction(nameof(GetPedido), new { id = pedido.Id }, pedido);
     }
 
@@ -85,6 +103,15 @@ public class PedidoController : ControllerBase
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Pedido actualizado: {PedidoId}", id);
+
+        // Notificación opcional cuando se actualiza el estado (ej. de pendiente a confirmado)
+        await _hubContext.Clients.All.SendAsync("ReceiveNotification", new 
+        {
+            titulo = "Pedido Actualizado",
+            mensaje = $"El pedido #{id} ahora está en estado: {pedido.Estado}",
+            tipo = "info",
+            fecha = DateTime.Now
+        });
 
         return NoContent();
     }

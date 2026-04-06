@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL Database
+ # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: chatbot-db
@@ -10,7 +10,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # CAMBIO AQUÍ: Ahora los datos se guardarán en una carpeta real en tu PC
+      - ./postgres_data:/var/lib/postgresql/data 
     networks:
       - chatbot-network
     healthcheck:
