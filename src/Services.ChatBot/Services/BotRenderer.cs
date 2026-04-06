@@ -1,13 +1,16 @@
 using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
+using Services.ChatBot.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Webhook.Controllers.Services;
-public class BotRenderer(ITelegramBotClient bot, 
-IHttpClientFactory httpClientFactory, 
-ICatalogoUI catalogoUI, IMenuUI menuUI, 
+
+public class BotRenderer(ITelegramBotClient bot,
+IHttpClientFactory httpClientFactory,
+ICatalogoUI catalogoUI, IMenuUI menuUI,
+ICarrito carritoUI,
 IBotPersistencia _persistencia)
 {
     private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
@@ -64,7 +67,7 @@ IBotPersistencia _persistencia)
         await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, "📂 Menú:", replyMarkup: markup);
     }
 
-    public async Task RenderizarProducto(ITelegramBotClient bot, int prodId, int catId, int page, CallbackQuery callbackQuery, int cantidad)
+    public async Task RenderizarProducto(ITelegramBotClient bot, int prodId, int catId, int page, CallbackQuery callbackQuery,int msgId, int cantidad)
     {
         var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
         if (data == null) return;
@@ -75,8 +78,18 @@ IBotPersistencia _persistencia)
 
         var keyboard = catalogoUI.BuildUIDetalleProducto(prodId, catId, page, cantidad);
 
-        await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, msg, replyMarkup: keyboard);
+        await bot.EditMessageText(callbackQuery.Message!.Chat, msgId, msg, replyMarkup: keyboard);
 
         Console.WriteLine($"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}");
+    }
+
+    public async Task RenderizarCarrito(ITelegramBotClient bot, CallbackQuery callbackQuery, int msgId)
+    {
+        var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var (texto, markup) = carritoUI.BuildUICarrito(pedido);
+
+        await bot.EditMessageText(callbackQuery.Message!.Chat, msgId, texto, replyMarkup: markup);
+
+        await bot.AnswerCallbackQuery(callbackQuery.Id);
     }
 }

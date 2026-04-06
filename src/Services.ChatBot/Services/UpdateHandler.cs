@@ -110,18 +110,29 @@ BotInteractionHandler interactionHandler
                 int page = int.Parse(partes[2]);
                 Console.WriteLine($"prodId {prodId}, catId {catId}, page {page}");
 
+                string data = (catId == -1) ? "cart" : $"prod_{prodId}_{catId}_{page}";
+
                 CallbackQuery callbackQuery = new()
                 {
-                    Data = $"prod_{prodId}_{catId}_{page}",
-                    Message = new MockMessage
+                    Data = data,
+                    Message = new Message
                     {
                         Chat = msg.Chat,
-                        MessageId = int.Parse(conv.Asunto!)
                     }
                 };
+
+                Console.Error.WriteLine($"\nId: {callbackQuery.Message.MessageId}, conversacion Asunt: {conv.Asunto}\n");
                 await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
-                await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuery, cantidad);
-                return;
+                if (catId == -1)
+                {
+                    await renderer.RenderizarCarrito(bot, callbackQuery, int.Parse(conv.Asunto!));
+                    return;
+                }
+                else
+                {
+                    await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuery, int.Parse(conv.Asunto!), cantidad);
+                    return;
+                }
             }
             else
             {
@@ -170,7 +181,8 @@ BotInteractionHandler interactionHandler
             int prodId = int.Parse(parts[1]);
             int catId = int.Parse(parts[2]);
             int page = int.Parse(parts[3]);
-            await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuerry, 0);
+            int cantidad = (parts.Length > 4) ? int.Parse(parts[4]) : 0;
+            await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuerry, callbackQuerry.Message!.MessageId, cantidad);
         }
 
         if (action == "inc" || action == "dec")
@@ -186,6 +198,31 @@ BotInteractionHandler interactionHandler
         if (rf.StartsWith("add_prod_"))
         {
             await interactionHandler.ManejarAgregarAlCarrito(bot, parts, callbackQuerry);
+        }
+
+        if (action == "cart")
+        {
+            await renderer.RenderizarCarrito(bot, callbackQuerry, callbackQuerry.Message!.MessageId);
+        }
+        if (rf.StartsWith("ask_rmv"))
+        {
+            await interactionHandler.ManejarAskEliminarItem(bot, callbackQuerry, parts);
+        }
+        if (rf.StartsWith("ask_clear"))
+        {
+            await interactionHandler.ManejarAskVaciarCarrito(bot, callbackQuerry);
+        }
+        if (action == "clear")
+        {
+            await interactionHandler.ManejarVaciarCarrito(bot, callbackQuerry);
+        }
+        if (rf.StartsWith("upd_prod_"))
+        {
+            await interactionHandler.ManejarEditarItem(bot, parts, callbackQuerry);
+        }
+        if (rf.StartsWith("rmv"))
+        {
+            await interactionHandler.ManejarEliminarItem(bot, parts, callbackQuerry);
         }
     }
     /*private async Task RenderizarCatalogo(ITelegramBotClient bot, CallbackQuery callbackQuerry, int catId, int page)

@@ -51,18 +51,28 @@ public class CatalogoModule : ICatalogoUI
 
     public InlineKeyboardMarkup BuildUIDetalleProducto(int prodId, int catId, int page, int cantidadActual)
     {
-        var buttons = new List<InlineKeyboardButton[]>
+                
+        var buttons = new List<InlineKeyboardButton[]>        
         {
             new[]{
                     InlineKeyboardButton.WithCallbackData("-", $"dec_{prodId}_{catId}_{page}"),
                     InlineKeyboardButton.WithCallbackData($"{cantidadActual}", $"none"),
                     InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}_{catId}_{page}"),
                     InlineKeyboardButton.WithCallbackData("+", $"inc_{prodId}_{catId}_{page}")
-            },
-            ([InlineKeyboardButton.WithCallbackData("Anadir", $"add_prod_{prodId}_{cantidadActual}_{catId}_{page}")]),
-            ([InlineKeyboardButton.WithCallbackData("🔙 Productos", $"cat_{catId}_{page}")])
+            }            
         };
         
+        if (catId == -1)
+        {            
+            buttons.Add([InlineKeyboardButton.WithCallbackData("✅ Confirmar Cambios", $"upd_prod_{prodId}_{cantidadActual}")]);
+            buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Volver al Carrito", $"cart")]);
+        }
+        else
+        {            
+            buttons.Add([InlineKeyboardButton.WithCallbackData("🛒 Añadir al Carrito", $"add_prod_{prodId}_{cantidadActual}_{catId}_{page}")]);
+            buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Volver a Productos", $"cat_{catId}_{page}")]);
+        }
+                
         return new InlineKeyboardMarkup(buttons);
     }
 }
