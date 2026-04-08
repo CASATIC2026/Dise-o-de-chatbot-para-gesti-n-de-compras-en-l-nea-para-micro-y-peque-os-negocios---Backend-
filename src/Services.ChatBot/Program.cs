@@ -7,6 +7,8 @@ using FluentValidation.AspNetCore;
 using Shared.Core.Data;
 using Shared.Core;
 using Services.ChatBot.Utils;
+using Webhook.Controllers.Services;
+using System.Net.NetworkInformation;
 var builder = WebApplication.CreateBuilder(args);
 
 // Setup bot configuration
@@ -26,11 +28,14 @@ builder.Services.AddHttpClient("GatewayApi", client =>
     client.BaseAddress = new Uri(gatewayUrl);
 }
 );
-builder.Services.AddScoped<IMenuUI, CategoriasModule>();
-builder.Services.AddScoped<ICatalogoUI, ProductosModule>();
-builder.Services.AddScoped<Webhook.Controllers.Services.UpdateHandler>();
+builder.Services.AddScoped<IMenuUI, MenuModule>();
+builder.Services.AddScoped<ICatalogoUI, CatalogoModule>();
+builder.Services.AddScoped<ICarrito, CarritoModule>();
+builder.Services.AddScoped<UpdateHandler>();
 builder.Services.AddScoped<IUtilsUI, UtilsModule>();
 builder.Services.AddScoped<IBotPersistencia, SqlBotPersistence>();
+builder.Services.AddScoped<BotRenderer>();
+builder.Services.AddScoped<BotInteractionHandler>();
 builder.Services.AddControllers();
 
 builder.Services.AddHostedService<StockReleaseWorker>();

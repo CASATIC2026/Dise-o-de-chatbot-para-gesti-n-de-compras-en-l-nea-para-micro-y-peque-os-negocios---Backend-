@@ -9,7 +9,8 @@ namespace Services.ChatBot.Interfaces
 {
     public interface IMenuUI
     {
-        InlineKeyboardMarkup BuildUICategorias(PagedResult<CategoriaDTO> data, int page);
+        
+        InlineKeyboardMarkup BuildUIHome(string userName);
     }
 }
 
