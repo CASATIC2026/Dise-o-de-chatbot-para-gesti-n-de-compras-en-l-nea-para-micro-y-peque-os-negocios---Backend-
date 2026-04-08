@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Data;
 using Shared.Core.Entities;
@@ -149,16 +150,16 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         try
         {
             var pedido = await ObtenerPedidoActivo(TelegramId);
-            if(pedido == null ) return (false, "No se encontró un carrito activo.");
+            if (pedido == null) return (false, "No se encontró un carrito activo.");
 
             var item = pedido.PedidoProductos.FirstOrDefault(pp => pp.ProductoId == productoId);
-            if(item == null) return (false, "El producto no está en el carrito.");
+            if (item == null) return (false, "El producto no está en el carrito.");
 
             var producto = await context.Productos.FindAsync(productoId);
-            if(producto == null) return (false, "Producto no encontrado");
-            
+            if (producto == null) return (false, "Producto no encontrado");
+
             int diferencia = cantidad - item.Cantidad;
-            if(diferencia > 0 && producto.StockDisponible < diferencia)
+            if (diferencia > 0 && producto.StockDisponible < diferencia)
                 return (false, $"Lo sentimos, no queda stock suficiente. Stock: {producto.StockDisponible}");
 
             producto.StockReservado += diferencia;
@@ -174,7 +175,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine("Error al actualizar cantidad: "+e.Message);
+            Console.Error.WriteLine("Error al actualizar cantidad: " + e.Message);
             await transaction.RollbackAsync();
             return (false, "Error al actualizar la cantidad");
         }
@@ -185,7 +186,11 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         return await context.Pedidos
         .Include(p => p.PedidoProductos)
         .ThenInclude(pp => pp.Producto)
-        .FirstOrDefaultAsync(p => p.Cliente.TelegramId == TelegramId && p.Estado == EstadoPedido.Pendiente);
+        .FirstOrDefaultAsync(p => p.Cliente!.TelegramId == TelegramId && p.Estado == EstadoPedido.Pendiente);
+    }
+    public async Task<Cliente?> ObtenerCliente(long TelegramId)
+    {
+        return await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
     }
 
     public async Task<bool> VaciarCarrito(long TelegramId)
@@ -211,7 +216,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine("Error al vaciar carrito: "+e.Message);
+            Console.Error.WriteLine("Error al vaciar carrito: " + e.Message);
             await transaction.RollbackAsync();
             return false;
         }
@@ -223,14 +228,14 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         try
         {
             var pedido = await ObtenerPedidoActivo(TelegramId);
-            if(pedido == null) return (false, "No se encontró un carrito activo.");
+            if (pedido == null) return (false, "No se encontró un carrito activo.");
 
             var item = pedido.PedidoProductos.FirstOrDefault(pp => pp.ProductoId == productoId);
-            if(item == null ) return (false, "El producto no está en el carrito.");
+            if (item == null) return (false, "El producto no está en el carrito.");
 
             var producto = await context.Productos.FindAsync(item.ProductoId);
 
-            if(producto != null)producto.StockReservado -= item.Cantidad;
+            if (producto != null) producto.StockReservado -= item.Cantidad;
 
             pedido.Total -= (item.PrecioUnitario * item.Cantidad);
             pedido.ActualizadoEn = DateTime.UtcNow;
@@ -240,11 +245,26 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
             return (true, "Producto eliminado del carrito");
-        }catch(Exception e)
+        }
+        catch (Exception e)
         {
-            Console.Error.WriteLine("Error al eliminar item: "+e.Message);
+            Console.Error.WriteLine("Error al eliminar item: " + e.Message);
             await transaction.RollbackAsync();
             return (false, "Error al eliminar el item");
         }
+    }
+    public async Task<bool> ActualizarCliente(ClienteDTO dtoC)
+    {
+        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == dtoC.TelegramId);
+        if (cliente == null) return false;
+
+        cliente.Nombre = dtoC.Nombre ?? cliente.Nombre;
+        cliente.Direccion = dtoC.Direccion ?? cliente.Direccion;
+        cliente.Telefono = dtoC.Telefono ?? cliente.Telefono;
+        cliente.Email = dtoC.Email ?? cliente.Email;
+
+        cliente.ActualizadoEn = DateTime.UtcNow;
+
+        return await context.SaveChangesAsync() > 0;
     }
 }

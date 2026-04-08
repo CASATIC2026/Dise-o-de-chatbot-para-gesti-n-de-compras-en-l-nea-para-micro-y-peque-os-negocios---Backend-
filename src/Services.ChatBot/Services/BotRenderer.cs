@@ -67,7 +67,7 @@ IBotPersistencia _persistencia)
         await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, "📂 Menú:", replyMarkup: markup);
     }
 
-    public async Task RenderizarProducto(ITelegramBotClient bot, int prodId, int catId, int page, CallbackQuery callbackQuery,int msgId, int cantidad)
+    public async Task RenderizarProducto(ITelegramBotClient bot, int prodId, int catId, int page, CallbackQuery callbackQuery, int msgId, int cantidad)
     {
         var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
         if (data == null) return;
@@ -91,5 +91,19 @@ IBotPersistencia _persistencia)
         await bot.EditMessageText(callbackQuery.Message!.Chat, msgId, texto, replyMarkup: markup);
 
         await bot.AnswerCallbackQuery(callbackQuery.Id);
+    }
+
+    public async Task RenderizarResumenFina(ITelegramBotClient bot, CallbackQuery callbackQuery, int msgId)
+    {
+        Console.WriteLine($"\nClienteId Telegram: {callbackQuery.From.Id}\n");
+        var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var cliente = await _persistencia.ObtenerCliente(callbackQuery.From.Id);
+
+        // 2. Generamos la UI de confirmación
+        var (texto, markup) = carritoUI.BuildUIResumenFinal(pedido, cliente);
+
+        // 3. Editamos el mensaje original usando el Asunto transportado
+        await bot.EditMessageText(callbackQuery.Message!.Chat.Id, msgId, texto,
+            parseMode: ParseMode.Markdown, replyMarkup: markup);
     }
 }

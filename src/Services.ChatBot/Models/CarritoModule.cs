@@ -57,4 +57,45 @@ public class CarritoModule : ICarrito
 
         return (sb.ToString(), new InlineKeyboardMarkup(buttons));
     }
+
+    public (string texto, InlineKeyboardMarkup markup) BuildUIResumenFinal(Pedido? pedido, Cliente? cliente)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("🏁 *VERIFICA TU PEDIDO*");
+        sb.AppendLine("__________________________\n");
+        if (cliente == null || pedido == null) return (sb.ToString(), null);
+
+        // 1. Listado resumido de productos
+        foreach (var item in pedido.PedidoProductos)
+        {
+            sb.AppendLine($"▪️ {item.Producto.Nombre} x{item.Cantidad} — *${item.Cantidad * item.PrecioUnitario}*");
+        }
+
+        sb.AppendLine("\n__________________________");
+        sb.AppendLine($"💰 *TOTAL A PAGAR: ${pedido.Total}*");
+        sb.AppendLine("__________________________\n");
+
+        // 2. Datos de entrega
+        sb.AppendLine("📍 *Dirección de Envío:*");
+        sb.AppendLine($"`{cliente.Direccion}`");
+        sb.AppendLine($"\n📞 *Teléfono:* `{cliente.Telefono}`");
+        sb.AppendLine("__________________________\n");
+        sb.AppendLine("¿Toda la información es correcta?");
+
+        // 3. Botones de acción
+        var buttons = new List<InlineKeyboardButton[]>
+    {
+        new[] {
+            InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkout_pagar"),
+        },
+        new[] { 
+            // Si algo está mal, lo regresamos al inicio del checkout para que sobrescriba los datos
+            InlineKeyboardButton.WithCallbackData("🔄 Corregir Datos", "checkout")
+        },
+        new[] {
+            InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart")
+        }
+    };
+        return (sb.ToString(), new InlineKeyboardMarkup(buttons));
+    }
 }

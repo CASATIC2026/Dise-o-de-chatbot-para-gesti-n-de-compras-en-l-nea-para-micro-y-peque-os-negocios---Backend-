@@ -82,7 +82,7 @@ BotInteractionHandler interactionHandler
         m.ConversacionId == conv.Id)
         .OrderByDescending(m => m.FechaEnvio)
         .FirstOrDefaultAsync();
-        Console.WriteLine("Contenido" + lastMsg.Contenido + " ");
+        Console.WriteLine("Contenido: " + lastMsg.Contenido + " ");
         if (text == "/start" || text.ToLower().Contains("Catalogo"))
         {
             Console.WriteLine("Punto A");
@@ -140,10 +140,78 @@ BotInteractionHandler interactionHandler
                 return;
             }
         }
+        
+        if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_DIRECCION]") && lastMsg.Remitente == TipoRemitente.Sistema)
+        {
+            string direccion = text;
+            /*await _persistencia.ActualizarCliente(new ClienteDTO
+            {
+                TelegramId = msg.From.Id,
+                Direccion = direccion
+            });*/
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+            Console.WriteLine($"\nAsunto: {conv.Asunto!}\n");
+            string instruction = "📍 PASO 2 :REFERENCIAS DE UBICACION\n\nPor favor, escribe referencias como: \n'frente a la tienda X' o 'casa color verde'";
+            await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_REFERENCIAS]_|{conv.Asunto!}|_*{direccion}*Esperando referencias...", TipoRemitente.Sistema);
+            
+            await bot.EditMessageText(msg.Chat.Id, int.Parse(conv.Asunto!), instruction, parseMode: ParseMode.Markdown);
+            return;
+        }
+        if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_REFERENCIAS]") && lastMsg.Remitente == TipoRemitente.Sistema)
+        {
+            string referencias = text;
+            string direccion = lastMsg.Contenido.Split('*', '*')[1];
+            string Asunto = lastMsg.Contenido.Split('|', '|')[1];
+            await _persistencia.ActualizarCliente(new ClienteDTO
+            {
+                TelegramId = msg.From.Id,
+                Direccion = $"[Direccion:{direccion}]:[Referencias:{referencias}]"
+            });
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+
+            string instruction = "📞 PASO 3: TELÉFONO DE CONTACTO\n\nEscribe tu número de teléfono para coordinar la entrega:";
+            await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_TELEFONO]_[{Asunto}]_Esperando teléfono...", TipoRemitente.Sistema);
+
+            await bot.EditMessageText(msg.Chat.Id, int.Parse(Asunto!), instruction, parseMode: ParseMode.Markdown);
+            return;
+        }
+        if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_TELEFONO]"))
+        {
+            string telefono = text;
+            // Recuperamos el Asunto (MessageId) del tag actual
+            // Contenido: [ESTADO:CHECKOUT_TELEFONO]_[12345]_Esperando teléfono...
+            var parts = lastMsg.Contenido.Split('_');
+            string Asunto = parts[2].Trim('[', ']'); // Dependiendo de tu formato exacto
+            Console.WriteLine($"\nAsunto: {Asunto}\n");
+            await _persistencia.ActualizarCliente(new ClienteDTO
+            {
+                TelegramId = msg.From.Id,
+                Telefono = telefono
+            });
+
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+
+            CallbackQuery callbackQuery = new()
+            {
+                Data = "menu",
+                From = msg.From,
+                Message = new Message
+                {
+                    Chat = msg.Chat,
+                }
+            };
+            await renderer.RenderizarResumenFina(bot, callbackQuery, int.Parse(Asunto!));        
+
+            // 4. Limpiamos el estado
+            await _persistencia.RegistrarMensaje(conv.Id, "[ESTADO:REPOSO]", TipoRemitente.Sistema);
+            return;
+        }
+
 
         if (text == "/remove")
         {
             await RemoveKeyboard(msg);
+            return;
         }
         await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
     }
@@ -223,6 +291,21 @@ BotInteractionHandler interactionHandler
         if (rf.StartsWith("rmv"))
         {
             await interactionHandler.ManejarEliminarItem(bot, parts, callbackQuerry);
+        }
+        if (action == "checkout")
+        {
+            var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuerry.From.Id);
+            if (pedido == null || !pedido.PedidoProductos.Any())
+            {
+                await bot.AnswerCallbackQuery(callbackQuerry.Id, "⚠️ Tu carrito está vacío.", showAlert: true);
+                return;
+            }
+            var conv = await _persistencia.ObtenerConversacionActiva(callbackQuerry.From.Id);
+
+            string instruction = "📍 PASO 1: DIRECCIÓN DE ENVÍO\n\nPor favor, escribe tu dirección exacta";
+            await _persistencia.RegistrarMensaje(conv!.Id, $" [ESTADO:CHECKOUT_DIRECCION]_Esperando dirección..._", TipoRemitente.Sistema);
+            await bot.EditMessageText(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
+            await bot.AnswerCallbackQuery(callbackQuerry.Id);
         }
     }
     /*private async Task RenderizarCatalogo(ITelegramBotClient bot, CallbackQuery callbackQuerry, int catId, int page)
