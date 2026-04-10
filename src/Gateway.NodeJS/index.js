@@ -20,7 +20,7 @@ app.use(express.json());
 // Initialize Telegram Bot
 const TELEGRAM_BOT_URL = process.env.CHATBOT_SERVICE_URL || 'http://localhost:5003'
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5001';
+const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:8080';
 const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://localhost:5002';
 
 // Health check
