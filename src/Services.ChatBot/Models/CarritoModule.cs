@@ -62,6 +62,7 @@ public class CarritoModule : ICarrito
     {
         var sb = new StringBuilder();
         if (cliente == null || pedido == null) return (sb.ToString(), null);
+        if (cliente == null || pedido == null) return (sb.ToString(), null);
         sb.AppendLine("🏁 *VERIFICA TU PEDIDO*");
         sb.AppendLine("__________________________\n");
 
@@ -86,6 +87,7 @@ public class CarritoModule : ICarrito
         var buttons = new List<InlineKeyboardButton[]>
     {
         new[] {
+            InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkoutEnd"),
             InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkoutEnd"),
         },
         new[] { 
