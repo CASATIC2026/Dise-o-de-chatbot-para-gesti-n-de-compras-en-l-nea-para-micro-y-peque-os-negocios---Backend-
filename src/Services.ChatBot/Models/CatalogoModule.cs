@@ -53,7 +53,7 @@ public class CatalogoModule : ICatalogoUI
     public InlineKeyboardMarkup BuildUIDetalleProducto(int prodId, int catId, int page, int cantidadActual)
     {
 
-        var buttons = new List<InlineKeyboardButton[]>
+
 
         var buttons = new List<InlineKeyboardButton[]>
         {
@@ -63,12 +63,12 @@ public class CatalogoModule : ICatalogoUI
                     InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}_{catId}_{page}"),
                     InlineKeyboardButton.WithCallbackData("+", $"inc_{prodId}_{catId}_{page}")
             }
-            }
+
         };
 
 
         if (catId == -1)
-        {
+
         {
             buttons.Add([InlineKeyboardButton.WithCallbackData("✅ Confirmar Cambios", $"upd_prod_{prodId}_{cantidadActual}")]);
             buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Volver al Carrito", $"cart")]);
@@ -81,6 +81,7 @@ public class CatalogoModule : ICatalogoUI
 
 
         return new InlineKeyboardMarkup(buttons);
+
     }
 
     public (InlineKeyboardMarkup markup, string texto) BuildUIPedidos(PagedResult<PedidoDTO> data, int page)
