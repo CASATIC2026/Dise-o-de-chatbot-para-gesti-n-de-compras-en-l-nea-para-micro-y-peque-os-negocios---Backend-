@@ -113,7 +113,7 @@ public class CatalogoModule : ICatalogoUI
 
                 sb.AppendLine($"{pedido.Id,-4} " +
                               $"{pedido.FechaRealizado.ToString("dd/MM/yyyy"),-12} " +
-                              $"{pedido.Estado.Trim()[..Math.Min(12, pedido.Estado.Length)],-12} " +
+                              $"{pedido.Estado.ToString().Trim()[..Math.Min(12, pedido.Estado.ToString().Length)],-12} " +
                               $"{total,8}");
             }
 

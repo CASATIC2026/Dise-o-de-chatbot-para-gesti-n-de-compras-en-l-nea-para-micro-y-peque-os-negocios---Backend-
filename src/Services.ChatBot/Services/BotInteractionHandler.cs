@@ -4,6 +4,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using Shared.Core.Entities;
+using Services.ChatBot.DTOs;
 
 namespace Webhook.Controllers.Services;
 
@@ -141,7 +142,10 @@ ICatalogoUI catalogoUI)
 
     public async Task ManejarFinalizacionPedido(ITelegramBotClient bot, CallbackQuery callbackQuery)
     {
-        var (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, EstadoPedido.Confirmado);
+        var pedido = new PedidoDTO();
+        pedido.Estado = EstadoPedido.Pendiente;
+
+        var (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido);
         if (Succes)
         {
             await bot.AnswerCallbackQuery(callbackQuery.Id, msg, showAlert: true);

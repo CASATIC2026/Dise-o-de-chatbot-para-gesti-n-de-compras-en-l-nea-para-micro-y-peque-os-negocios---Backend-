@@ -1,3 +1,5 @@
+using Shared.Core.Entities;
+
 namespace Services.ChatBot.DTOs
 {
     public class PagedResult<T>
@@ -32,8 +34,13 @@ namespace Services.ChatBot.DTOs
     public class PedidoDTO
     {
         public int Id { get; set; } = 0;
-        public DateTime FechaRealizado {get; set;}
-        public string Estado {get; set;} = "";
-        public decimal Total {get; set;}
+        public DateTime FechaRealizado { get; set; }
+        public EstadoPedido Estado { get; set; }
+        public decimal Total { get; set; }
+        public string? Direccion { get; set; }
+        public string? Referencias { get; set; }
+        public string? Telefono { get; set; }
+        public string? Email { get; set; }
     }
+
 }

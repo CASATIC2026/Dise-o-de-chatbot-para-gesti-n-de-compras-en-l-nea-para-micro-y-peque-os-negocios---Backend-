@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
@@ -289,7 +290,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         return (pedidosUsuario, count);
     }
 
-    public async Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, EstadoPedido estado)
+    public async Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, PedidoDTO pdd)
     {
         using var transaction = await context.Database.BeginTransactionAsync();
         try
@@ -297,7 +298,19 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             var pedido = await ObtenerPedidoActivo(TelegramId);
             if (pedido == null) return (false, "No se encontró un carrito activo.");
 
-            pedido.Estado = estado;
+            if (pdd.Estado != null) pedido.Estado = pdd.Estado;
+            pedido.Total = pdd.Total;
+            pedido.DireccionEntrega = pdd.Direccion ?? pedido.DireccionEntrega;
+            var Detalles = new
+            {
+                Referencias = pdd.Referencias ?? null,
+                Telefono = pdd.Telefono ?? null,
+                Email = pdd.Email ?? null
+            };
+            if (Detalles != null)
+            {
+                pedido.DetallesJson = JsonSerializer.Serialize(Detalles);
+            }
             pedido.ActualizadoEn = DateTime.UtcNow;
 
             await context.SaveChangesAsync();
