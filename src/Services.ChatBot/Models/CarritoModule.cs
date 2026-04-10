@@ -61,9 +61,9 @@ public class CarritoModule : ICarrito
     public (string texto, InlineKeyboardMarkup markup) BuildUIResumenFinal(Pedido? pedido, Cliente? cliente)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("🏁 *VERIFICA TU PEDIDO*");
-        sb.AppendLine("__________________________\n");
         if (cliente == null || pedido == null) return (sb.ToString(), null);
+        sb.AppendLine("🏁 *VERIFICA TU PEDIDO*");
+        sb.AppendLine("__________________________\n");        
 
         // 1. Listado resumido de productos
         foreach (var item in pedido.PedidoProductos)
@@ -86,7 +86,7 @@ public class CarritoModule : ICarrito
         var buttons = new List<InlineKeyboardButton[]>
     {
         new[] {
-            InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "menu"),
+            InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkoutEnd"),
         },
         new[] { 
             // Si algo está mal, lo regresamos al inicio del checkout para que sobrescriba los datos

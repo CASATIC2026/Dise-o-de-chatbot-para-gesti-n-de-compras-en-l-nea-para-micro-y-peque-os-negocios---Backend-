@@ -309,5 +309,10 @@ BotInteractionHandler interactionHandler
             await bot.EditMessageText(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
             await bot.AnswerCallbackQuery(callbackQuerry.Id);
         }
+
+        if (action == "ords")
+        {
+            await renderer.RenderizarOrdenes(bot, callbackQuerry);
+        }
     }
 }

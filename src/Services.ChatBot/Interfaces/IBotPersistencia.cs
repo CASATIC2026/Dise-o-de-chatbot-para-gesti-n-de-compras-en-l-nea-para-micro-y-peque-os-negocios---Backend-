@@ -15,5 +15,6 @@ public interface IBotPersistencia
     Task<(bool Succes, string msg)> EliminarItem(long TelegramId, int productoId);
     Task<(bool Succes, string msg)> ActualizarCantidadCarrito(long TelegramId, int productoId, int cantidad);
     Task<bool> ActualizarCliente(ClienteDTO dtoC);
+    Task<List<Pedido>> ObtenerPedidosUsuario(long TelegramId, int tamaño, int pagina);
 }
 

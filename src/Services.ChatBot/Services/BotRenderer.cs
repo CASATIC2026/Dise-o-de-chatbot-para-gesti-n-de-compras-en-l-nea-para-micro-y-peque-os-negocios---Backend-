@@ -106,4 +106,8 @@ IBotPersistencia _persistencia)
         await bot.EditMessageText(callbackQuery.Message!.Chat.Id, msgId, texto,
             parseMode: ParseMode.Markdown, replyMarkup: markup);
     }
+    public async Task RenderizarOrdenes(ITelegramBotClient bot, CallbackQuery callbackQuery)
+    {
+        
+    }
 }
