@@ -138,4 +138,23 @@ ICatalogoUI catalogoUI)
         await bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, confirmKbd);
         await bot.AnswerCallbackQuery(callbackQuery.Id, "⚠️ ¿Estás seguro de quitar este producto?");
     }
+
+    public async Task ManejarFinalizacionPedido(ITelegramBotClient bot, CallbackQuery callbackQuery)
+    {
+        var (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, EstadoPedido.Confirmado);
+        if (Succes)
+        {
+            await bot.AnswerCallbackQuery(callbackQuery.Id, msg, showAlert: true);
+            await renderer.RenderizarOrdenes(bot, callbackQuery, 0);
+        }
+        else
+        {
+            var text = "REINTENTAR";
+            var markup = new InlineKeyboardMarkup(new[]{
+                InlineKeyboardButton.WithCallbackData(text, "checkout")
+            });
+            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
+            await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
+        }
+    }
 }

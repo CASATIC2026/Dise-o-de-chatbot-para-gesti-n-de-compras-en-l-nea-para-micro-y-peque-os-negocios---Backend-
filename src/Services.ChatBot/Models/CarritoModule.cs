@@ -88,7 +88,7 @@ public class CarritoModule : ICarrito
     {
         new[] {
             InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkoutEnd"),
-            InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkoutEnd"),
+            InlineKeyboardButton.WithCallbackData("🚫 CANCELAR PEDIDO", "ask_clear"),
         },
         new[] { 
             // Si algo está mal, lo regresamos al inicio del checkout para que sobrescriba los datos

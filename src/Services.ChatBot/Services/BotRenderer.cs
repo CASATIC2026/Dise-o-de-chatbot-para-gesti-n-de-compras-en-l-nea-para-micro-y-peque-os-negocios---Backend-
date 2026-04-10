@@ -109,19 +109,27 @@ IBotPersistencia _persistencia)
     public async Task RenderizarOrdenes(ITelegramBotClient bot, CallbackQuery callbackQuery, int page)
     {
         var (pedidos, count) = await _persistencia.ObtenerPedidosUsuario(callbackQuery.From.Id, 6, page);
-        if (pedidos == null) return;
-        Console.WriteLine("Ordenes: " + count);
-        PagedResult<PedidoDTO> data = new PagedResult<PedidoDTO>
+        PagedResult<PedidoDTO> data = new();
+        if (pedidos != null)
         {
-            Items = pedidos.Select(p => new PedidoDTO
+            Console.WriteLine("Ordenes: " + count);
+            data = new()
             {
-                Id = p.Id,
-                FechaRealizado = p.CreadoEn,
-                Estado = p.Estado.ToString(),
-                Total = p.Total,
-            }).ToList(),
-            TotalCount = count
-        };
+                Items = pedidos.Select(p => new PedidoDTO
+                {
+                    Id = p.Id,
+                    FechaRealizado = p.CreadoEn,
+                    Estado = p.Estado.ToString(),
+                    Total = p.Total,
+                }).ToList(),
+                TotalCount = count
+            };
+        }
+        else
+        {
+            data = new();
+        }
+
         var (markup, texto) = catalogoUI.BuildUIPedidos(data, page);
 
         await bot.EditMessageText(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);

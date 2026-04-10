@@ -86,37 +86,45 @@ public class CatalogoModule : ICatalogoUI
 
     public (InlineKeyboardMarkup markup, string texto) BuildUIPedidos(PagedResult<PedidoDTO> data, int page)
     {
-        var sb = new StringBuilder();
-        string formato = "{0,-4} {1,-12}, {2,-15}, {3,}";
-        if (data == null) return (null, sb.ToString());
-        //Console.WriteLine($"Pagina {page}");
+        var buttons = new List<InlineKeyboardButton[]>
+        {
+            ([InlineKeyboardButton.WithCallbackData("🔙 Menu", "menu")])
+        };
 
+        var sb = new StringBuilder();
         sb.AppendLine("```");
         sb.AppendLine("PEDIDOS REALIZADOS");
         sb.AppendLine(new string('-', 40) + "\n");
-        sb.AppendLine($"{"ID",-4} {"FECHA",-12} {"ESTADO",-12} {"TOTAL",8}");
-        sb.AppendLine(new string('-', 40));
-
-        foreach (var pedido in data.Items)
+        if (data == null)
         {
-            string total = '$' + pedido.Total.ToString("F2");
-
-            sb.AppendLine($"{pedido.Id,-4} " +
-                          $"{pedido.FechaRealizado.ToString("dd/MM/yyyy"),-12} " +
-                          $"{pedido.Estado.Trim()[..Math.Min(12, pedido.Estado.Length)],-12} " +
-                          $"{total,8}");
+            sb.AppendLine("No se encontraron pedidos");
+            sb.AppendLine("```");
+            var markup = new InlineKeyboardMarkup(buttons);
+            return (markup, sb.ToString());
         }
+        else
+        {
+            sb.AppendLine($"{"ID",-4} {"FECHA",-12} {"ESTADO",-12} {"TOTAL",8}");
+            sb.AppendLine(new string('-', 40));
 
-        sb.AppendLine("```"); // Cerramos el bloque        
-        var buttons = new List<InlineKeyboardButton[]>();
-        var navRow = new List<InlineKeyboardButton>();
-        if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pords_{page - 1}"));
-        if ((page + 1) * 6 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pords_{page + 1}"));
-        if (navRow.Count != 0) buttons.Add([.. navRow]);
+            foreach (var pedido in data.Items)
+            {
+                string total = '$' + pedido.Total.ToString("F2");
 
-        buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Menu", "menu")]);
-        var markup = new InlineKeyboardMarkup(buttons);
-        return new(markup, sb.ToString());
+                sb.AppendLine($"{pedido.Id,-4} " +
+                              $"{pedido.FechaRealizado.ToString("dd/MM/yyyy"),-12} " +
+                              $"{pedido.Estado.Trim()[..Math.Min(12, pedido.Estado.Length)],-12} " +
+                              $"{total,8}");
+            }
+
+            sb.AppendLine("```"); // Cerramos el bloque        
+
+            var navRow = new List<InlineKeyboardButton>();
+            if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pords_{page - 1}"));
+            if ((page + 1) * 6 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pords_{page + 1}"));
+            if (navRow.Count != 0) buttons.Add([.. navRow]);
+            var markup = new InlineKeyboardMarkup(buttons);
+            return new(markup, sb.ToString());
+        }
     }
-
 }

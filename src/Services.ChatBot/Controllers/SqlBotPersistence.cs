@@ -276,7 +276,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         .Include(p => p.PedidoProductos)
         .ThenInclude(pp => pp.Producto)
         .Where(p => p.Cliente!.TelegramId == TelegramId && p.Estado != EstadoPedido.Cancelado)
-        .OrderBy(p => p.CreadoEn)
+        .OrderByDescending(p => p.CreadoEn)
         .Skip(pagina * tamaño)
         .Take(tamaño)
         .ToListAsync();
@@ -287,5 +287,28 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         .CountAsync();
         if (pedidosUsuario == null || pedidosUsuario.Count == 0) return (null, 0);
         return (pedidosUsuario, count);
+    }
+
+    public async Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, EstadoPedido estado)
+    {
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            var pedido = await ObtenerPedidoActivo(TelegramId);
+            if (pedido == null) return (false, "No se encontró un carrito activo.");
+
+            pedido.Estado = estado;
+            pedido.ActualizadoEn = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return (true, $"Pedido #{pedido.Id} realizado con éxito.");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Error al realizar el pedido: " + ex.Message);
+            await transaction.RollbackAsync();
+            return (false, "Error al finalizar el pedido");
+        }
     }
 }

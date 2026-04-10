@@ -319,5 +319,10 @@ BotInteractionHandler interactionHandler
             int page = int.Parse(parts[1]);
             await renderer.RenderizarOrdenes(bot, callbackQuerry, page);
         }
+
+        if (action == "checkoutEnd")
+        {
+            await interactionHandler.ManejarFinalizacionPedido(bot, callbackQuerry);
+        }
     }
 }
