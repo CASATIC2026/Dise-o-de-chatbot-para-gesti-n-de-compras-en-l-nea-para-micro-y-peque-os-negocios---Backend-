@@ -27,6 +27,13 @@ namespace Services.ChatBot.DTOs
         public string? Direccion { set; get; }
         public string? Telefono { set; get; }
         public string? Email { set; get; }
+    }
 
+    public class PedidoDTO
+    {
+        public int Id { get; set; } = 0;
+        public DateTime FechaRealizado {get; set;}
+        public string Estado {get; set;} = "";
+        public decimal Total {get; set;}
     }
 }

@@ -269,4 +269,23 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 
         return await context.SaveChangesAsync() > 0;
     }
+
+    public async Task<(List<Pedido>, int count)> ObtenerPedidosUsuario(long TelegramId, int tamaño, int pagina)
+    {
+        var pedidosUsuario = await context.Pedidos
+        .Include(p => p.PedidoProductos)
+        .ThenInclude(pp => pp.Producto)
+        .Where(p => p.Cliente!.TelegramId == TelegramId && p.Estado != EstadoPedido.Cancelado)
+        .OrderBy(p => p.CreadoEn)
+        .Skip(pagina * tamaño)
+        .Take(tamaño)
+        .ToListAsync();
+
+        var count = await context.Pedidos
+        .Include(p => p.PedidoProductos)
+        .Where(p => p.Cliente!.TelegramId == TelegramId && p.Estado != EstadoPedido.Cancelado)
+        .CountAsync();
+        if (pedidosUsuario == null || pedidosUsuario.Count == 0) return (null, 0);
+        return (pedidosUsuario, count);
+    }
 }
