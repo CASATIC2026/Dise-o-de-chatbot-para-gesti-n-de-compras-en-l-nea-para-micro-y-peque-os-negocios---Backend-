@@ -296,32 +296,65 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         try
         {
             var pedido = await ObtenerPedidoActivo(TelegramId);
-            if (pedido == null) return (false, "No se encontró un carrito activo.");
-
-            if (pdd.Estado != null) pedido.Estado = pdd.Estado;
-            pedido.Total = pdd.Total;
-            pedido.DireccionEntrega = pdd.Direccion ?? pedido.DireccionEntrega;
-            var Detalles = new
+            if (pedido == null)
             {
-                Referencias = pdd.Referencias ?? null,
-                Telefono = pdd.Telefono ?? null,
-                Email = pdd.Email ?? null
-            };
-            if (Detalles != null)
-            {
-                pedido.DetallesJson = JsonSerializer.Serialize(Detalles);
+                return (false, "No se encontró un carrito activo.");
             }
+
+            // 1. Actualización de campos básicos
+            
+                pedido.Estado = pdd.Estado;
+            Console.WriteLine("Total:" + pdd.Total);
+                if (pdd.Total != null)
+                pedido.Total = (decimal)pdd.Total;
+            
             pedido.ActualizadoEn = DateTime.UtcNow;
+
+            if (!string.IsNullOrEmpty(pdd.Direccion))
+            {
+                pedido.DireccionEntrega = pdd.Direccion;
+            }
+
+            // 2. Lógica de DetallesJson (Manejo de Acumulación)
+            Dictionary<string, string> detallesMap;
+
+            // Validamos el estado actual del JSON para no perder datos previos
+            if (string.IsNullOrWhiteSpace(pedido.DetallesJson) || pedido.DetallesJson == "[]")
+            {
+                detallesMap = new Dictionary<string, string>();
+            }
+            else
+            {
+                detallesMap = JsonSerializer.Deserialize<Dictionary<string, string>>(pedido.DetallesJson)
+                              ?? new Dictionary<string, string>();
+            }
+
+            // 3. Inyección de nuevos datos desde el DTO si existen
+            if (pdd.Detalles != null)
+            {
+                if (!string.IsNullOrEmpty(pdd.Detalles.Referencias))
+                    detallesMap["Referencias"] = pdd.Detalles.Referencias;
+
+                if (!string.IsNullOrEmpty(pdd.Detalles.Telefono))
+                    detallesMap["Telefono"] = pdd.Detalles.Telefono;
+
+                if (!string.IsNullOrEmpty(pdd.Detalles.Email))
+                    detallesMap["Email"] = pdd.Detalles.Email;
+            }
+
+            // 4. Serialización y persistencia
+            pedido.DetallesJson = JsonSerializer.Serialize(detallesMap);
 
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
-            return (true, $"Pedido #{pedido.Id} realizado con éxito.");
+
+            return (true, $"Pedido #{pedido.Id} actualizado con éxito.");
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine("Error al realizar el pedido: " + ex.Message);
             await transaction.RollbackAsync();
-            return (false, "Error al finalizar el pedido");
+            Console.Error.WriteLine($"[Error ActualizarPedido]: {ex.Message}");
+            return (false, "Error interno al finalizar el pedido.");
         }
     }
 }

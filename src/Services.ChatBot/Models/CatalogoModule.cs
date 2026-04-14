@@ -60,7 +60,7 @@ public class CatalogoModule : ICatalogoUI
             new[]{
                     InlineKeyboardButton.WithCallbackData("-", $"dec_{prodId}_{catId}_{page}"),
                     InlineKeyboardButton.WithCallbackData($"{cantidadActual}", $"none"),
-                    InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}_{catId}_{page}"),
+                    InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}_{catId}_{page}_{cantidadActual}"),
                     InlineKeyboardButton.WithCallbackData("+", $"inc_{prodId}_{catId}_{page}")
             }
 
@@ -109,7 +109,9 @@ public class CatalogoModule : ICatalogoUI
 
             foreach (var pedido in data.Items)
             {
-                string total = '$' + pedido.Total.ToString("F2");
+                string valor = Convert.ToString(pedido.Total!.Value);
+                decimal valorD = Convert.ToDecimal(valor);
+                string total = $"${pedido.Total!.Value.ToString("F2")}";
 
                 sb.AppendLine($"{pedido.Id,-4} " +
                               $"{pedido.FechaRealizado.ToString("dd/MM/yyyy"),-12} " +

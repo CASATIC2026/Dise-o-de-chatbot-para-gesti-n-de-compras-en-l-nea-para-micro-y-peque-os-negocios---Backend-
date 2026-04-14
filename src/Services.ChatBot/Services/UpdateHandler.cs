@@ -146,15 +146,17 @@ BotInteractionHandler interactionHandler
         if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_DIRECCION]") && lastMsg.Remitente == TipoRemitente.Sistema)
         {
             string direccion = text;
-            /*await _persistencia.ActualizarCliente(new ClienteDTO
+
+            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
             {
-                TelegramId = msg.From.Id,
-                Direccion = direccion
-            });*/
+                Estado = EstadoPedido.Pendiente,
+                Direccion = direccion                
+            });
+
             await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
-            Console.WriteLine($"\nAsunto: {conv.Asunto!}\n");
+
             string instruction = "📍 PASO 2 :REFERENCIAS DE UBICACION\n\nPor favor, escribe referencias como: \n'frente a la tienda X' o 'casa color verde'";
-            await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_REFERENCIAS]_|{conv.Asunto!}|_*{direccion}*Esperando referencias...", TipoRemitente.Sistema);
+            await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_REFERENCIAS]_[{conv.Asunto!}]_*Esperando referencias...", TipoRemitente.Sistema);
 
             await bot.EditMessageText(msg.Chat.Id, int.Parse(conv.Asunto!), instruction, parseMode: ParseMode.Markdown);
             return;
@@ -162,12 +164,11 @@ BotInteractionHandler interactionHandler
         if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_REFERENCIAS]") && lastMsg.Remitente == TipoRemitente.Sistema)
         {
             string referencias = text;
-            string direccion = lastMsg.Contenido.Split('*', '*')[1];
-            string Asunto = lastMsg.Contenido.Split('|', '|')[1];
-            await _persistencia.ActualizarCliente(new ClienteDTO
+            string Asunto = lastMsg.Contenido.Split('_')[2].Trim('[', ']');
+
+            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
             {
-                TelegramId = msg.From.Id,
-                Direccion = $"[Direccion:{direccion}]:[Referencias:{referencias}]"
+                Detalles = new PedidoDetalleDTO { Referencias = referencias }
             });
             await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
 
@@ -177,21 +178,20 @@ BotInteractionHandler interactionHandler
             await bot.EditMessageText(msg.Chat.Id, int.Parse(Asunto!), instruction, parseMode: ParseMode.Markdown);
             return;
         }
+
         if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_TELEFONO]"))
         {
             string telefono = text;
-            // Recuperamos el Asunto (MessageId) del tag actual
-            // Contenido: [ESTADO:CHECKOUT_TELEFONO]_[12345]_Esperando teléfono...
-            var parts = lastMsg.Contenido.Split('_');
-            string Asunto = parts[2].Trim('[', ']'); // Dependiendo de tu formato exacto
+
+            string Asunto = lastMsg.Contenido.Split('_')[2].Trim('[', ']'); // Dependiendo de tu formato exacto
             Console.WriteLine($"\nAsunto: {Asunto}\n");
-            await _persistencia.ActualizarCliente(new ClienteDTO
+
+            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
             {
-                TelegramId = msg.From.Id,
-                Telefono = telefono
+                Detalles = new PedidoDetalleDTO { Telefono = telefono }
             });
 
-            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);    
 
             CallbackQuery callbackQuery = new()
             {

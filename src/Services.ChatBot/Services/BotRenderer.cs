@@ -120,7 +120,7 @@ IBotPersistencia _persistencia)
                     Id = p.Id,
                     FechaRealizado = p.CreadoEn,
                     Estado = p.Estado,
-                    Total = p.Total,
+                    Total = Decimal.Parse(p.Total.ToString()),
                 }).ToList(),
                 TotalCount = count
             };

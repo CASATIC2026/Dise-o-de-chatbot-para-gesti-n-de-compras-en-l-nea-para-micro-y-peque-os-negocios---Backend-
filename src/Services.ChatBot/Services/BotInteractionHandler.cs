@@ -35,13 +35,14 @@ ICatalogoUI catalogoUI)
         int prodId = int.Parse(parts[2]);
         int catId = int.Parse(parts[3]);
         int page = int.Parse(parts[4]);
+        int currentQty = int.Parse(parts[5]);
 
         string instruction = $"*Ingreso Manual*\n\nEscribe la cantidad que deseas para el producto [ID:{prodId}]";
         await bot.AnswerCallbackQuery(callbackQuery.Id, "⌨️ Escribe la cantidad en el chat", showAlert: false);
         Console.WriteLine(instruction);
 
         var cancelKbd = new InlineKeyboardMarkup(
-            InlineKeyboardButton.WithCallbackData("Cancelar", $"prod_{prodId}_{catId}_{page}")
+            InlineKeyboardButton.WithCallbackData("Cancelar", $"prod_{prodId}_{catId}_{page}_{currentQty}")
         );
 
         await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
@@ -142,8 +143,12 @@ ICatalogoUI catalogoUI)
 
     public async Task ManejarFinalizacionPedido(ITelegramBotClient bot, CallbackQuery callbackQuery)
     {
+        var pedidoactual = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
         var pedido = new PedidoDTO();
-        pedido.Estado = EstadoPedido.Pendiente;
+        pedido.Estado = EstadoPedido.Confirmado;
+        if(pedidoactual != null)
+            pedido.Total = pedidoactual.Total;
+        
 
         var (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido);
         if (Succes)
