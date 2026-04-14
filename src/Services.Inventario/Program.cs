@@ -33,10 +33,11 @@ builder.Services.AddAuthentication(x =>
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false,
-        ValidateLifetime = true
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero // Opcional: elimina el margen de 5 min para expirar tokens
     };
 
-    // Esto permite que SignalR reciba el token por la URL (necesario para WebSockets)
+    // VITAL: Configuración para que SignalR lea el token de la Query String
     x.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
@@ -60,15 +61,15 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 builder.Services.AddSharedInfrastructure(builder.Configuration);
 
-// CORS ACTUALIZADO: Para SignalR es vital especificar los orígenes exactos
+// CORS LOCAL: Configuración específica para desarrollo local con React
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowGateway", policy =>
     {
-        policy.SetIsOriginAllowed(origin => true) // Permite cualquier origen (Túnel, Localhost, IP)
+        policy.WithOrigins("http://localhost:5173") // Tu puerto de React
               .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowCredentials(); // Mantener esto para SignalR
+              .AllowCredentials(); // Obligatorio para SignalR con Auth
     });
 });
 
@@ -80,28 +81,28 @@ builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
 
 var app = builder.Build();
 
-// 4. PIPELINE DE MIDDLEWARE (El orden es CRÍTICO)
+// 4. PIPELINE DE MIDDLEWARE (El orden es la clave del éxito)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// 1° Routing
+// 1. Routing debe ser lo primero
 app.UseRouting();
 
-// 2° CORS (Debe ir después de Routing y antes de Auth)
+// 2. CORS DEBE ir antes de Authentication
 app.UseCors("AllowGateway");
 
-// 3° Auth
+// 3. Autenticación y Autorización
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 4° Endpoints
+// 4. Endpoints (Controllers y Hubs)
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// El Hub DEBE estar después de UseCors y UseAuthorization
+// Mapeo del Hub para SignalR
 app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

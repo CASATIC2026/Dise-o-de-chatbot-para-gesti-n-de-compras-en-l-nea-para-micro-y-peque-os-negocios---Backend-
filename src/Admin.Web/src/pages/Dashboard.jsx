@@ -1,14 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import * as signalR from '@microsoft/signalr';
 import api from '../api/client';
 
-function Dashboard() {
+function Dashboard({ notifications = [] }) {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [actividades, setActividades] = useState([
-        { id: 1, icono: '🚀', titulo: 'Sistema en línea', mensaje: 'Escuchando nuevas notificaciones...', color: 'bg-blue-50', fecha: 'Ahora' }
-    ]);
 
     const fetchStats = async () => {
         try {
@@ -22,62 +18,7 @@ function Dashboard() {
     };
 
     useEffect(() => {
-        let isMounted = true;
         fetchStats();
-
-        // 1. Crear la conexión una sola vez
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://xpf10vmg-5001.use2.devtunnels.ms/notificationHub", {
-                headers: { "X-Tunnel-Skip-AntiPhishing-Page": "true" } // <--- ESTO ES CLAVE
-            })
-            .withAutomaticReconnect()
-            .build();
-
-        // 2. Definir la función de inicio
-        const startConnection = async () => {
-            if (connection.state === signalR.HubConnectionState.Disconnected) {
-                try {
-                    await connection.start();
-                    console.log("🚀 SignalR Conectado con éxito");
-                } catch (err) {
-                    console.error("❌ Error al conectar SignalR:", err);
-                    setTimeout(startConnection, 5000);
-                }
-            }
-        };
-
-        // 3. Configurar el receptor de eventos
-        connection.on("ReceiveNotification", (notificacion) => {
-            console.log("🔔 DATOS RECIBIDOS DEL HUB:", notificacion);
-
-            if (!isMounted) return;
-
-            const colorMap = { 'success': 'bg-green-50', 'warning': 'bg-yellow-50', 'error': 'bg-red-50', 'info': 'bg-blue-50' };
-            const iconoMap = { 'success': '✅', 'warning': '⚠️', 'error': '❌', 'info': 'ℹ️' };
-
-            // IMPORTANTE: .NET envía las propiedades en camelCase (primera letra minúscula)
-            const nuevaActividad = {
-                id: Date.now(),
-                titulo: notificacion.titulo || "Notificación",
-                mensaje: notificacion.mensaje || "Sin mensaje",
-                icono: iconoMap[notificacion.tipo] || '🔔',
-                color: colorMap[notificacion.tipo] || 'bg-gray-50',
-                fecha: 'Recién'
-            };
-
-            setActividades(prev => [nuevaActividad, ...prev]);
-        });
-
-        startConnection();
-
-        // 4. Limpieza al desmontar el componente
-        return () => {
-            isMounted = false;
-            if (connection) {
-                connection.stop();
-                console.log("📡 SignalR Desconectado");
-            }
-        };
     }, []);
 
     if (loading) {
@@ -97,8 +38,13 @@ function Dashboard() {
     ];
 
     const chartData = [
-        { name: 'Lun', ventas: 12 }, { name: 'Mar', ventas: 19 }, { name: 'Mié', ventas: 15 },
-        { name: 'Jue', ventas: 25 }, { name: 'Vie', ventas: 22 }, { name: 'Sáb', ventas: 30 }, { name: 'Dom', ventas: 18 },
+        { name: 'Lun', ventas: 12 },
+        { name: 'Mar', ventas: 19 },
+        { name: 'Mié', ventas: 15 },
+        { name: 'Jue', ventas: 25 },
+        { name: 'Vie', ventas: 22 },
+        { name: 'Sáb', ventas: 30 },
+        { name: 'Dom', ventas: 18 },
     ];
 
     return (
@@ -144,8 +90,8 @@ function Dashboard() {
                 <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Actividad Reciente</h3>
                     <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                        {actividades.length === 0 && <p className="text-center text-gray-400 py-4">Sin actividad reciente</p>}
-                        {actividades.map((act) => (
+                        {notifications.length === 0 && <p className="text-center text-gray-400 py-4">Sin actividad reciente</p>}
+                        {notifications.map((act) => (
                             <div key={act.id} className={`flex items-start space-x-3 p-3 ${act.color} rounded-lg border border-gray-100 animate-fade-in-down`}>
                                 <span className="text-2xl">{act.icono}</span>
                                 <div className="flex-1">
