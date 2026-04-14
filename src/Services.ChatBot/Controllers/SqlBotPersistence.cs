@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Data;
 using Shared.Core.Entities;
@@ -9,7 +11,9 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 {
     public async Task<Conversacion?> ObtenerConversacionActiva(long clienteId)
     {
+        Console.WriteLine($"Conversacion , TelegramId {clienteId}");
         var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == clienteId);
+
         if (cliente == null) return null;
         return await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == cliente.Id && c.Activa == true);
     }
@@ -141,6 +145,216 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         {
             await transaction.RollbackAsync();
             return (false, "Error al procesar la reserva" + e.Message);
+        }
+    }
+    public async Task<(bool Succes, string msg)> ActualizarCantidadCarrito(long TelegramId, int productoId, int cantidad)
+    {
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            var pedido = await ObtenerPedidoActivo(TelegramId);
+            if (pedido == null) return (false, "No se encontró un carrito activo.");
+
+            var item = pedido.PedidoProductos.FirstOrDefault(pp => pp.ProductoId == productoId);
+            if (item == null) return (false, "El producto no está en el carrito.");
+
+            var producto = await context.Productos.FindAsync(productoId);
+            if (producto == null) return (false, "Producto no encontrado");
+
+            int diferencia = cantidad - item.Cantidad;
+            if (diferencia > 0 && producto.StockDisponible < diferencia)
+                return (false, $"Lo sentimos, no queda stock suficiente. Stock: {producto.StockDisponible}");
+
+            producto.StockReservado += diferencia;
+            item.Cantidad = cantidad;
+            pedido.Total += pedido.PedidoProductos.Sum(pp => pp.Cantidad * pp.PrecioUnitario);
+            pedido.ActualizadoEn = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (true, "Cantidad actualizada");
+
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine("Error al actualizar cantidad: " + e.Message);
+            await transaction.RollbackAsync();
+            return (false, "Error al actualizar la cantidad");
+        }
+    }
+
+    public async Task<Pedido?> ObtenerPedidoActivo(long TelegramId)
+    {
+        return await context.Pedidos
+        .Include(p => p.PedidoProductos)
+        .ThenInclude(pp => pp.Producto)
+        .FirstOrDefaultAsync(p => p.Cliente!.TelegramId == TelegramId && p.Estado == EstadoPedido.Pendiente);
+    }
+    public async Task<Cliente?> ObtenerCliente(long TelegramId)
+    {
+        return await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
+    }
+
+    public async Task<bool> VaciarCarrito(long TelegramId)
+    {
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            var pedido = await ObtenerPedidoActivo(TelegramId);
+            if (pedido == null || !pedido.PedidoProductos.Any()) return false;
+            foreach (var pp in pedido.PedidoProductos)
+            {
+                var producto = await context.Productos.FindAsync(pp.ProductoId);
+                if (producto != null) producto.StockReservado -= pp.Cantidad;
+            }
+            //context.PedidoProductos.RemoveRange(pedido.PedidoProductos);
+            pedido.Estado = EstadoPedido.Cancelado;
+            pedido.Total = 0;
+            pedido.ActualizadoEn = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine("Error al vaciar carrito: " + e.Message);
+            await transaction.RollbackAsync();
+            return false;
+        }
+    }
+
+    public async Task<(bool Succes, string msg)> EliminarItem(long TelegramId, int productoId)
+    {
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            var pedido = await ObtenerPedidoActivo(TelegramId);
+            if (pedido == null) return (false, "No se encontró un carrito activo.");
+
+            var item = pedido.PedidoProductos.FirstOrDefault(pp => pp.ProductoId == productoId);
+            if (item == null) return (false, "El producto no está en el carrito.");
+
+            var producto = await context.Productos.FindAsync(item.ProductoId);
+
+            if (producto != null) producto.StockReservado -= item.Cantidad;
+
+            pedido.Total -= (item.PrecioUnitario * item.Cantidad);
+            pedido.ActualizadoEn = DateTime.UtcNow;
+
+            context.PedidoProductos.Remove(item);
+            Console.WriteLine($"\nproductoId al eliminar: {item.ProductoId}\n");
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return (true, "Producto eliminado del carrito");
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine("Error al eliminar item: " + e.Message);
+            await transaction.RollbackAsync();
+            return (false, "Error al eliminar el item");
+        }
+    }
+    public async Task<bool> ActualizarCliente(ClienteDTO dtoC)
+    {
+        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == dtoC.TelegramId);
+        if (cliente == null) return false;
+
+        cliente.Nombre = dtoC.Nombre ?? cliente.Nombre;
+        cliente.Direccion = dtoC.Direccion ?? cliente.Direccion;
+        cliente.Telefono = dtoC.Telefono ?? cliente.Telefono;
+        cliente.Email = dtoC.Email ?? cliente.Email;
+
+        cliente.ActualizadoEn = DateTime.UtcNow;
+
+        return await context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<(List<Pedido>, int count)> ObtenerPedidosUsuario(long TelegramId, int tamaño, int pagina)
+    {
+        var pedidosUsuario = await context.Pedidos
+        .Include(p => p.PedidoProductos)
+        .ThenInclude(pp => pp.Producto)
+        .Where(p => p.Cliente!.TelegramId == TelegramId && p.Estado != EstadoPedido.Cancelado)
+        .OrderByDescending(p => p.CreadoEn)
+        .Skip(pagina * tamaño)
+        .Take(tamaño)
+        .ToListAsync();
+
+        var count = await context.Pedidos
+        .Include(p => p.PedidoProductos)
+        .Where(p => p.Cliente!.TelegramId == TelegramId && p.Estado != EstadoPedido.Cancelado)
+        .CountAsync();
+        if (pedidosUsuario == null || pedidosUsuario.Count == 0) return (null, 0);
+        return (pedidosUsuario, count);
+    }
+
+    public async Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, PedidoDTO pdd)
+    {
+        using var transaction = await context.Database.BeginTransactionAsync();
+        try
+        {
+            var pedido = await ObtenerPedidoActivo(TelegramId);
+            if (pedido == null)
+            {
+                return (false, "No se encontró un carrito activo.");
+            }
+
+            // 1. Actualización de campos básicos
+            
+                pedido.Estado = pdd.Estado;
+            Console.WriteLine("Total:" + pdd.Total);
+                if (pdd.Total != null)
+                pedido.Total = (decimal)pdd.Total;
+            
+            pedido.ActualizadoEn = DateTime.UtcNow;
+
+            if (!string.IsNullOrEmpty(pdd.Direccion))
+            {
+                pedido.DireccionEntrega = pdd.Direccion;
+            }
+
+            // 2. Lógica de DetallesJson (Manejo de Acumulación)
+            Dictionary<string, string> detallesMap;
+
+            // Validamos el estado actual del JSON para no perder datos previos
+            if (string.IsNullOrWhiteSpace(pedido.DetallesJson) || pedido.DetallesJson == "[]")
+            {
+                detallesMap = new Dictionary<string, string>();
+            }
+            else
+            {
+                detallesMap = JsonSerializer.Deserialize<Dictionary<string, string>>(pedido.DetallesJson)
+                              ?? new Dictionary<string, string>();
+            }
+
+            // 3. Inyección de nuevos datos desde el DTO si existen
+            if (pdd.Detalles != null)
+            {
+                if (!string.IsNullOrEmpty(pdd.Detalles.Referencias))
+                    detallesMap["Referencias"] = pdd.Detalles.Referencias;
+
+                if (!string.IsNullOrEmpty(pdd.Detalles.Telefono))
+                    detallesMap["Telefono"] = pdd.Detalles.Telefono;
+
+                if (!string.IsNullOrEmpty(pdd.Detalles.Email))
+                    detallesMap["Email"] = pdd.Detalles.Email;
+            }
+
+            // 4. Serialización y persistencia
+            pedido.DetallesJson = JsonSerializer.Serialize(detallesMap);
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (true, $"Pedido #{pedido.Id} actualizado con éxito.");
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            Console.Error.WriteLine($"[Error ActualizarPedido]: {ex.Message}");
+            return (false, "Error interno al finalizar el pedido.");
         }
     }
 }

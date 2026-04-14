@@ -9,7 +9,7 @@ using Shared.Core.Entities;
 using Telegram.Bot.Types.ReplyMarkups;
 using Shared.Core.Data;
 using Microsoft.EntityFrameworkCore;
-
+using Services.ChatBot.Utils;
 
 namespace Webhook.Controllers.Services;
 
@@ -20,7 +20,9 @@ IMenuUI menuUI,
 ICatalogoUI catalogoUI,
 IUtilsUI utilsUI,
 IBotPersistencia _persistencia,
-ApplicationDbContext context
+ApplicationDbContext context,
+BotRenderer renderer,
+BotInteractionHandler interactionHandler
 ) : IUpdateHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
@@ -41,7 +43,6 @@ ApplicationDbContext context
             return;
         }
 
-
         if (update.CallbackQuery is not { } cb) return;
         var conv = await _persistencia.ObtenerConversacionActiva(cb.From.Id);
         if (conv != null)
@@ -55,12 +56,11 @@ ApplicationDbContext context
             if (!esMessajeValido || !estaEnTiempo)
             {
                 await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
-                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado", null);
-                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expierado", null);
+                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expirado", null);
                 return;
             }
+            await _persistencia.RegistrarMensaje(conv.Id, $"Clic en: {cb.Data}", TipoRemitente.Cliente);
         }
-        if (conv != null) await _persistencia.RegistrarMensaje(conv.Id, $"Clic en: {cb.Data}", TipoRemitente.Cliente);
 
         cancellationToken.ThrowIfCancellationRequested();
         await (update switch
@@ -79,51 +79,31 @@ ApplicationDbContext context
     {
         var conv = await _persistencia.ObtenerConversacionActiva(msg.From.Id);
 
+        var lastMsg = await context.Mensajes.Where(m =>
+        m.ConversacionId == conv.Id)
+        .OrderByDescending(m => m.FechaEnvio)
+        .FirstOrDefaultAsync();
+        if (lastMsg != null)
+            Console.WriteLine("Contenido: " + lastMsg!.Contenido + " ");
         if (text == "/start" || text.ToLower().Contains("Catalogo"))
         {
-
-            var telegramId = msg.From.Id;
-            var name = msg.From.FirstName + "" + msg.From.LastName;
-            await _persistencia.RegistrarCliente(telegramId, name.Trim());
-            var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>("categorias/list-6?page=0&pageSize=6");
-            var markup = menuUI.BuildUICategorias(data, 0);
             Console.WriteLine("Punto A");
-            CallbackQuery callbackQuerry = new CallbackQuery
+            CallbackQuery callbackQuerry = new()
             {
-                Data = "pcat_0",
+                Data = "menu",
                 Message = new Message
                 {
                     Chat = msg.Chat
                 }
             };
-            Console.WriteLine("Punto B " + msg.Id);
-            Console.WriteLine("Punto B " + msg.Id);
-
-            // 3. Enviar el menú
-            var enviado = await bot.SendMessage(msg.Chat, "📂 *Bienvenido al Catálogo*\nSelecciona una categoría:",
-                parseMode: ParseMode.Markdown,
-                replyMarkup: markup);
-            Console.WriteLine("id msg" + enviado.Id);
-            await _persistencia.ActualizarConversacion(msg.From.Id, enviado.Id, true);
-
-            if (conv != null)
-            {
-                await _persistencia.RegistrarMensaje(conv.Id, "Comando /start ejecutado", TipoRemitente.Cliente);
-            }
+            await renderer.RenderizarMenu(bot, msg, callbackQuerry);
             return;
         }
         if (conv == null) return;
-
-        var lastMsg = await context.Mensajes.Where(m =>
-        m.ConversacionId == conv.Id)
-        .OrderByDescending(m => m.FechaEnvio)
-        .FirstOrDefaultAsync();
-        Console.WriteLine("Conteido" + lastMsg.Contenido + " ");
         if (lastMsg != null && lastMsg.Remitente == TipoRemitente.Sistema && lastMsg.Contenido.Contains("[ID:"))
         {
             if (int.TryParse(text, out int cantidad) && cantidad > 0)
             {
-
                 string fragmento = lastMsg.Contenido.Split('[', ']')[1]; // "ID:2_3_0"
                 string[] partes = fragmento.Split(':')[1].Split('_');    // ["2", "3", "0"]
 
@@ -132,20 +112,29 @@ ApplicationDbContext context
                 int page = int.Parse(partes[2]);
                 Console.WriteLine($"prodId {prodId}, catId {catId}, page {page}");
 
-                var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
+                string data = (catId == -1) ? "cart" : $"prod_{prodId}_{catId}_{page}";
 
-                await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
-                if (data != null)
+                CallbackQuery callbackQuery = new()
                 {
-                    string fichaMsg = $"📦 {data.Nombre}\n" +
-                        $"\n\tPrecio: ${data.Precio}" +
-                        $"\n\tStock: {data.StockDisponible}";
+                    Data = data,
+                    Message = new Message
+                    {
+                        Chat = msg.Chat,
+                    }
+                };
 
-                    var keyboard = catalogoUI.BuildUIDetalleProducto(prodId, catId, page, cantidad);
-
-                    await bot.EditMessageText(msg.Chat.Id, int.Parse(conv.Asunto), fichaMsg, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
+                Console.Error.WriteLine($"\nId: {callbackQuery.Message.MessageId}, conversacion Asunt: {conv.Asunto}\n");
+                await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+                if (catId == -1)
+                {
+                    await renderer.RenderizarCarrito(bot, callbackQuery, int.Parse(conv.Asunto!));
+                    return;
                 }
-                return;
+                else
+                {
+                    await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuery, int.Parse(conv.Asunto!), cantidad);
+                    return;
+                }
             }
             else
             {
@@ -154,14 +143,80 @@ ApplicationDbContext context
             }
         }
 
+        if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_DIRECCION]") && lastMsg.Remitente == TipoRemitente.Sistema)
+        {
+            string direccion = text;
+
+            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
+            {
+                Estado = EstadoPedido.Pendiente,
+                Direccion = direccion                
+            });
+
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+
+            string instruction = "📍 PASO 2 :REFERENCIAS DE UBICACION\n\nPor favor, escribe referencias como: \n'frente a la tienda X' o 'casa color verde'";
+            await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_REFERENCIAS]_[{conv.Asunto!}]_*Esperando referencias...", TipoRemitente.Sistema);
+
+            await bot.EditMessageText(msg.Chat.Id, int.Parse(conv.Asunto!), instruction, parseMode: ParseMode.Markdown);
+            return;
+        }
+        if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_REFERENCIAS]") && lastMsg.Remitente == TipoRemitente.Sistema)
+        {
+            string referencias = text;
+            string Asunto = lastMsg.Contenido.Split('_')[2].Trim('[', ']');
+
+            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
+            {
+                Detalles = new PedidoDetalleDTO { Referencias = referencias }
+            });
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
+
+            string instruction = "📞 PASO 3: TELÉFONO DE CONTACTO\n\nEscribe tu número de teléfono para coordinar la entrega:";
+            await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_TELEFONO]_[{Asunto}]_Esperando teléfono...", TipoRemitente.Sistema);
+
+            await bot.EditMessageText(msg.Chat.Id, int.Parse(Asunto!), instruction, parseMode: ParseMode.Markdown);
+            return;
+        }
+
+        if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_TELEFONO]"))
+        {
+            string telefono = text;
+
+            string Asunto = lastMsg.Contenido.Split('_')[2].Trim('[', ']'); // Dependiendo de tu formato exacto
+            Console.WriteLine($"\nAsunto: {Asunto}\n");
+
+            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
+            {
+                Detalles = new PedidoDetalleDTO { Telefono = telefono }
+            });
+
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);    
+
+            CallbackQuery callbackQuery = new()
+            {
+                Data = "menu",
+                From = msg.From,
+                Message = new Message
+                {
+                    Chat = msg.Chat,
+                }
+            };
+            await renderer.RenderizarResumenFina(bot, callbackQuery, int.Parse(Asunto!));
+
+            // 4. Limpiamos el estado
+            await _persistencia.RegistrarMensaje(conv.Id, "[ESTADO:REPOSO]", TipoRemitente.Sistema);
+            return;
+        }
+
+
         if (text == "/remove")
         {
             await RemoveKeyboard(msg);
+            return;
         }
-
         await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
     }
-
     private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
     {
         //Logica de consumo de productos
@@ -177,135 +232,97 @@ ApplicationDbContext context
         if (action == "pcat")
         {
             int page = int.Parse(parts[1]);
-            var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
-            if (data == null || !data.Items.Any()) return;
-            // Usamos la interfaz de categorías
-            var markup = menuUI.BuildUICategorias(data, page);
-            //Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}, Markup {data.TotalCount}");
-            if (callbackQuerry.Message.MessageId == 0)
-                await bot.SendMessage(callbackQuerry.Message!.Chat, "📂 Menú:", replyMarkup: markup);
-            else
-                await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, "📂 Menú:", replyMarkup: markup);
+            await renderer.RenderizarCategorias(bot, page, callbackQuerry);
         }
-
-        else if (action == "cat" || action == "pprod")
+        if (action == "cat" || action == "pprod")
         {
             int catId = int.Parse(parts[1]);
             int page = parts.Length > 2 ? int.Parse(parts[2]) : 0;
-            await RenderizarCatalogo(bot, callbackQuerry, catId, page);
+            await renderer.RenderizarCatalogo(bot, callbackQuerry, catId, page);
+        }
+
+        if (action == "menu")
+        {
+            await renderer.RenderizarMenu(bot, callbackQuerry.Message!, callbackQuerry);
         }
 
         if (action == "prod")
         {
-
             int prodId = int.Parse(parts[1]);
             int catId = int.Parse(parts[2]);
             int page = int.Parse(parts[3]);
-
-            var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
-
-            string msg = $"📦 {data.Nombre}\n" +
-            $"\n\tPrecio: ${data.Precio}" +
-            $"\n\tStock: {data.StockDisponible}";
-
-            var keyboard = catalogoUI.BuildUIDetalleProducto(prodId, catId, page, 0);
-
-            await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, msg, replyMarkup: keyboard);
-
-            Console.WriteLine($"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}");
-            //await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}", replyMarkup: null);
-            //await utilsUI.InvalidarMenu(callbackQuerry.Message.Chat.Id, callbackQuerry.Message.MessageId, "Selección procesada.", action);
+            int cantidad = (parts.Length > 4) ? int.Parse(parts[4]) : 0;
+            await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuerry, callbackQuerry.Message!.MessageId, cantidad);
         }
 
         if (action == "inc" || action == "dec")
         {
-            int prodId = int.Parse(parts[1]);
-            int catId = int.Parse(parts[2]);
-            int page = int.Parse(parts[3]);
-            var currentMkp = callbackQuerry.Message!.ReplyMarkup;
-
-            int currentQty = int.Parse(currentMkp.InlineKeyboard.ElementAt(0).ElementAt(1).Text);
-
-            if (action == "inc") currentQty++;
-            else if (currentQty > 1) currentQty--;
-
-            var keyboard = catalogoUI.BuildUIDetalleProducto(prodId, catId, page, currentQty);
-
-            await bot.EditMessageReplyMarkup(callbackQuerry.Message.Chat.Id, callbackQuerry.Message.MessageId, keyboard);
+            await interactionHandler.ManejarCambioCantidad(bot, parts, callbackQuerry, action);
         }
-        
+
         if (rf.StartsWith("edit_qty_"))
         {
-            int prodId = int.Parse(parts[2]);
-            int catId = int.Parse(parts[3]);
-            int page = int.Parse(parts[4]);
-
-            string instruction = $"*Ingreso Manual*\n\nEscribe la cantidad que deseas para el producto [ID:{prodId}]";
-            await bot.AnswerCallbackQuery(callbackQuerry.Id, "⌨️ Escribe la cantidad en el chat", showAlert: false);
-            Console.WriteLine(instruction);
-
-            var cancelKbd = new InlineKeyboardMarkup(
-                InlineKeyboardButton.WithCallbackData("Cancelar", $"prod_{prodId}_{catId}_{page}")
-            );
-
-            await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
-
-            var conv = await _persistencia.ObtenerConversacionActiva(callbackQuerry.From.Id);
-            if (conv != null)
-            {
-                await _persistencia.RegistrarMensaje(conv.Id, $" [ID:{prodId}_{catId}_{page}] Esperando cantidad manual...", TipoRemitente.Sistema);
-            }
-
-            //await bot.AnswerCallbackQuery(callbackQuerry.Id, "Teclado activado. Escribe la cantidad a añadir.");
+            await interactionHandler.ManejarEdicionManual(bot, parts, callbackQuerry);
         }
 
         if (rf.StartsWith("add_prod_"))
         {
-            //int prodId = int.Parse(action.Replace("add_prod_", ""));
+            await interactionHandler.ManejarAgregarAlCarrito(bot, parts, callbackQuerry);
+        }
 
-            int prodId = int.Parse(parts[2]);
-            int cantidad = int.Parse(parts[3]);
-            int catId = int.Parse(parts[4]);
-            int page = int.Parse(parts[5]);
-            if (cantidad > 0)
+        if (action == "cart")
+        {
+            await renderer.RenderizarCarrito(bot, callbackQuerry, callbackQuerry.Message!.MessageId);
+        }
+        if (rf.StartsWith("ask_rmv"))
+        {
+            await interactionHandler.ManejarAskEliminarItem(bot, callbackQuerry, parts);
+        }
+        if (rf.StartsWith("ask_clear"))
+        {
+            await interactionHandler.ManejarAskVaciarCarrito(bot, callbackQuerry);
+        }
+        if (action == "clear")
+        {
+            await interactionHandler.ManejarVaciarCarrito(bot, callbackQuerry);
+        }
+        if (rf.StartsWith("upd_prod_"))
+        {
+            await interactionHandler.ManejarEditarItem(bot, parts, callbackQuerry);
+        }
+        if (rf.StartsWith("rmv"))
+        {
+            await interactionHandler.ManejarEliminarItem(bot, parts, callbackQuerry);
+        }
+        if (action == "checkout")
+        {
+            var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuerry.From.Id);
+            if (pedido == null || !pedido.PedidoProductos.Any())
             {
-                var resultado = await _persistencia.AgregarProducto(callbackQuerry.From.Id, prodId, cantidad);
-                if (resultado.Success)
-                {
-                    await bot.AnswerCallbackQuery(callbackQuerry.Id, resultado.msg);
-                    await RenderizarCatalogo(bot, callbackQuerry, catId, page);
-                }
-                else
-                    await bot.AnswerCallbackQuery(callbackQuerry.Id, $"Error: {resultado.msg}", showAlert: true);
+                await bot.AnswerCallbackQuery(callbackQuerry.Id, "⚠️ Tu carrito está vacío.", showAlert: true);
+                return;
             }
-            else
-                await bot.AnswerCallbackQuery(callbackQuerry.Id, $"Error: cantidad invalida", showAlert: true);
-        }
-        /*await (action switch
-        {
-            "pcat" => SendCategories(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), callbackQuerry.Message.MessageId),
-            "cat" => SendProducts(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), 0, callbackQuerry.Message.MessageId),
-            "pprod" => SendProducts(callbackQuerry.Message!.Chat.Id, int.Parse(parts[1]), int.Parse(parts[2]), callbackQuerry.Message.MessageId),
-            _ => Task.CompletedTask
-        });
+            var conv = await _persistencia.ObtenerConversacionActiva(callbackQuerry.From.Id);
 
-        await bot.AnswerCallbackQuery(callbackQuerry.Id);*/
-    }
-    private async Task RenderizarCatalogo(ITelegramBotClient bot, CallbackQuery callbackQuerry, int catId, int page)
-    {
-
-        Console.WriteLine($"CatId {callbackQuerry.Data}, Page {page}");
-        var data = await _gateway.GetFromJsonAsync<PagedResult<ProductoDTO>>($"productos/list-4/{catId}?page={page}&pageSize=4");
-        var categoria = await _gateway.GetFromJsonAsync<CategoriaDTO>($"categorias/{catId}");
-        var markup = catalogoUI.BuildUIProductos(data, catId, page);
-        if (data == null || !data.Items.Any())
-        {
-            await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n No se encontraron Productos:", replyMarkup: markup);
+            string instruction = "📍 PASO 1: DIRECCIÓN DE ENVÍO\n\nPor favor, escribe tu dirección exacta";
+            await _persistencia.RegistrarMensaje(conv!.Id, $" [ESTADO:CHECKOUT_DIRECCION]_Esperando dirección..._", TipoRemitente.Sistema);
+            await bot.EditMessageText(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
+            await bot.AnswerCallbackQuery(callbackQuerry.Id);
         }
-        else
+
+        if (action == "ords")
         {
-            // Usamos la interfaz de productos                
-            await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, $" {categoria.Nombre}\n 🛍 Productos:", replyMarkup: markup);
+            await renderer.RenderizarOrdenes(bot, callbackQuerry, 0);
+        }
+        if (action == "pords")
+        {
+            int page = int.Parse(parts[1]);
+            await renderer.RenderizarOrdenes(bot, callbackQuerry, page);
+        }
+
+        if (action == "checkoutEnd")
+        {
+            await interactionHandler.ManejarFinalizacionPedido(bot, callbackQuerry);
         }
     }
 }
