@@ -132,18 +132,117 @@ public class PagosController : ControllerBase
     }
 
     [HttpPost("actualizar-por-referencia/{referencia?}")]
-    public async Task<IActionResult> UpdatePorReferencia(string? referencia)
+    public async Task<IActionResult> UpdatePorReferencia(
+        string? referencia,
+        [FromBody] ActualizarPagoPorReferenciaRequest? request)
     {
-        var refFinal = referencia ?? "Webhook de Wompi";
+        var refFinal = string.IsNullOrWhiteSpace(referencia)
+            ? request?.ReferenciaTransaccion
+            : referencia;
+
+        if (string.IsNullOrWhiteSpace(refFinal))
+        {
+            return BadRequest(new { mensaje = "Debe enviar una referencia valida." });
+        }
+
+        var pago = await _context.Pagos
+            .Include(p => p.Pedido)
+            .OrderByDescending(p => p.CreadoEn)
+            .FirstOrDefaultAsync(p =>
+                p.ReferenciaTransaccion == refFinal ||
+                (p.Pedido != null && p.Pedido.ReferenciaWompi == refFinal));
+
+        var pedido = pago?.Pedido;
+
+        if (pedido == null)
+        {
+            pedido = await _context.Pedidos
+                .FirstOrDefaultAsync(p => p.ReferenciaWompi == refFinal);
+        }
+
+        if (pedido == null && TryExtractPedidoId(refFinal, out var pedidoId))
+        {
+            pedido = await _context.Pedidos.FindAsync(pedidoId);
+        }
+
+        if (pedido == null)
+        {
+            _logger.LogWarning("No se encontro pedido para la referencia {Referencia}", refFinal);
+            return NotFound(new { mensaje = $"No se encontro un pedido asociado a la referencia {refFinal}" });
+        }
+
+        var fechaActual = DateTime.UtcNow;
+
+        if (pago == null)
+        {
+            pago = new Pago
+            {
+                PedidoId = pedido.Id,
+                Monto = request?.Monto > 0 ? request.Monto.Value : pedido.Total,
+                MetodoPago = string.IsNullOrWhiteSpace(request?.MetodoPago) ? "WOMPI" : request!.MetodoPago!,
+                Estado = EstadoPago.Completado,
+                ReferenciaTransaccion = refFinal,
+                FechaPago = fechaActual,
+                CreadoEn = fechaActual,
+                ActualizadoEn = fechaActual
+            };
+
+            _context.Pagos.Add(pago);
+        }
+        else
+        {
+            pago.Estado = EstadoPago.Completado;
+            pago.Monto = request?.Monto > 0 ? request.Monto.Value : pago.Monto;
+            pago.MetodoPago = string.IsNullOrWhiteSpace(request?.MetodoPago) ? pago.MetodoPago : request!.MetodoPago!;
+            pago.ReferenciaTransaccion = refFinal;
+            pago.FechaPago = fechaActual;
+            pago.ActualizadoEn = fechaActual;
+        }
+
+        pedido.ReferenciaWompi ??= refFinal;
+        pedido.Estado = EstadoPedido.Pagado;
+        pedido.ActualizadoEn = fechaActual;
+
+        await _context.SaveChangesAsync();
 
         await _hubContext.Clients.All.SendAsync("ReceiveNotification", new
         {
-            titulo = "Wompi nos contacto",
-            mensaje = "Se recibio una senal de pago. Referencia: " + refFinal,
+            titulo = "Pago confirmado por Wompi",
+            mensaje = $"El pedido #{pedido.Id} cambio a Pagado. Referencia: {refFinal}",
             tipo = "success",
             fecha = DateTime.Now
         });
 
-        return Ok(new { mensaje = "Recibido correctamente" });
+        return Ok(new
+        {
+            mensaje = "Pago actualizado correctamente",
+            pedidoId = pedido.Id,
+            referencia = refFinal,
+            estadoPedido = pedido.Estado.ToString(),
+            estadoPago = pago.Estado.ToString()
+        });
+    }
+
+    private static bool TryExtractPedidoId(string referencia, out int pedidoId)
+    {
+        pedidoId = 0;
+
+        var partes = referencia.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (partes.Length < 2)
+        {
+            return false;
+        }
+
+        return int.TryParse(partes[1], out pedidoId);
+    }
+
+    public class ActualizarPagoPorReferenciaRequest
+    {
+        public string? ReferenciaTransaccion { get; set; }
+        public string? IdTransaccion { get; set; }
+        public decimal? Monto { get; set; }
+        public string? MetodoPago { get; set; }
+        public string? ResultadoTransaccion { get; set; }
+        public bool? EsProductiva { get; set; }
     }
 }

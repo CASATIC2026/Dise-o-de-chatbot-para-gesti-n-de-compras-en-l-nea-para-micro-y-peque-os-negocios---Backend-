@@ -62,6 +62,7 @@ public class WompiService
             }
 
             var notificationEmails = _configuration["Wompi:NotificationEmails"];
+            var webhookUrl = _configuration["Wompi:WebhookUrl"] ?? _configuration["Wompi:WebhookSecret"];
             var maxSuccessfulPayments = _configuration.GetValue<int?>("Wompi:MaxSuccessfulPayments") ?? 1;
             Dictionary<string, object?>? configuracion = null;
 
@@ -69,6 +70,12 @@ public class WompiService
             {
                 configuracion ??= new Dictionary<string, object?>();
                 configuracion["urlRedirect"] = request.RedirectUrl;
+            }
+
+            if (!string.IsNullOrWhiteSpace(webhookUrl))
+            {
+                configuracion ??= new Dictionary<string, object?>();
+                configuracion["urlWebhook"] = webhookUrl;
             }
 
             if (!string.IsNullOrWhiteSpace(notificationEmails))

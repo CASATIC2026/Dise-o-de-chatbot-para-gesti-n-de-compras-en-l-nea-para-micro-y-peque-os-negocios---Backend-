@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Services.Pagos.Models;
 using Services.Pagos.Services;
+using System.Text;
 using System.Text.Json;
 
 namespace Services.Pagos.Controllers;
@@ -31,57 +32,169 @@ public class WompiController : ControllerBase
     {
         var inventarioBaseUrl = _configuration["Services:InventarioBaseUrl"] ?? "http://localhost:5041";
         using var client = _httpClientFactory.CreateClient();
-        var url = $"{inventarioBaseUrl.TrimEnd('/')}/api/pagos/pedido/{pedidoId}";
 
         try
         {
-            var response = await client.GetAsync(url);
+            var response = await client.GetAsync($"{inventarioBaseUrl}/api/pagos/pedido/{pedidoId}");
+
             if (!response.IsSuccessStatusCode)
-            {
-                return BadRequest($"No se encontro el pedido {pedidoId} en Inventario.");
-            }
+                return BadRequest($"No se encontró el pedido {pedidoId}");
 
             var contenido = await response.Content.ReadAsStringAsync();
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var pagoDb = JsonSerializer.Deserialize<PagoDto>(contenido, options);
-
-            if (pagoDb == null || (pagoDb.Monto <= 0 && pagoDb.Total <= 0))
+            var pagoDb = JsonSerializer.Deserialize<PagoDto>(contenido, new JsonSerializerOptions
             {
-                return BadRequest("Monto invalido recibido del Inventario.");
-            }
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (pagoDb == null)
+                return BadRequest("Datos inválidos desde Inventario");
 
             var montoFinal = pagoDb.Monto > 0 ? pagoDb.Monto : pagoDb.Total;
-            if (montoFinal <= 0)
-            {
-                return BadRequest("El pedido no tiene un monto valido para generar el enlace.");
-            }
 
-            var solicitudWompi = new WompiTransactionRequest
+            var referencia = string.IsNullOrWhiteSpace(pagoDb.ReferenciaTransaccion)
+                ? $"REF-{pedidoId}"   // 🔥 IMPORTANTE: usar mismo formato que Wompi devuelve
+                : pagoDb.ReferenciaTransaccion;
+
+            var solicitud = new WompiTransactionRequest
             {
                 Monto = montoFinal,
-                Referencia = $"PAGO-{pedidoId}-{DateTime.UtcNow.Ticks}",
-                RedirectUrl = _configuration["Wompi:RedirectUrl"] ?? string.Empty
+                Referencia = referencia,
+                RedirectUrl = _configuration["Wompi:RedirectUrl"] ?? ""
             };
 
-            var resultado = await _wompiService.CrearEnlacePago(solicitudWompi);
+            var resultado = await _wompiService.CrearEnlacePago(solicitud);
 
             if (!resultado.Success)
-            {
-                return StatusCode(500, new { error = "Error Wompi", detalle = resultado.Error });
-            }
+                return StatusCode(500, resultado.Error);
 
             return Ok(new
             {
                 url = resultado.PaymentLink,
-                montoCobrado = montoFinal,
-                referencia = solicitudWompi.Referencia
+                referencia
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creando el enlace automatico para el pedido {PedidoId}", pedidoId);
-            return StatusCode(500, new { error = ex.Message });
+            _logger.LogError(ex, "Error creando enlace");
+            return StatusCode(500, ex.Message);
         }
+    }
+
+    [HttpPost("webhook/wompi")]
+    public async Task<IActionResult> RecibirWebhookWompi()
+    {
+        Request.EnableBuffering();
+
+        using var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true);
+        var rawBody = await reader.ReadToEndAsync();
+        Request.Body.Position = 0;
+
+        _logger.LogInformation("🔥 WEBHOOK RAW: {Body}", rawBody);
+
+        if (string.IsNullOrWhiteSpace(rawBody))
+            return Ok();
+
+        try
+        {
+            using var jsonDoc = JsonDocument.Parse(rawBody);
+            var data = jsonDoc.RootElement;
+
+            // 🔥 REFERENCIA (CORREGIDO PARA WOMPI SV)
+            string? referencia = null;
+
+            if (data.TryGetProperty("EnlacePago", out var enlace) &&
+                enlace.TryGetProperty("IdentificadorEnlaceComercio", out var refAlt))
+            {
+                referencia = refAlt.GetString();
+            }
+            else if (data.TryGetProperty("IdExterno", out var idExt))
+            {
+                referencia = idExt.GetString();
+            }
+
+            // 🔥 ESTADO
+            var estado = data.TryGetProperty("ResultadoTransaccion", out var estadoProp)
+                ? estadoProp.GetString()
+                : null;
+
+            // 🔥 ID TRANSACCIÓN
+            var idTransaccion = data.TryGetProperty("IdTransaccion", out var idProp)
+                ? idProp.GetString()
+                : null;
+
+            // 🔥 MONTO (ARREGLADO)
+            decimal monto = 0;
+
+            if (data.TryGetProperty("Monto", out var montoProp))
+            {
+                if (montoProp.ValueKind == JsonValueKind.String &&
+                    decimal.TryParse(montoProp.GetString(), out var parsed))
+                {
+                    monto = parsed;
+                }
+                else if (montoProp.ValueKind == JsonValueKind.Number)
+                {
+                    monto = montoProp.GetDecimal();
+                }
+            }
+
+            // 🔥 MÉTODO PAGO
+            var metodo = data.TryGetProperty("FormaPagoUtilizada", out var metodoProp)
+                ? metodoProp.GetString()
+                : "Desconocido";
+
+            _logger.LogInformation("📦 Ref: {Ref} | Estado: {Estado} | Monto: {Monto}",
+                referencia, estado, monto);
+
+            if (string.IsNullOrWhiteSpace(referencia))
+                return Ok();
+
+            if (!EsPagoExitoso(estado))
+                return Ok();
+
+            // 🔗 ACTUALIZAR INVENTARIO
+            var inventarioBaseUrl = _configuration["Services:InventarioBaseUrl"] ?? "http://inventario-service:8080";
+            using var client = _httpClientFactory.CreateClient();
+
+            var response = await client.PostAsJsonAsync(
+                $"{inventarioBaseUrl}/api/pagos/actualizar-por-referencia/{Uri.EscapeDataString(referencia)}",
+                new
+                {
+                    referenciaTransaccion = referencia,
+                    idTransaccion,
+                    monto,
+                    metodoPago = metodo,
+                    resultadoTransaccion = estado,
+                    esProductiva = true
+                });
+
+            var resp = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("❌ Error Inventario: {Resp}", resp);
+                return Ok();
+            }
+
+            _logger.LogInformation("✅ Pago actualizado: {Ref}", referencia);
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error webhook");
+            return Ok();
+        }
+    }
+
+    private static bool EsPagoExitoso(string? estado)
+    {
+        if (string.IsNullOrWhiteSpace(estado))
+            return false;
+
+        return estado.Equals("ExitosaAprobada", StringComparison.OrdinalIgnoreCase)
+            || estado.Contains("Aprobada", StringComparison.OrdinalIgnoreCase)
+            || estado.Contains("Exitosa", StringComparison.OrdinalIgnoreCase);
     }
 
     public class PagoDto
