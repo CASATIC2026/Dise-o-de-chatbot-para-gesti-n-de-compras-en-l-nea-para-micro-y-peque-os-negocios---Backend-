@@ -38,7 +38,7 @@ public class CatalogoModule : ICatalogoUI
                 new[] { InlineKeyboardButton.WithCallbackData($"{p.Nombre} - ${p.Precio}", $"prod_{p.Id}_{catId}_{page}") }).ToList();
             var navRow = new List<InlineKeyboardButton>();
             if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pprod_{catId}_{page - 1}"));
-            if ((page + 1) * 6 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pprod_{catId}_{page + 1}"));
+            if ((page + 1) * 4 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pprod_{catId}_{page + 1}"));
 
             if (navRow.Any()) buttons.Add(navRow.ToArray());
             buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Categorías", "pcat_0")]);

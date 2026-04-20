@@ -45,7 +45,8 @@ ICatalogoUI catalogoUI)
             InlineKeyboardButton.WithCallbackData("Cancelar", $"prod_{prodId}_{catId}_{page}_{currentQty}")
         );
 
-        await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
+        //await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
+        await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
 
         var conv = await _persistencia.ObtenerConversacionActiva(callbackQuery.From.Id);
         if (conv != null)
@@ -146,9 +147,9 @@ ICatalogoUI catalogoUI)
         var pedidoactual = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
         var pedido = new PedidoDTO();
         pedido.Estado = EstadoPedido.Confirmado;
-        if(pedidoactual != null)
+        if (pedidoactual != null)
             pedido.Total = pedidoactual.Total;
-        
+
 
         var (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido);
         if (Succes)
@@ -163,7 +164,8 @@ ICatalogoUI catalogoUI)
                 InlineKeyboardButton.WithCallbackData(text, "checkout")
             });
             await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
-            await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
+            //await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
+            await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
         }
     }
 }

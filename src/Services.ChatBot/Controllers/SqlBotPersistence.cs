@@ -302,12 +302,12 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             }
 
             // 1. Actualización de campos básicos
-            
-                pedido.Estado = pdd.Estado;
+
+            pedido.Estado = pdd.Estado;
             Console.WriteLine("Total:" + pdd.Total);
-                if (pdd.Total != null)
+            if (pdd.Total != null)
                 pedido.Total = (decimal)pdd.Total;
-            
+
             pedido.ActualizadoEn = DateTime.UtcNow;
 
             if (!string.IsNullOrEmpty(pdd.Direccion))

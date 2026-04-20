@@ -18,8 +18,11 @@ namespace Services.ChatBot.DTOs
     {
         public int Id { get; set; } = 0;
         public string Nombre { get; set; } = "";
+        public string Descripcion { get; set; } = "";
         public decimal Precio { get; set; }
         public int StockDisponible { get; set; }
+        public string ImagenUrl { get; set; } = "";
+
     }
 
     public class ClienteDTO
@@ -37,7 +40,7 @@ namespace Services.ChatBot.DTOs
         public DateTime FechaRealizado { get; set; }
         public EstadoPedido Estado { get; set; }
         public decimal? Total { get; set; }
-        public string? Direccion { get; set; }        
+        public string? Direccion { get; set; }
         public PedidoDetalleDTO? Detalles { get; set; } = null;
     }
 
