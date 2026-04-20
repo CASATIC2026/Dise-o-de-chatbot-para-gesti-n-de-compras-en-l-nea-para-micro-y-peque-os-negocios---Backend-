@@ -13,7 +13,7 @@ public class CarritoModule : ICarrito
     {
         if (pedido == null || !pedido.PedidoProductos.Any())
         {
-            string msg = "🛒 *Tu carrito está vacío. Agrega productos para verlos aquí.";
+            string msg = "🛒 *Tu carrito está vacío. Agrega productos para verlos aquí.*";
             var emptyKbd = new InlineKeyboardMarkup(
                 InlineKeyboardButton.WithCallbackData("🛍 Ir al Catálogo", "pcat_0")
             );

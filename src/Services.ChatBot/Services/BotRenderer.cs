@@ -106,9 +106,14 @@ IBotPersistencia _persistencia)
     {
         var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
         var (texto, markup) = carritoUI.BuildUICarrito(pedido);
-
+        string caption = texto ?? "";
+        var media = new InputMediaPhoto(url)
+        {
+            Caption = caption,
+            ParseMode = ParseMode.Markdown
+        };
         //await bot.EditMessageText(callbackQuery.Message!.Chat, msgId, texto, replyMarkup: markup);
-        await bot.EditMessageCaption(callbackQuery.Message!.Chat, msgId, texto, replyMarkup: markup);
+        await bot.EditMessageMedia(callbackQuery.Message!.Chat.Id, msgId, media, replyMarkup: markup);
 
         await bot.AnswerCallbackQuery(callbackQuery.Id);
     }
@@ -121,6 +126,7 @@ IBotPersistencia _persistencia)
 
         // 2. Generamos la UI de confirmación
         var (texto, markup) = carritoUI.BuildUIResumenFinal(pedido, cliente);
+
 
         // 3. Editamos el mensaje original usando el Asunto transportado
         //await bot.EditMessageText(callbackQuery.Message!.Chat.Id, msgId, texto,
