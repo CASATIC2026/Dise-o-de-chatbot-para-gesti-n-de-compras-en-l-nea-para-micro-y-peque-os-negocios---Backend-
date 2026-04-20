@@ -7,37 +7,50 @@ using Shared.Core.Entities;
 
 namespace Webhook.Controllers.Controllers;
 
+/// <summary>
+/// Provides SQL-based persistence operations for the chatbot, including conversation management,
+/// message logging, client registration, and shopping cart operations.
+/// </summary>
 public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 {
+    /// <summary>
+    /// Retrieves the active conversation for a given client Telegram ID.
+    /// </summary>
+    /// <param name="clienteId">The Telegram ID of the client.</param>
+    /// <returns>The active conversation if found, otherwise null.</returns>
     public async Task<Conversacion?> ObtenerConversacionActiva(long clienteId)
     {
-        Console.WriteLine($"Conversacion , TelegramId {clienteId}");
-        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == clienteId);
+        var cliente = await ObtenerCliente(clienteId);
 
         if (cliente == null) return null;
         return await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == cliente.Id && c.Activa == true);
     }
 
+    /// <summary>
+    /// Updates or creates an active conversation for the specified client.
+    /// </summary>
+    /// <param name="clienteId">The Telegram ID of the client.</param>
+    /// <param name="messageId">The message ID to associate with the conversation.</param>
+    /// <param name="activa">Whether the conversation should be active.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ActualizarConversacion(long clienteId, int messageId, bool activa)
     {
         var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == clienteId);
         var elder = await context.Conversaciones.Where(c => c.ClienteId == cliente!.Id && c.Activa).ToListAsync();
-
+        // Deactivate all existing active conversations for the client to ensure only one active at a time
         foreach (var v in elder)
         {
             v.Activa = false;
             v.ActualizadoEn = DateTime.UtcNow;
         }
-
-        //var conv = await context.Conversaciones.FirstOrDefaultAsync(c => c.ClienteId == cliente!.Id);
         var conv = await ObtenerConversacionActiva(cliente!.Id);
-        Console.WriteLine("conversacion", conv);
+
         if (conv == null)
         {
             conv = new Conversacion { ClienteId = (int)cliente!.Id, CreadoEn = DateTime.UtcNow };
             context.Conversaciones.Add(conv);
         }
-        else { return; }
+        else { return; }// Only create a new conversation if none is active; do not update existing
         conv.Asunto = messageId.ToString();
         conv.Activa = true;
         conv.ActualizadoEn = DateTime.UtcNow;
@@ -45,6 +58,13 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         await context.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Registers a message in the conversation.
+    /// </summary>
+    /// <param name="conversacionId">The ID of the conversation.</param>
+    /// <param name="contenido">The content of the message.</param>
+    /// <param name="remitente">The type of sender.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RegistrarMensaje(int conversacionId, string contenido, TipoRemitente remitente)
     {
         context.Mensajes.Add(new Mensaje
@@ -54,17 +74,24 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             Remitente = remitente,
             FechaEnvio = DateTime.UtcNow
         });
-        context.Conversaciones.FirstOrDefault(c => c.Id == conversacionId).ActualizadoEn = DateTime.UtcNow;
+
+        var conv = await context.Conversaciones.FirstOrDefaultAsync(c => c.Id == conversacionId);
+        if (conv == null) return;
+        conv.ActualizadoEn = DateTime.UtcNow;
+
         await context.SaveChangesAsync();
     }
-
+    /// <summary>
+    /// Registers a new client if not already exists.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <param name="nombre">The name of the client.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RegistrarCliente(long TelegramId, string nombre)
     {
-        var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
-        //Console.WriteLine("s"+cliente.TelegramId);
+        var cliente = await ObtenerCliente(TelegramId);
         if (cliente == null)
         {
-            Console.WriteLine("s" + TelegramId + " " + nombre);
             context.Clientes.Add(
                 new Cliente
                 {
@@ -77,26 +104,29 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             await context.SaveChangesAsync();
         }
     }
-
+    /// <summary>
+    /// Adds a product to the client's cart.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <param name="productoId">The ID of the product.</param>
+    /// <param name="cantidad">The quantity to add.</param>
+    /// <returns>A tuple indicating success and a message.</returns>
     public async Task<(bool Success, string msg)> AgregarProducto(long TelegramId, int productoId, int cantidad)
     {
         using var transaction = await context.Database.BeginTransactionAsync();
         try
         {
-            //Verificar cliente en base
-            var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
+
+            var cliente = ObtenerCliente(TelegramId);
             if (cliente == null) return (false, "Cliente no encontrado. Escribe /start para iniciar una nueva compra");
 
-            //Verificar disponibilidad de stock
+
             var producto = await context.Productos.FindAsync(productoId);
             if (producto == null || !producto.Activo) return (false, "Producto no disponible");
             if (producto.StockDisponible < cantidad || producto.StockDisponible <= 0) return (false, "Lo sentimos, no queda stock suficiente.");
 
-            //Verificar si existen pedidos
-            var pedido = await context.Pedidos
-            .Include(p => p.PedidoProductos)
-            .FirstOrDefaultAsync(p => p.ClienteId == cliente.Id
-            && p.Estado == EstadoPedido.Pendiente);
+
+            var pedido = await ObtenerPedidoActivo(TelegramId);
 
             if (pedido == null)
             {
@@ -112,10 +142,10 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
                 await context.SaveChangesAsync();
             }
 
-            //Gestion de Carrito en PedidoProducto
+
             var item = pedido.PedidoProductos.FirstOrDefault(p => p.ProductoId == productoId);
 
-            if (item == null) //Validar la cantidad de entrada!
+            if (item == null)
             {
                 item = new PedidoProducto
                 {
@@ -135,7 +165,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 
             producto.StockReservado += cantidad;
             pedido.ActualizadoEn = DateTime.UtcNow;
-            pedido.Total += (producto.Precio * cantidad); //Actualizar al descartar producto!
+            pedido.Total += producto.Precio * cantidad;
 
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -147,6 +177,13 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al procesar la reserva" + e.Message);
         }
     }
+    /// <summary>
+    /// Updates the quantity of a product in the cart.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <param name="productoId">The ID of the product.</param>
+    /// <param name="cantidad">The new quantity.</param>
+    /// <returns>A tuple indicating success and a message.</returns>
     public async Task<(bool Succes, string msg)> ActualizarCantidadCarrito(long TelegramId, int productoId, int cantidad)
     {
         using var transaction = await context.Database.BeginTransactionAsync();
@@ -161,7 +198,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             var producto = await context.Productos.FindAsync(productoId);
             if (producto == null) return (false, "Producto no encontrado");
 
-            int diferencia = cantidad - item.Cantidad;
+            int diferencia = cantidad - item.Cantidad;// Calculate the difference to adjust stock reservation
             if (diferencia > 0 && producto.StockDisponible < diferencia)
                 return (false, $"Lo sentimos, no queda stock suficiente. Stock: {producto.StockDisponible}");
 
@@ -183,7 +220,11 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al actualizar la cantidad");
         }
     }
-
+    /// <summary>
+    /// Retrieves the active order for the client.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <returns>The active order if found, otherwise null.</returns>
     public async Task<Pedido?> ObtenerPedidoActivo(long TelegramId)
     {
         return await context.Pedidos
@@ -191,11 +232,20 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         .ThenInclude(pp => pp.Producto)
         .FirstOrDefaultAsync(p => p.Cliente!.TelegramId == TelegramId && p.Estado == EstadoPedido.Pendiente);
     }
+    /// <summary>
+    /// Retrieves the client by Telegram ID.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <returns>The client if found, otherwise null.</returns>
     public async Task<Cliente?> ObtenerCliente(long TelegramId)
     {
         return await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
     }
-
+    /// <summary>
+    /// Empties the client's cart.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <returns>True if successful, otherwise false.</returns>
     public async Task<bool> VaciarCarrito(long TelegramId)
     {
         using var transaction = await context.Database.BeginTransactionAsync();
@@ -206,9 +256,9 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             foreach (var pp in pedido.PedidoProductos)
             {
                 var producto = await context.Productos.FindAsync(pp.ProductoId);
-                if (producto != null) producto.StockReservado -= pp.Cantidad;
+                if (producto != null) producto.StockReservado -= pp.Cantidad;// Release reserved stock for each item
             }
-            //context.PedidoProductos.RemoveRange(pedido.PedidoProductos);
+
             pedido.Estado = EstadoPedido.Cancelado;
             pedido.Total = 0;
             pedido.ActualizadoEn = DateTime.UtcNow;
@@ -224,7 +274,12 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return false;
         }
     }
-
+    /// <summary>
+    /// Removes an item from the cart.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <param name="productoId">The ID of the product.</param>
+    /// <returns>A tuple indicating success and a message.</returns>
     public async Task<(bool Succes, string msg)> EliminarItem(long TelegramId, int productoId)
     {
         using var transaction = await context.Database.BeginTransactionAsync();
@@ -238,9 +293,9 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 
             var producto = await context.Productos.FindAsync(item.ProductoId);
 
-            if (producto != null) producto.StockReservado -= item.Cantidad;
+            if (producto != null) producto.StockReservado -= item.Cantidad;// Release the reserved stock for the removed item
 
-            pedido.Total -= (item.PrecioUnitario * item.Cantidad);
+            pedido.Total -= item.PrecioUnitario * item.Cantidad;// Subtract the item's total from the order total
             pedido.ActualizadoEn = DateTime.UtcNow;
 
             context.PedidoProductos.Remove(item);
@@ -256,6 +311,11 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al eliminar el item");
         }
     }
+    /// <summary>
+    /// Updates the client's information.
+    /// </summary>
+    /// <param name="dtoC">The client DTO with updated information.</param>
+    /// <returns>True if updated successfully, otherwise false.</returns>
     public async Task<bool> ActualizarCliente(ClienteDTO dtoC)
     {
         var cliente = await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == dtoC.TelegramId);
@@ -270,6 +330,13 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 
         return await context.SaveChangesAsync() > 0;
     }
+    /// <summary>
+    /// Retrieves the user's orders with pagination.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <param name="tamaño">The page size.</param>
+    /// <param name="pagina">The page number.</param>
+    /// <returns>A tuple with the list of orders and the total count.</returns>
 
     public async Task<(List<Pedido>, int count)> ObtenerPedidosUsuario(long TelegramId, int tamaño, int pagina)
     {
@@ -286,9 +353,15 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         .Include(p => p.PedidoProductos)
         .Where(p => p.Cliente!.TelegramId == TelegramId && p.Estado != EstadoPedido.Cancelado)
         .CountAsync();
-        if (pedidosUsuario == null || pedidosUsuario.Count == 0) return (null, 0);
+        if (pedidosUsuario == null || pedidosUsuario.Count == 0) return (new List<Pedido>(), 0);
         return (pedidosUsuario, count);
     }
+    /// <summary>
+    /// Updates the active order with new details.
+    /// </summary>
+    /// <param name="TelegramId">The Telegram ID of the client.</param>
+    /// <param name="pdd">The order DTO with updates.</param>
+    /// <returns>A tuple indicating success and a message.</returns>
 
     public async Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, PedidoDTO pdd)
     {
@@ -300,8 +373,6 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             {
                 return (false, "No se encontró un carrito activo.");
             }
-
-            // 1. Actualización de campos básicos
 
             pedido.Estado = pdd.Estado;
             Console.WriteLine("Total:" + pdd.Total);
@@ -315,10 +386,8 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
                 pedido.DireccionEntrega = pdd.Direccion;
             }
 
-            // 2. Lógica de DetallesJson (Manejo de Acumulación)
             Dictionary<string, string> detallesMap;
 
-            // Validamos el estado actual del JSON para no perder datos previos
             if (string.IsNullOrWhiteSpace(pedido.DetallesJson) || pedido.DetallesJson == "[]")
             {
                 detallesMap = new Dictionary<string, string>();
@@ -329,7 +398,6 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
                               ?? new Dictionary<string, string>();
             }
 
-            // 3. Inyección de nuevos datos desde el DTO si existen
             if (pdd.Detalles != null)
             {
                 if (!string.IsNullOrEmpty(pdd.Detalles.Referencias))
@@ -342,8 +410,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
                     detallesMap["Email"] = pdd.Detalles.Email;
             }
 
-            // 4. Serialización y persistencia
-            pedido.DetallesJson = JsonSerializer.Serialize(detallesMap);
+            pedido.DetallesJson = JsonSerializer.Serialize(detallesMap); // Serialize additional details as JSON for flexible storage
 
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
