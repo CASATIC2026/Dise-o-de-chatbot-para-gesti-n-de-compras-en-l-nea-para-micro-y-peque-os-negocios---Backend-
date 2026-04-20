@@ -45,3 +45,4 @@ docker-compose.override.yml
 *.sqlite
 task.md
 Proyecto_Comentado_Junior/Guia_Estudio_Junior.md
+postgres_data

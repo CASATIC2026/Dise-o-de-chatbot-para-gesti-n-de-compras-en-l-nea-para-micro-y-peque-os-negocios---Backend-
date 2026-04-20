@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL Database
+ # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: chatbot-db
@@ -10,7 +10,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # CAMBIO AQUÍ: Ahora los datos se guardarán en una carpeta real en tu PC
+      - ./postgres_data:/var/lib/postgresql/data 
     networks:
       - chatbot-network
     healthcheck:
@@ -55,6 +56,9 @@ services:
       - Wompi__ClientId=${WOMPI_CLIENT_ID}
       - Wompi__ClientSecret=${WOMPI_CLIENT_SECRET}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
+      - Wompi__RedirectUrl=${WOMPI_REDIRECT_URL}
+      - Wompi__NotificationEmails=${WOMPI_NOTIFICATION_EMAILS}
+      - Services__InventarioBaseUrl=http://inventario-service:8080
     volumes:
       - ./src/Services.Pagos:/src/Services.Pagos
       - ./src/Shared.Core:/src/Shared.Core
@@ -144,3 +148,6 @@ networks:
 volumes:
   postgres_data:
     name: postgres_data
+
+
+    
