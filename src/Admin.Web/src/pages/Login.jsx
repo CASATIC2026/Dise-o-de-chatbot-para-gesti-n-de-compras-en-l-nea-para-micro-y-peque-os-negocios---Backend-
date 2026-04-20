@@ -18,8 +18,12 @@ function Login({ onLogin }) {
                 password,
             });
 
-            if (response.data.token) {
-                onLogin(response.data.token);
+            const token = response.data?.token || response.data?.Token;
+
+            if (token) {
+                onLogin(token);
+            } else {
+                setError('La respuesta del servidor no incluyo un token valido');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Error al iniciar sesión');
