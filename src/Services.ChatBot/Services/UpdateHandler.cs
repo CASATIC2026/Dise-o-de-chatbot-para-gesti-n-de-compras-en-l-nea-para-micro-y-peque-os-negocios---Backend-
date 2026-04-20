@@ -117,11 +117,12 @@ BotInteractionHandler interactionHandler
                 int page = int.Parse(partes[2]);
                 Console.WriteLine($"prodId {prodId}, catId {catId}, page {page}");
 
-                string data = (catId == -1) ? "cart" : $"prod_{prodId}_{catId}_{page}";
+                string data = (catId == -1) ? $"prod_{prodId}_{-1}_{0}" : $"prod_{prodId}_{catId}_{page}";
 
                 CallbackQuery callbackQuery = new()
                 {
                     Data = data,
+                    From = msg.From,
                     Message = new Message
                     {
                         Chat = msg.Chat,
@@ -132,7 +133,7 @@ BotInteractionHandler interactionHandler
                 await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
                 if (catId == -1)
                 {
-                    await renderer.RenderizarCarrito(bot, callbackQuery, int.Parse(conv.Asunto!));
+                    await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuery, int.Parse(conv.Asunto!), cantidad);
                     return;
                 }
                 else
