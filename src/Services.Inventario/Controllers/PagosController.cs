@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Service.Inventario.Hubs;
 using Shared.Core.Data;
 using Shared.Core.Entities;
-using Microsoft.AspNetCore.SignalR; // <-- Necesario para SignalR
-using Service.Inventario.Hubs; // <-- Asegúrate de tener el namespace correcto para tu Hub
 
 namespace Services.Inventario.Controllers;
 
@@ -15,19 +15,19 @@ public class PagosController : ControllerBase
     private readonly ILogger<PagosController> _logger;
     private readonly IHubContext<NotificationHub> _hubContext;
 
-
-    public PagosController(ApplicationDbContext context, ILogger<PagosController> logger, IHubContext<NotificationHub> hubContext)
+    public PagosController(
+        ApplicationDbContext context,
+        ILogger<PagosController> logger,
+        IHubContext<NotificationHub> hubContext)
     {
         _context = context;
         _logger = logger;
         _hubContext = hubContext;
     }
 
-    // GET: api/pagos
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Pago>>> GetPagos()
     {
-        // Incluimos Pedido por si necesitas mostrar datos del pedido en la tabla
         var pagos = await _context.Pagos
             .Include(p => p.Pedido)
             .OrderByDescending(p => p.FechaPago)
@@ -36,7 +36,6 @@ public class PagosController : ControllerBase
         return Ok(pagos);
     }
 
-    // GET: api/pagos/{id}
     [HttpGet("{id}")]
     public async Task<ActionResult<Pago>> GetPago(int id)
     {
@@ -53,21 +52,43 @@ public class PagosController : ControllerBase
     }
 
     [HttpGet("pedido/{pedidoId}")]
-    public async Task<ActionResult<Pago>> GetPagoPorPedido(int pedidoId)
+    public async Task<IActionResult> GetPagoPorPedido(int pedidoId)
     {
         var pago = await _context.Pagos
             .Include(p => p.Pedido)
-            .FirstOrDefaultAsync(p => pedidoId == pedidoId);
+            .Where(p => p.PedidoId == pedidoId)
+            .OrderByDescending(p => p.CreadoEn)
+            .FirstOrDefaultAsync();
 
-        if (pago == null)
+        if (pago != null)
         {
-            return NotFound(new { message = $"No se encontró un pago para el pedido {pedidoId}" });
+            return Ok(new
+            {
+                pago.Id,
+                pago.PedidoId,
+                pago.Monto,
+                Total = pago.Pedido?.Total ?? pago.Monto,
+                pago.ReferenciaTransaccion
+            });
         }
 
-        return Ok(pago);
+        var pedido = await _context.Pedidos.FindAsync(pedidoId);
+
+        if (pedido == null)
+        {
+            return NotFound(new { message = $"No se encontro un pago ni pedido para el pedido {pedidoId}" });
+        }
+
+        return Ok(new
+        {
+            Id = 0,
+            PedidoId = pedido.Id,
+            Monto = pedido.Total,
+            Total = pedido.Total,
+            ReferenciaTransaccion = pedido.ReferenciaWompi ?? $"PED-{pedido.Id}"
+        });
     }
 
-    // POST: api/pagos
     [HttpPost]
     public async Task<ActionResult<Pago>> CreatePago([FromBody] Pago pago)
     {
@@ -82,8 +103,6 @@ public class PagosController : ControllerBase
 
         return CreatedAtAction(nameof(GetPago), new { id = pago.Id }, pago);
     }
-
-    //PUT: api/pagos/{id}
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdatePago(int id, [FromBody] Pago pago)
@@ -105,31 +124,26 @@ public class PagosController : ControllerBase
             {
                 return NotFound();
             }
-            else
-            {
-                throw;
-            }
+
+            throw;
         }
 
         return NoContent();
     }
 
-    [HttpPost("actualizar-por-referencia/{referencia?}")] // El '?' hace que sea opcional
+    [HttpPost("actualizar-por-referencia/{referencia?}")]
     public async Task<IActionResult> UpdatePorReferencia(string? referencia)
     {
-        // Si la referencia viene nula (porque Wompi no la mandó en la URL), 
-        // le ponemos un texto por defecto
         var refFinal = referencia ?? "Webhook de Wompi";
 
         await _hubContext.Clients.All.SendAsync("ReceiveNotification", new
         {
-            titulo = "¡Wompi nos contactó!",
-            mensaje = "Se recibió una señal de pago. Referencia: " + refFinal,
+            titulo = "Wompi nos contacto",
+            mensaje = "Se recibio una senal de pago. Referencia: " + refFinal,
             tipo = "success",
             fecha = DateTime.Now
         });
 
         return Ok(new { mensaje = "Recibido correctamente" });
     }
-
 }

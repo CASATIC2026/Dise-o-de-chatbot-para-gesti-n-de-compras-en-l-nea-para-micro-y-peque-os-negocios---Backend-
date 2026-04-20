@@ -48,9 +48,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
-      - Wompi__PublicKey=${WOMPI_PUBLIC_KEY}
-      - Wompi__PrivateKey=${WOMPI_PRIVATE_KEY}
+      - Wompi__ClientId=${WOMPI_CLIENT_ID}
+      - Wompi__ClientSecret=${WOMPI_CLIENT_SECRET}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
+      - Wompi__RedirectUrl=${WOMPI_REDIRECT_URL}
+      - Wompi__NotificationEmails=${WOMPI_NOTIFICATION_EMAILS}
+      - Services__InventarioBaseUrl=http://inventario-service:8080
     ports:
       - "5002:8080"
     depends_on:
