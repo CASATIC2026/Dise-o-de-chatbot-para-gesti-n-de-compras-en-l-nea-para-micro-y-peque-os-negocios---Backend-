@@ -8,7 +8,7 @@ import { authenticateToken } from '../middleware/Auth.js';
 const router = express.Router();
 
 // Si no hay .env, usará el nombre del servicio de Docker por defecto
-const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5041';
+const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://inventario-service:8080';
 const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://pagos-service:8080';
 
 // Aplicar autenticación a todas las rutas de admin

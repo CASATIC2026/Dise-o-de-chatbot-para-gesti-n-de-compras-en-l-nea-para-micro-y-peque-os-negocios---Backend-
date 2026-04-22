@@ -32,6 +32,8 @@ public class Program
                 var context = services.GetRequiredService<Shared.Core.Data.ApplicationDbContext>();
 
                 Console.WriteLine("🔍 [SISTEMA]: Verificando conexión a PostgreSQL...");
+                var connectionString = context.Database.GetDbConnection().ConnectionString;
+                Console.WriteLine($"DEBUG: Connecting to {connectionString.Split(';')[0]} with SSL...");
 
                 if (await context.Database.CanConnectAsync())
                 {

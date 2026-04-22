@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Entities;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -11,7 +13,7 @@ public class CarritoModule : ICarrito
     {
         if (pedido == null || !pedido.PedidoProductos.Any())
         {
-            string msg = "🛒 *Tu carrito está vacío. Agrega productos para verlos aquí.";
+            string msg = "🛒 *Tu carrito está vacío. Agrega productos para verlos aquí.*";
             var emptyKbd = new InlineKeyboardMarkup(
                 InlineKeyboardButton.WithCallbackData("🛍 Ir al Catálogo", "pcat_0")
             );
@@ -64,7 +66,18 @@ public class CarritoModule : ICarrito
         if (cliente == null || pedido == null) return (sb.ToString(), null);
         if (cliente == null || pedido == null) return (sb.ToString(), null);
         sb.AppendLine("🏁 *VERIFICA TU PEDIDO*");
-        sb.AppendLine("__________________________\n");
+        sb.AppendLine("__________________________");
+        var detallesMap = JsonSerializer.Deserialize<Dictionary<string, string>>(pedido.DetallesJson);
+        if (detallesMap == null) detallesMap = new Dictionary<string, string>();
+
+        PedidoDetalleDTO detalleDTO = new PedidoDetalleDTO
+        {
+            Referencias = detallesMap.GetValueOrDefault("Referencias", "Sin referencias"),
+            Telefono = detallesMap.GetValueOrDefault("Telefono", "No proporcionado"),
+            Email = detallesMap.GetValueOrDefault("Email", "No proporcionado")
+        };
+
+
 
         // 1. Listado resumido de productos
         foreach (var item in pedido.PedidoProductos)
@@ -72,14 +85,14 @@ public class CarritoModule : ICarrito
             sb.AppendLine($"▪️ {item.Producto.Nombre} x{item.Cantidad} — *${item.Cantidad * item.PrecioUnitario}*");
         }
 
-        sb.AppendLine("\n__________________________");
+        sb.AppendLine("__________________________");
         sb.AppendLine($"💰 *TOTAL A PAGAR: ${pedido.Total}*");
-        sb.AppendLine("__________________________\n");
+        sb.AppendLine("__________________________");
 
         // 2. Datos de entrega
-        sb.AppendLine("📍 *Dirección de Envío:*");
-        sb.AppendLine($"`{cliente.Direccion}`");
-        sb.AppendLine($"\n📞 *Teléfono:* `{cliente.Telefono}`");
+        sb.AppendLine($"📍 *Dirección de Envío:*`{pedido.DireccionEntrega}`");
+        sb.AppendLine($"🔸 Referencias: `{detalleDTO.Referencias}`");
+        sb.AppendLine($"📞 *Teléfono:* `{detalleDTO.Telefono}`");
         sb.AppendLine("__________________________\n");
         sb.AppendLine("¿Toda la información es correcta?");
 

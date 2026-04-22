@@ -27,6 +27,7 @@ BotInteractionHandler interactionHandler
 {
     private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
     private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
+    private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
     {
         logger.LogInformation("HandleError: {Exception}", exception);
@@ -72,19 +73,14 @@ BotInteractionHandler interactionHandler
     }
     async Task<Message> RemoveKeyboard(Message msg)
     {
-        return await bot.EditMessageText(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
+        //return await bot.EditMessageText(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
+        return await bot.EditMessageCaption(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
     }
 
     private async Task OnMessage(Message msg, string text)
     {
         var conv = await _persistencia.ObtenerConversacionActiva(msg.From.Id);
 
-        var lastMsg = await context.Mensajes.Where(m =>
-        m.ConversacionId == conv.Id)
-        .OrderByDescending(m => m.FechaEnvio)
-        .FirstOrDefaultAsync();
-        if (lastMsg != null)
-            Console.WriteLine("Contenido: " + lastMsg!.Contenido + " ");
         if (text == "/start" || text.ToLower().Contains("Catalogo"))
         {
             Console.WriteLine("Punto A");
@@ -99,7 +95,16 @@ BotInteractionHandler interactionHandler
             await renderer.RenderizarMenu(bot, msg, callbackQuerry);
             return;
         }
+        var lastMsg = await context.Mensajes.Where(m =>
+        m.ConversacionId == conv.Id)
+        .OrderByDescending(m => m.FechaEnvio)
+        .FirstOrDefaultAsync();
+
+        if (lastMsg != null)
+            Console.WriteLine("Contenido: " + lastMsg!.Contenido + " ");
+
         if (conv == null) return;
+
         if (lastMsg != null && lastMsg.Remitente == TipoRemitente.Sistema && lastMsg.Contenido.Contains("[ID:"))
         {
             if (int.TryParse(text, out int cantidad) && cantidad > 0)
@@ -112,11 +117,12 @@ BotInteractionHandler interactionHandler
                 int page = int.Parse(partes[2]);
                 Console.WriteLine($"prodId {prodId}, catId {catId}, page {page}");
 
-                string data = (catId == -1) ? "cart" : $"prod_{prodId}_{catId}_{page}";
+                string data = (catId == -1) ? $"prod_{prodId}_{-1}_{0}" : $"prod_{prodId}_{catId}_{page}";
 
                 CallbackQuery callbackQuery = new()
                 {
                     Data = data,
+                    From = msg.From,
                     Message = new Message
                     {
                         Chat = msg.Chat,
@@ -127,7 +133,7 @@ BotInteractionHandler interactionHandler
                 await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
                 if (catId == -1)
                 {
-                    await renderer.RenderizarCarrito(bot, callbackQuery, int.Parse(conv.Asunto!));
+                    await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuery, int.Parse(conv.Asunto!), cantidad);
                     return;
                 }
                 else
@@ -138,7 +144,8 @@ BotInteractionHandler interactionHandler
             }
             else
             {
-                await bot.SendMessage(msg.Chat.Id, "Valor invalido. Por favor, solo numeros mayores a 0.");
+                //await bot.SendMessage(msg.Chat.Id, "Valor invalido. Por favor, solo numeros mayores a 0.");
+                await bot.SendPhoto(msg.Chat.Id, url, "Valor invalido. Por favor, solo numeros mayores a 0.", parseMode: ParseMode.Markdown);
                 return;
             }
         }
@@ -150,7 +157,7 @@ BotInteractionHandler interactionHandler
             await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
             {
                 Estado = EstadoPedido.Pendiente,
-                Direccion = direccion                
+                Direccion = direccion
             });
 
             await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
@@ -158,7 +165,8 @@ BotInteractionHandler interactionHandler
             string instruction = "📍 PASO 2 :REFERENCIAS DE UBICACION\n\nPor favor, escribe referencias como: \n'frente a la tienda X' o 'casa color verde'";
             await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_REFERENCIAS]_[{conv.Asunto!}]_*Esperando referencias...", TipoRemitente.Sistema);
 
-            await bot.EditMessageText(msg.Chat.Id, int.Parse(conv.Asunto!), instruction, parseMode: ParseMode.Markdown);
+            //await bot.EditMessageText(msg.Chat.Id, int.Parse(conv.Asunto!), instruction, parseMode: ParseMode.Markdown);
+            await bot.EditMessageCaption(msg.Chat.Id, int.Parse(conv.Asunto!), instruction, parseMode: ParseMode.Markdown);
             return;
         }
         if (lastMsg != null && lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_REFERENCIAS]") && lastMsg.Remitente == TipoRemitente.Sistema)
@@ -175,7 +183,8 @@ BotInteractionHandler interactionHandler
             string instruction = "📞 PASO 3: TELÉFONO DE CONTACTO\n\nEscribe tu número de teléfono para coordinar la entrega:";
             await _persistencia.RegistrarMensaje(conv.Id, $"[ESTADO:CHECKOUT_TELEFONO]_[{Asunto}]_Esperando teléfono...", TipoRemitente.Sistema);
 
-            await bot.EditMessageText(msg.Chat.Id, int.Parse(Asunto!), instruction, parseMode: ParseMode.Markdown);
+            //await bot.EditMessageText(msg.Chat.Id, int.Parse(Asunto!), instruction, parseMode: ParseMode.Markdown);
+            await bot.EditMessageCaption(msg.Chat.Id, int.Parse(Asunto!), instruction, parseMode: ParseMode.Markdown);
             return;
         }
 
@@ -191,7 +200,7 @@ BotInteractionHandler interactionHandler
                 Detalles = new PedidoDetalleDTO { Telefono = telefono }
             });
 
-            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);    
+            await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
 
             CallbackQuery callbackQuery = new()
             {
@@ -216,6 +225,7 @@ BotInteractionHandler interactionHandler
             return;
         }
         await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
+        //await bot.SendPhoto(msg.Chat, url, "Usa /start para ver el catalogo", parseMode: ParseMode.Markdown);
     }
     private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
     {
@@ -306,7 +316,8 @@ BotInteractionHandler interactionHandler
 
             string instruction = "📍 PASO 1: DIRECCIÓN DE ENVÍO\n\nPor favor, escribe tu dirección exacta";
             await _persistencia.RegistrarMensaje(conv!.Id, $" [ESTADO:CHECKOUT_DIRECCION]_Esperando dirección..._", TipoRemitente.Sistema);
-            await bot.EditMessageText(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
+            //await bot.EditMessageText(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
+            await bot.EditMessageCaption(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
             await bot.AnswerCallbackQuery(callbackQuerry.Id);
         }
 

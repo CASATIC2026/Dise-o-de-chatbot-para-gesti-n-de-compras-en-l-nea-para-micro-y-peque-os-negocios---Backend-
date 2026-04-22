@@ -38,7 +38,7 @@ public class CatalogoModule : ICatalogoUI
                 new[] { InlineKeyboardButton.WithCallbackData($"{p.Nombre} - ${p.Precio}", $"prod_{p.Id}_{catId}_{page}") }).ToList();
             var navRow = new List<InlineKeyboardButton>();
             if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pprod_{catId}_{page - 1}"));
-            if ((page + 1) * 6 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pprod_{catId}_{page + 1}"));
+            if ((page + 1) * 4 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pprod_{catId}_{page + 1}"));
 
             if (navRow.Any()) buttons.Add(navRow.ToArray());
             buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Categorías", "pcat_0")]);
@@ -86,10 +86,7 @@ public class CatalogoModule : ICatalogoUI
 
     public (InlineKeyboardMarkup markup, string texto) BuildUIPedidos(PagedResult<PedidoDTO> data, int page)
     {
-        var buttons = new List<InlineKeyboardButton[]>
-        {
-            ([InlineKeyboardButton.WithCallbackData("🔙 Menu", "menu")])
-        };
+        var buttons = new List<InlineKeyboardButton[]>();
 
         var sb = new StringBuilder();
         sb.AppendLine("```");
@@ -99,6 +96,7 @@ public class CatalogoModule : ICatalogoUI
         {
             sb.AppendLine("No se encontraron pedidos");
             sb.AppendLine("```");
+            buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Menu", "menu")]);
             var markup = new InlineKeyboardMarkup(buttons);
             return (markup, sb.ToString());
         }
@@ -125,6 +123,7 @@ public class CatalogoModule : ICatalogoUI
             if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"pords_{page - 1}"));
             if ((page + 1) * 6 < data.TotalCount) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"pords_{page + 1}"));
             if (navRow.Count != 0) buttons.Add([.. navRow]);
+            buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Menu", "menu")]);
             var markup = new InlineKeyboardMarkup(buttons);
             return new(markup, sb.ToString());
         }
