@@ -36,6 +36,7 @@ builder.Services.AddScoped<IUtilsUI, UtilsModule>();
 builder.Services.AddScoped<IBotPersistencia, SqlBotPersistence>();
 builder.Services.AddScoped<BotRenderer>();
 builder.Services.AddScoped<BotInteractionHandler>();
+builder.Services.AddScoped<BotOnMsgInteractionHandler>();
 builder.Services.AddControllers();
 
 builder.Services.AddHostedService<StockReleaseWorker>();

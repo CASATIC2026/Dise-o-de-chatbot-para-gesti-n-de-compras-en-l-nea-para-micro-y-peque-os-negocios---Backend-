@@ -8,7 +8,7 @@ using Services.ChatBot.DTOs;
 
 namespace Webhook.Controllers.Services;
 
-public class BotInteractionHandler(ITelegramBotClient bot,
+public class BotInteractionHandler(
 IBotPersistencia _persistencia,
 BotRenderer renderer,
 ICatalogoUI catalogoUI)
@@ -20,7 +20,7 @@ ICatalogoUI catalogoUI)
         int page = int.Parse(parts[3]);
         var currentMkp = callbackQuery.Message!.ReplyMarkup;
 
-        int currentQty = int.Parse(currentMkp.InlineKeyboard.ElementAt(0).ElementAt(1).Text);
+        int currentQty = int.Parse(currentMkp!.InlineKeyboard.ElementAt(0).ElementAt(1).Text);
 
         if (action == "inc") currentQty++;
         else if (currentQty > 1) currentQty--;
@@ -140,6 +140,23 @@ ICatalogoUI catalogoUI)
             });
         await bot.EditMessageReplyMarkup(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, confirmKbd);
         await bot.AnswerCallbackQuery(callbackQuery.Id, "⚠️ ¿Estás seguro de quitar este producto?");
+    }
+    public async Task ManejarRegistroDireccionEnvio(ITelegramBotClient bot, CallbackQuery callbackQuery)
+    {
+        var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        if (pedido == null || !pedido.PedidoProductos.Any())
+        {
+            await bot.AnswerCallbackQuery(callbackQuery.Id, "⚠️ Tu carrito está vacío.", showAlert: true);
+            return;
+        }
+        var conv = await _persistencia.ObtenerConversacionActiva(callbackQuery.From.Id);
+
+        string instruction = "📍 PASO 1: DIRECCIÓN DE ENVÍO\n\nPor favor, escribe tu dirección exacta";
+        await _persistencia.RegistrarMensaje(conv!.Id, $" [ESTADO:CHECKOUT_DIRECCION]_Esperando dirección..._", TipoRemitente.Sistema);
+
+        //await bot.EditMessageText(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
+        await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown);
+        await bot.AnswerCallbackQuery(callbackQuery.Id);
     }
 
     public async Task ManejarFinalizacionPedido(ITelegramBotClient bot, CallbackQuery callbackQuery)

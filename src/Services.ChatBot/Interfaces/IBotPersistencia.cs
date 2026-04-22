@@ -17,5 +17,6 @@ public interface IBotPersistencia
     Task<bool> ActualizarCliente(ClienteDTO dtoC);
     Task<(List<Pedido>, int count)> ObtenerPedidosUsuario(long TelegramId, int tamaño, int pagina);
     Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, PedidoDTO pdd);
+    Task<Mensaje?> ObtenerUltimoMensaje(int conversacionId);
 }
 
