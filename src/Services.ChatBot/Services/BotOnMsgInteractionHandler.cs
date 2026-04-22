@@ -75,7 +75,7 @@ namespace Webhook.Controllers.Services
                         }
                     };
 
-                    Console.Error.WriteLine($"\nId: {callbackQuery.Message.MessageId}, conversacion Asunt: {conv.Asunto}\n");
+                    //Console.Error.WriteLine($"\nId: {callbackQuery.Message.MessageId}, conversacion Asunt: {conv.Asunto}\n");
                     await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
                     if (catId == -1)
                     {

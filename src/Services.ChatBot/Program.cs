@@ -9,25 +9,30 @@ using Shared.Core;
 using Services.ChatBot.Utils;
 using Webhook.Controllers.Services;
 using System.Net.NetworkInformation;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Setup bot configuration
+// --- Bot Configuration ---
+// Binds the "BotConfiguration" section from appsettings.json and enables environment variables.
 var botConfigSection = builder.Configuration.GetSection("BotConfiguration");
 builder.Services.Configure<BotConfiguration>(botConfigSection);
 builder.Configuration.AddEnvironmentVariables();
 
-
+// --- HttpClient Registrations ---
+// Configures the Telegram Bot Client with a typed HttpClient.
 builder.Services.AddHttpClient("tgwebhook").
-//RemoveAllLoggers().
 AddTypedClient<ITelegramBotClient>(
     httpClient => new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
 
+// Configures the client for the internal Gateway/Inventory API.
 builder.Services.AddHttpClient("GatewayApi", client =>
 {
     var gatewayUrl = builder.Configuration["GatewaySettings:Url"];
     client.BaseAddress = new Uri(gatewayUrl);
 }
 );
+
+// --- Dependency Injection: UI Modules and Services ---
 builder.Services.AddScoped<IMenuUI, MenuModule>();
 builder.Services.AddScoped<ICatalogoUI, CatalogoModule>();
 builder.Services.AddScoped<ICarrito, CarritoModule>();
@@ -39,11 +44,14 @@ builder.Services.AddScoped<BotInteractionHandler>();
 builder.Services.AddScoped<BotOnMsgInteractionHandler>();
 builder.Services.AddControllers();
 
+// --- Background Workers ---
+// Periodically cleans up stock from abandoned/expired carts.
 builder.Services.AddHostedService<StockReleaseWorker>();
-// DbContext
+
+// --- Infrastructure ---
 builder.Services.AddSharedInfrastructure(builder.Configuration);
 
-// CORS
+// --- Global Policies ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowGateway", policy =>
@@ -54,18 +62,15 @@ builder.Services.AddCors(options =>
     });
 });
 
-// FluentValidation (Actualizado para evitar warnings de obsolescencia)
+// --- Features: Validation, Documentation, and Health ---
 builder.Services.AddFluentValidationAutoValidation();
-
-// Swagger y HealthChecks
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
 
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- HTTP Request Pipeline ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -73,12 +78,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowGateway");
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
+// --- Routing ---
 app.MapControllers();
 app.MapHealthChecks("/health");
 
+// --- Launch ---
 app.Run();

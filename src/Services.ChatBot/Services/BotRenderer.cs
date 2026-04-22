@@ -1,40 +1,65 @@
 using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
-using Services.ChatBot.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Webhook.Controllers.Services;
 
-public class BotRenderer(ITelegramBotClient bot,
-IHttpClientFactory httpClientFactory,
+public class BotRenderer(IHttpClientFactory httpClientFactory,
 ICatalogoUI catalogoUI, IMenuUI menuUI,
 ICarrito carritoUI,
 IBotPersistencia _persistencia)
 {
     private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
     private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
+    
+    /// <summary>
+    /// Renders the product catalog for a specific category with pagination.
+    /// Displays products as an interactive list with buttons for selection and navigation.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="callbackQuerry">The callback query from the user's interaction.</param>
+    /// <param name="catId">The category ID to display products for.</param>
+    /// <param name="page">The page number for pagination.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarCatalogo(ITelegramBotClient bot, CallbackQuery callbackQuerry, int catId, int page)
     {
-        Console.WriteLine($"CatId {callbackQuerry.Data}, Page {page}");
-        var data = await _gateway.GetFromJsonAsync<PagedResult<ProductoDTO>>($"productos/list-4/{catId}?page={page}&pageSize=4");
-        var categoria = await _gateway.GetFromJsonAsync<CategoriaDTO>($"categorias/{catId}");
-        var markup = catalogoUI.BuildUIProductos(data, catId, page);
-        var caption = data == null || !data.Items.Any()
-            ? $" {categoria.Nombre}\n No se encontraron Productos:"
-            : $" {categoria.Nombre}\n 🛍 Productos:";
-
-        var media = new InputMediaPhoto(url)
+        //Console.WriteLine($"CatId {callbackQuerry.Data}, Page {page}");
+        try
         {
-            Caption = caption,
-            ParseMode = ParseMode.Markdown
-        };
+            var data = await _gateway.GetFromJsonAsync<PagedResult<ProductoDTO>>($"productos/list-4/{catId}?page={page}&pageSize=4");
 
-        //await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, caption, replyMarkup: markup);
-        await bot.EditMessageMedia(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, media, replyMarkup: markup);
+            var categoria = await _gateway.GetFromJsonAsync<CategoriaDTO>($"categorias/{catId}");
+            var markup = catalogoUI.BuildUIProductos(data, catId, page);
+
+            var caption = data == null || !data.Items.Any()
+                ? $" {categoria.Nombre}\n No se encontraron Productos:"
+                : $" {categoria.Nombre}\n 🛍 Productos:";
+
+            var media = new InputMediaPhoto(url)
+            {
+                Caption = caption,
+                ParseMode = ParseMode.Markdown
+            };
+
+            //await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, caption, replyMarkup: markup);
+            await bot.EditMessageMedia(callbackQuerry.Message!.Chat.Id, callbackQuerry.Message.MessageId, media, replyMarkup: markup);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Fallo al renderizar catalogo: " + ex);
+        }
     }
 
+    /// <summary>
+    /// Renders the main menu displaying the store welcome message and navigation options.
+    /// Registers the client and creates or updates the active conversation.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="msg">The message object containing chat information.</param>
+    /// <param name="callbackQuery">The callback query containing user information.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarMenu(ITelegramBotClient bot, Message msg, CallbackQuery callbackQuery)
     {
         var user = callbackQuery?.From ?? msg?.From;
@@ -69,6 +94,14 @@ IBotPersistencia _persistencia)
         }
     }
 
+    /// <summary>
+    /// Renders the category selection menu with pagination.
+    /// Displays available product categories as interactive buttons.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="page">The page number for pagination.</param>
+    /// <param name="callbackQuery">The callback query from the user's interaction.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarCategorias(ITelegramBotClient bot, int page, CallbackQuery callbackQuery)
     {
         var data = await _gateway.GetFromJsonAsync<PagedResult<CategoriaDTO>>($"categorias/list-6?page={page}&pageSize=6");
@@ -79,6 +112,18 @@ IBotPersistencia _persistencia)
         await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, "📂 Menú:", replyMarkup: markup);
     }
 
+    /// <summary>
+    /// Renders a single product detail view with price, stock information, and quantity controls.
+    /// Displays the product image and interactive buttons for quantity adjustment and adding to cart.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="prodId">The product ID to display.</param>
+    /// <param name="catId">The category ID the product belongs to.</param>
+    /// <param name="page">The page number from the catalog for navigation.</param>
+    /// <param name="callbackQuery">The callback query from the user's interaction.</param>
+    /// <param name="msgId">The message ID to edit.</param>
+    /// <param name="cantidad">The initial quantity selected for the product.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarProducto(ITelegramBotClient bot, int prodId, int catId, int page, CallbackQuery callbackQuery, int msgId, int cantidad)
     {
         var data = await _gateway.GetFromJsonAsync<ProductoDTO>($"productos/{prodId}");
@@ -102,6 +147,13 @@ IBotPersistencia _persistencia)
         Console.WriteLine($"name {data.Nombre}, precio {data.Precio}, stock {data.StockDisponible}");
     }
 
+    /// <summary>
+    /// Renders the shopping cart display showing all items, quantities, prices, and cart management options.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="callbackQuery">The callback query from the user's interaction.</param>
+    /// <param name="msgId">The message ID to edit.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarCarrito(ITelegramBotClient bot, CallbackQuery callbackQuery, int msgId)
     {
         var pedido = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
@@ -118,6 +170,14 @@ IBotPersistencia _persistencia)
         await bot.AnswerCallbackQuery(callbackQuery.Id);
     }
 
+    /// <summary>
+    /// Renders the final checkout summary with order details, total price, and delivery information.
+    /// Displays the complete order confirmation before finalization.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="callbackQuery">The callback query from the user's interaction.</param>
+    /// <param name="msgId">The message ID to edit.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarResumenFina(ITelegramBotClient bot, CallbackQuery callbackQuery, int msgId)
     {
         Console.WriteLine($"\nClienteId Telegram: {callbackQuery.From.Id}\n");
@@ -134,6 +194,15 @@ IBotPersistencia _persistencia)
         await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, msgId, texto,
             parseMode: ParseMode.Markdown, replyMarkup: markup);
     }
+    
+    /// <summary>
+    /// Renders the user's order history with pagination.
+    /// Displays a list of past and current orders with status and total information.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client.</param>
+    /// <param name="callbackQuery">The callback query from the user's interaction.</param>
+    /// <param name="page">The page number for pagination.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarOrdenes(ITelegramBotClient bot, CallbackQuery callbackQuery, int page)
     {
         var (pedidos, count) = await _persistencia.ObtenerPedidosUsuario(callbackQuery.From.Id, 6, page);

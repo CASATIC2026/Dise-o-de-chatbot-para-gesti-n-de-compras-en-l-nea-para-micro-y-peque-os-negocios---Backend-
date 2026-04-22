@@ -5,8 +5,18 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Services.ChatBot.Models;
 
+/// <summary>
+/// Implementation of <see cref="ICatalogoUI"/> responsible for generating the interactive 
+/// Telegram UI components for browsing categories, products, and order history.
+/// </summary>
 public class CatalogoModule : ICatalogoUI
 {
+    /// <summary>
+    /// Builds an inline keyboard containing a paginated list of product categories.
+    /// </summary>
+    /// <param name="data">The paginated result containing category DTOs.</param>
+    /// <param name="page">The current page index for navigation metadata.</param>
+    /// <returns>An <see cref="InlineKeyboardMarkup"/> with category buttons and pagination controls.</returns>
     public InlineKeyboardMarkup BuildUICategorias(PagedResult<CategoriaDTO> data, int page)
     {
         var buttons = new List<InlineKeyboardButton[]>();
@@ -28,6 +38,14 @@ public class CatalogoModule : ICatalogoUI
         }
         return new InlineKeyboardMarkup(buttons);
     }
+
+    /// <summary>
+    /// Builds an inline keyboard containing a paginated list of products for a specific category.
+    /// </summary>
+    /// <param name="data">The paginated result containing product DTOs.</param>
+    /// <param name="catId">The identifier of the category being browsed.</param>
+    /// <param name="page">The current page index for navigation metadata.</param>
+    /// <returns>An <see cref="InlineKeyboardMarkup"/> with product selection and pagination controls.</returns>
     public InlineKeyboardMarkup BuildUIProductos(PagedResult<ProductoDTO> data, int catId, int page)
     {
         var buttons = new List<InlineKeyboardButton[]>();
@@ -50,11 +68,18 @@ public class CatalogoModule : ICatalogoUI
         return new InlineKeyboardMarkup(buttons);
     }
 
+    /// <summary>
+    /// Builds the interactive interface for a product's detailed view.
+    /// This includes quantity adjustment controls (+/-), manual entry (✏️), and the action button 
+    /// (Add to Cart or Confirm Changes depending on context).
+    /// </summary>
+    /// <param name="prodId">The unique identifier of the product.</param>
+    /// <param name="catId">The category identifier. If -1, the UI adapts for "Edit from Cart" mode.</param>
+    /// <param name="page">The page index used for returning to the previous view.</param>
+    /// <param name="cantidadActual">The currently selected quantity for the UI display.</param>
+    /// <returns>An <see cref="InlineKeyboardMarkup"/> with product interaction controls.</returns>
     public InlineKeyboardMarkup BuildUIDetalleProducto(int prodId, int catId, int page, int cantidadActual)
     {
-
-
-
         var buttons = new List<InlineKeyboardButton[]>
         {
             new[]{
@@ -63,10 +88,7 @@ public class CatalogoModule : ICatalogoUI
                     InlineKeyboardButton.WithCallbackData("✏️", $"edit_qty_{prodId}_{catId}_{page}_{cantidadActual}"),
                     InlineKeyboardButton.WithCallbackData("+", $"inc_{prodId}_{catId}_{page}")
             }
-
         };
-
-
         if (catId == -1)
 
         {
@@ -84,6 +106,13 @@ public class CatalogoModule : ICatalogoUI
 
     }
 
+    /// <summary>
+    /// Builds a text-based summary and navigation keyboard for the user's order history.
+    /// Uses a fixed-width Markdown block to render a tabular view of orders.
+    /// </summary>
+    /// <param name="data">The paginated result containing the user's past orders.</param>
+    /// <param name="page">The current page index for history navigation.</param>
+    /// <returns>A tuple containing the navigation <see cref="InlineKeyboardMarkup"/> and the formatted summary string.</returns>
     public (InlineKeyboardMarkup markup, string texto) BuildUIPedidos(PagedResult<PedidoDTO> data, int page)
     {
         var buttons = new List<InlineKeyboardButton[]>();

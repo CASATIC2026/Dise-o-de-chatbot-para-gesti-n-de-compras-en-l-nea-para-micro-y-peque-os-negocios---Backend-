@@ -7,8 +7,18 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Services.ChatBot.Models;
 
+/// <summary>
+/// Implementation of <see cref="ICarrito"/> that handles the construction of 
+/// user interface components for the shopping cart and final checkout summary.
+/// </summary>
 public class CarritoModule : ICarrito
 {
+    /// <summary>
+    /// Constructs the visual representation of the shopping cart, including the list of items,
+    /// subtotal, total, and management buttons (edit, remove, clear, checkout).
+    /// </summary>
+    /// <param name="pedido">The active order representing the cart. If null or empty, returns an empty cart message.</param>
+    /// <returns>A tuple containing the formatted Markdown text and the <see cref="InlineKeyboardMarkup"/>.</returns>
     public (string texto, InlineKeyboardMarkup markup) BuildUICarrito(Pedido? pedido)
     {
         if (pedido == null || !pedido.PedidoProductos.Any())
@@ -60,6 +70,13 @@ public class CarritoModule : ICarrito
         return (sb.ToString(), new InlineKeyboardMarkup(buttons));
     }
 
+    /// <summary>
+    /// Constructs the final order review UI, presenting the delivery details (address, phone, references)
+    /// and a summary of the products before the user confirms and pays.
+    /// </summary>
+    /// <param name="pedido">The pending order with details like total and delivery address.</param>
+    /// <param name="cliente">The client associated with the order.</param>
+    /// <returns>A tuple containing the final summary text and the confirmation/correction buttons.</returns>
     public (string texto, InlineKeyboardMarkup markup) BuildUIResumenFinal(Pedido? pedido, Cliente? cliente)
     {
         var sb = new StringBuilder();
@@ -76,10 +93,7 @@ public class CarritoModule : ICarrito
             Telefono = detallesMap.GetValueOrDefault("Telefono", "No proporcionado"),
             Email = detallesMap.GetValueOrDefault("Email", "No proporcionado")
         };
-
-
-
-        // 1. Listado resumido de productos
+        
         foreach (var item in pedido.PedidoProductos)
         {
             sb.AppendLine($"▪️ {item.Producto.Nombre} x{item.Cantidad} — *${item.Cantidad * item.PrecioUnitario}*");
@@ -88,15 +102,13 @@ public class CarritoModule : ICarrito
         sb.AppendLine("__________________________");
         sb.AppendLine($"💰 *TOTAL A PAGAR: ${pedido.Total}*");
         sb.AppendLine("__________________________");
-
-        // 2. Datos de entrega
+        
         sb.AppendLine($"📍 *Dirección de Envío:*`{pedido.DireccionEntrega}`");
         sb.AppendLine($"🔸 Referencias: `{detalleDTO.Referencias}`");
         sb.AppendLine($"📞 *Teléfono:* `{detalleDTO.Telefono}`");
         sb.AppendLine("__________________________\n");
         sb.AppendLine("¿Toda la información es correcta?");
-
-        // 3. Botones de acción
+        
         var buttons = new List<InlineKeyboardButton[]>
     {
         new[] {
