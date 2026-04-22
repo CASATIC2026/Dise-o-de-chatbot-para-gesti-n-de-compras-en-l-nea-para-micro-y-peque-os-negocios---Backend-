@@ -7,16 +7,16 @@ import { authenticateToken } from '../middleware/Auth.js';
 
 const router = express.Router();
 
-// Si no hay .env, usará el nombre del servicio de Docker por defecto
-const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://inventario-service:8080';
+// Si no hay .env, usara el nombre del servicio de Docker por defecto
+const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5041';
 const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://pagos-service:8080';
 
-// Aplicar autenticación a todas las rutas de admin
+// Aplicar autenticacion a todas las rutas de admin
 router.use(authenticateToken);
 
 /**
- * Proxy genérico para Inventario
- * Reenvía el token de autorización para superar la "doble validación" en C#
+ * Proxy generico para Inventario
+ * Reenvia el token de autorizacion para superar la "doble validacion" en C#
  */
 router.all('/inventario/*', async (req, res) => {
     try {
@@ -25,13 +25,12 @@ router.all('/inventario/*', async (req, res) => {
 
         const response = await axios({
             method: req.method,
-            url: url,
+            url,
             data: req.body,
             params: req.query,
             headers: {
                 'Content-Type': 'application/json',
-                // ENVIAR EL TOKEN AL MICROSERVICIO
-                'Authorization': req.headers.authorization 
+                'Authorization': req.headers.authorization
             }
         });
 
@@ -45,17 +44,27 @@ router.all('/inventario/*', async (req, res) => {
     }
 });
 
-/**
- * Proxy genérico para Pagos
- */
-router.all('/pagos/*', async (req, res) => {
+const buildPagosTargetUrl = (path = '') => {
+    const normalizedPath = path ? `/${path}` : '';
+    const wompiPaths = [
+        '/crear-enlace-automatico',
+        '/webhook/wompi'
+    ];
+
+    const targetBaseUrl = wompiPaths.some(prefix => normalizedPath.startsWith(prefix))
+        ? PAGOS_URL
+        : INVENTARIO_URL;
+
+    return `${targetBaseUrl}/api/pagos${normalizedPath}`;
+};
+
+const proxyPagosRequest = async (req, res, path = '') => {
     try {
-        const path = req.params[0];
-        const url = `${PAGOS_URL}/api/pagos/${path}`;
+        const url = buildPagosTargetUrl(path);
 
         const response = await axios({
             method: req.method,
-            url: url,
+            url,
             data: req.body,
             params: req.query,
             headers: {
@@ -72,29 +81,40 @@ router.all('/pagos/*', async (req, res) => {
             error: error.response?.data || error.message
         });
     }
+};
+
+/**
+ * Proxy para Pagos:
+ * - CRUD administrativo -> Inventario (/api/pagos)
+ * - Integraciones Wompi -> Pagos (/api/pagos/crear-enlace-automatico, /webhook/wompi)
+ */
+router.all('/pagos', async (req, res) => {
+    await proxyPagosRequest(req, res);
+});
+
+router.all('/pagos/*', async (req, res) => {
+    await proxyPagosRequest(req, res, req.params[0]);
 });
 
 /**
  * Endpoint del Dashboard
- * Agrega datos de los microservicios enviando el token en cada petición
+ * Agrega datos de los microservicios enviando el token en cada peticion
  */
 router.get('/dashboard/stats', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
 
-        // Llamada al microservicio de C# (Inventario)
         const [productosRes] = await Promise.all([
             axios.get(`${INVENTARIO_URL}/api/inventario/productos`, {
                 headers: { 'Authorization': authHeader }
             }),
-            // Espacio para futuros microservicios (Pedidos, etc.)
             Promise.resolve({ data: [] })
         ]);
 
         const productos = Array.isArray(productosRes.data)
             ? productosRes.data
             : (productosRes.data?.items || productosRes.data?.Items || []);
-        const pedidos = []; // Placeholder
+        const pedidos = [];
 
         res.json({
             totalProductos: productos.length,
@@ -107,9 +127,9 @@ router.get('/dashboard/stats', async (req, res) => {
         });
     } catch (error) {
         console.error('[Admin] Error fetching dashboard stats:', error.message);
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'Error fetching statistics',
-            details: error.response?.data || error.message 
+            details: error.response?.data || error.message
         });
     }
 });

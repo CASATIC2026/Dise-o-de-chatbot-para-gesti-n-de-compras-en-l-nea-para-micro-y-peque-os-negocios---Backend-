@@ -62,13 +62,20 @@ public class WompiService
             }
 
             var notificationEmails = _configuration["Wompi:NotificationEmails"];
-            var maxSuccessfulPayments = _configuration.GetValue<int?>("Wompi:MaxSuccessfulPayments") ?? 1;
+            var webhookUrl = _configuration["Wompi:WebhookUrl"];
+            var maxSuccessfulPayments = Math.Max(1, _configuration.GetValue<int?>("Wompi:MaxSuccessfulPayments") ?? 1);
             Dictionary<string, object?>? configuracion = null;
 
             if (!string.IsNullOrWhiteSpace(request.RedirectUrl))
             {
                 configuracion ??= new Dictionary<string, object?>();
                 configuracion["urlRedirect"] = request.RedirectUrl;
+            }
+
+            if (!string.IsNullOrWhiteSpace(webhookUrl))
+            {
+                configuracion ??= new Dictionary<string, object?>();
+                configuracion["urlWebhook"] = webhookUrl;
             }
 
             if (!string.IsNullOrWhiteSpace(notificationEmails))
@@ -81,6 +88,9 @@ public class WompiService
             if (configuracion != null)
             {
                 configuracion["esRecurrente"] = false;
+                configuracion["esMontoEditable"] = false;
+                configuracion["esCantidadEditable"] = false;
+                configuracion["cantidadPorDefecto"] = 1;
             }
 
             var payload = new Dictionary<string, object?>
@@ -90,13 +100,23 @@ public class WompiService
                 ["nombreProducto"] = "Pedido " + request.Referencia,
                 ["formaPago"] = new Dictionary<string, object?>
                 {
-                    ["permitirTarjetaCreditoDebido"] = true
+                    ["permitirTarjetaCreditoDebido"] = true,
+                    ["permitirPagoConPuntoAgricola"] = false,
+                    ["permitirPagoEnCuotasAgricola"] = false,
+                    ["permitirPagoEnBitcoin"] = false,
+                    ["permitePagoQuickPay"] = false
                 },
                 ["limitesDeUso"] = new Dictionary<string, object?>
                 {
-                    ["cantidadMaximaPagosExitosos"] = maxSuccessfulPayments
+                    ["cantidadMaximaPagosExitosos"] = maxSuccessfulPayments,
+                    ["cantidadMaximaPagosFallidos"] = 1
                 }
             };
+
+            _logger.LogInformation(
+                "Creando enlace Wompi para referencia {Referencia} con maximo {MaxPagos} pago(s) exitoso(s).",
+                request.Referencia,
+                maxSuccessfulPayments);
 
             if (configuracion != null)
             {
@@ -145,6 +165,42 @@ public class WompiService
                 Success = false,
                 Error = ex.Message
             };
+        }
+    }
+
+    public async Task<bool> DesactivarEnlacePago(long enlaceId)
+    {
+        try
+        {
+            var token = await ObtenerTokenAsync();
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogError("No se pudo obtener token para desactivar el enlace {EnlaceId}.", enlaceId);
+                return false;
+            }
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.PutAsync($"https://api.wompi.sv/EnlacePago/{enlaceId}/desactivar", content: null);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "No se pudo desactivar el enlace Wompi {EnlaceId}. Status: {StatusCode}. Body: {Body}",
+                    enlaceId,
+                    response.StatusCode,
+                    responseContent);
+                return false;
+            }
+
+            _logger.LogInformation("Enlace Wompi {EnlaceId} desactivado correctamente.", enlaceId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error desactivando enlace Wompi {EnlaceId}", enlaceId);
+            return false;
         }
     }
 }

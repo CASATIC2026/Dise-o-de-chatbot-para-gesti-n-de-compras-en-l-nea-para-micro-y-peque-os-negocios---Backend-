@@ -20,7 +20,7 @@ INSERT INTO "Pagos" (
     "PedidoId",
     "Monto",
     "MetodoPago",
-    "Estado",
+    "Estado",11
     "ReferenciaTransaccion",
     "FechaPago",
     "CreadoEn",
