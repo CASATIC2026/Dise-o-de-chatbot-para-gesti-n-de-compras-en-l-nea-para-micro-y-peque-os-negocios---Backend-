@@ -5,10 +5,21 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 
 namespace Services.ChatBot.Models;
-
+/// <summary>
+/// Provides utility methods for UI manipulation and message management within the Telegram bot.
+/// Implements <see cref="IUtilsUI"/> to decouple bot logic from direct Telegram API interaction.
+/// </summary>
 public class UtilsModule(ITelegramBotClient bot) : IUtilsUI
 {
     private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
+    /// <summary>
+    /// Invalidates an existing menu or session message by updating its content with a warning.
+    /// This is typically used when a conversation session has expired or the user needs to restart.
+    /// </summary>
+    /// <param name="chatId">The unique identifier for the target chat.</param>
+    /// <param name="messageId">The identifier of the message to invalidate.</param>
+    /// <param name="textoAviso">The specific alert or reason text to display to the user.</param>
+    /// <param name="action">Optional action parameter for future routing (not currently utilized).</param>
     public async Task InvalidarMenu(long chatId, int messageId, string textoAviso, string action)
     {
         try
@@ -20,22 +31,18 @@ public class UtilsModule(ITelegramBotClient bot) : IUtilsUI
                 ParseMode = ParseMode.Markdown
             };
 
-            //await bot.EditMessageText(callbackQuerry.Message!.Chat, callbackQuerry.Message.MessageId, caption, replyMarkup: markup);
             await bot.EditMessageMedia(chatId, messageId, media);
-            /*await bot.EditMessageText(
-                chatId: chatId,
-                messageId: messageId,
-                text: $"Alert: {textoAviso}\nUsa el comando /start para iniciar una nueva compra",
-                parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                replyMarkup: null // Eliminar el teclado inline  
-            );*/
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al invalidar: {ex.Message}");
         }
     }
-
+    /// <summary>
+    /// Attempts to delete a specific message from a Telegram chat.
+    /// </summary>
+    /// <param name="chatId">The unique identifier for the target chat.</param>
+    /// <param name="messageId">The identifier of the message to delete.</param>    
     public async Task EliminarMensaje(long chatId, int messageId)
     {
         try
@@ -47,6 +54,9 @@ public class UtilsModule(ITelegramBotClient bot) : IUtilsUI
             Console.WriteLine($"Error al eliminar mensaje: {ex.Message}");
         }
     }
-
+    /// <summary>
+    /// Returns a null keyboard markup, which can be passed to Telegram methods to remove an existing inline keyboard.
+    /// </summary>
+    /// <returns>A null <see cref="InlineKeyboardMarkup"/>.</returns>
     public InlineKeyboardMarkup? LimpiarKeyboard() => null; // Retorna null para limpiar el teclado inline
 }

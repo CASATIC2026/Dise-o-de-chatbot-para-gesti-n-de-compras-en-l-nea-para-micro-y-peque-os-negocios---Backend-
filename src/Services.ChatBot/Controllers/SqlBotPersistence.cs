@@ -81,6 +81,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 
         await context.SaveChangesAsync();
     }
+
     /// <summary>
     /// Registers a new client if not already exists.
     /// </summary>
@@ -104,6 +105,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             await context.SaveChangesAsync();
         }
     }
+
     /// <summary>
     /// Adds a product to the client's cart.
     /// </summary>
@@ -117,7 +119,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         try
         {
 
-            var cliente = ObtenerCliente(TelegramId);
+            var cliente = await ObtenerCliente(TelegramId);
             if (cliente == null) return (false, "Cliente no encontrado. Escribe /start para iniciar una nueva compra");
 
 
@@ -177,6 +179,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al procesar la reserva" + e.Message);
         }
     }
+
     /// <summary>
     /// Updates the quantity of a product in the cart.
     /// </summary>
@@ -220,6 +223,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al actualizar la cantidad");
         }
     }
+
     /// <summary>
     /// Retrieves the active order for the client.
     /// </summary>
@@ -232,6 +236,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         .ThenInclude(pp => pp.Producto)
         .FirstOrDefaultAsync(p => p.Cliente!.TelegramId == TelegramId && p.Estado == EstadoPedido.Pendiente);
     }
+
     /// <summary>
     /// Retrieves the client by Telegram ID.
     /// </summary>
@@ -241,6 +246,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
     {
         return await context.Clientes.FirstOrDefaultAsync(c => c.TelegramId == TelegramId);
     }
+
     /// <summary>
     /// Empties the client's cart.
     /// </summary>
@@ -274,6 +280,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return false;
         }
     }
+
     /// <summary>
     /// Removes an item from the cart.
     /// </summary>
@@ -311,6 +318,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             return (false, "Error al eliminar el item");
         }
     }
+
     /// <summary>
     /// Updates the client's information.
     /// </summary>
@@ -330,6 +338,7 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
 
         return await context.SaveChangesAsync() > 0;
     }
+
     /// <summary>
     /// Retrieves the user's orders with pagination.
     /// </summary>
@@ -337,7 +346,6 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
     /// <param name="tamaño">The page size.</param>
     /// <param name="pagina">The page number.</param>
     /// <returns>A tuple with the list of orders and the total count.</returns>
-
     public async Task<(List<Pedido>, int count)> ObtenerPedidosUsuario(long TelegramId, int tamaño, int pagina)
     {
         var pedidosUsuario = await context.Pedidos
@@ -356,13 +364,14 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
         if (pedidosUsuario == null || pedidosUsuario.Count == 0) return (new List<Pedido>(), 0);
         return (pedidosUsuario, count);
     }
+
     /// <summary>
     /// Updates the active order with new details.
     /// </summary>
     /// <param name="TelegramId">The Telegram ID of the client.</param>
     /// <param name="pdd">The order DTO with updates.</param>
     /// <returns>A tuple indicating success and a message.</returns>
-
+    /// 
     public async Task<(bool Succes, string msg)> ActualizarPedido(long TelegramId, PedidoDTO pdd)
     {
         using var transaction = await context.Database.BeginTransactionAsync();
@@ -423,5 +432,18 @@ public class SqlBotPersistence(ApplicationDbContext context) : IBotPersistencia
             Console.Error.WriteLine($"[Error ActualizarPedido]: {ex.Message}");
             return (false, "Error interno al finalizar el pedido.");
         }
+    }
+
+    /// <summary>
+    /// Retrieves the last message from a conversation.
+    /// </summary>
+    /// <param name="conversacionId">The ID of the conversation.</param>
+    /// <returns>The most recent message from the conversation, or null if none exists.</returns>
+    public async Task<Mensaje?> ObtenerUltimoMensaje(int conversacionId)
+    {
+        return await context.Mensajes.Where(m =>
+        m.ConversacionId == conversacionId)
+        .OrderByDescending(m => m.FechaEnvio)
+        .FirstOrDefaultAsync();
     }
 }
