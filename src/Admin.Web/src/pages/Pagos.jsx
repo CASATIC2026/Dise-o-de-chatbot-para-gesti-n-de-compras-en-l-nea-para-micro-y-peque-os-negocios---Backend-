@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/client';
 
 function Pagos() {
@@ -12,7 +11,7 @@ function Pagos() {
         pedidoId: '',
         monto: '',
         metodoPago: '',
-        estado: 1, // 1: Pendiente, 2: Completado, 3: Rechazado, 4: Cancelado
+        estado: 1,
         referenciaTransaccion: ''
     });
 
@@ -23,13 +22,7 @@ function Pagos() {
     const fetchPagos = async () => {
         try {
             setLoading(true);
-            // Usamos axios directo con la URL que confirmamos que funciona
-            // saltándonos el "client.js" solo para esta prueba
-            const response = await axios.get('http://localhost:5001/api/pagos', {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
-            });
+            const response = await api.get('/admin/pagos');
             setPagos(response.data);
         } catch (error) {
             console.error('Error fetching pagos:', error);
@@ -79,20 +72,19 @@ function Pagos() {
             };
 
             if (editingPago) {
-                await api.put(`/pagos/${editingPago.id}`, dataToSave);
+                await api.put(`/admin/pagos/${editingPago.id}`, dataToSave);
             } else {
-                await api.post('/pagos', dataToSave);
+                await api.post('/admin/pagos', dataToSave);
             }
 
-            fetchPagos();
+            await fetchPagos();
             handleCloseModal();
-            alert("¡Inserción exitosa!");
+            alert(editingPago ? 'Pago actualizado correctamente' : 'Pago registrado correctamente');
         } catch (error) {
             console.error('Error al guardar:', error);
             alert('Error al procesar la solicitud');
         }
     };
-
 
     const obtenerEstadoInfo = (estado) => {
         const estados = {
@@ -104,18 +96,19 @@ function Pagos() {
         return estados[estado] || { texto: 'Desconocido', clase: 'bg-gray-100 text-gray-400' };
     };
 
+
     const handleDeletePermanently = async (id) => {
-        if (!confirm('¿Estás seguro de eliminar este registro?')) return;
+        if (!confirm('Estas seguro de eliminar este registro?')) return;
         try {
-            await api.delete(`/pagos/${id}`);
-            fetchPagos();
+            await api.delete(`/admin/pagos/${id}`);
+            await fetchPagos();
         } catch (error) {
             console.error('Error deleting pago:', error);
         }
     };
 
     const filteredPagos = pagos.filter(pago =>
-        (pago.referenciaTransaccion?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (pago.referenciaTransaccion?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         pago.metodoPago.toLowerCase().includes(searchTerm.toLowerCase()) ||
         pago.pedidoId.toString().includes(searchTerm)
     );
@@ -156,7 +149,7 @@ function Pagos() {
                         <tr>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pedido ID</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Monto</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Método</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Metodo</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Referencia</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Acciones</th>
@@ -196,7 +189,6 @@ function Pagos() {
                 )}
             </div>
 
-            {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 overflow-y-auto max-h-screen">
@@ -217,7 +209,7 @@ function Pagos() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Método de Pago</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Metodo de Pago</label>
                                 <input type="text" placeholder="Ej: Tarjeta, Efectivo, Transferencia" value={formData.metodoPago} onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
                             </div>
 

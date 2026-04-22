@@ -60,41 +60,103 @@ public class PagosController : ControllerBase
             .OrderByDescending(p => p.CreadoEn)
             .FirstOrDefaultAsync();
 
-        if (pago != null)
-        {
-            return Ok(new
-            {
-                pago.Id,
-                pago.PedidoId,
-                pago.Monto,
-                Total = pago.Pedido?.Total ?? pago.Monto,
-                pago.ReferenciaTransaccion
-            });
-        }
-
-        var pedido = await _context.Pedidos.FindAsync(pedidoId);
+        var pedido = pago?.Pedido ?? await _context.Pedidos.FindAsync(pedidoId);
 
         if (pedido == null)
         {
             return NotFound(new { message = $"No se encontro un pago ni pedido para el pedido {pedidoId}" });
         }
 
-        return Ok(new
+        var fechaActual = DateTime.UtcNow;
+
+        if (pago == null)
         {
-            Id = 0,
-            PedidoId = pedido.Id,
-            Monto = pedido.Total,
-            Total = pedido.Total,
-            ReferenciaTransaccion = pedido.ReferenciaWompi ?? $"PED-{pedido.Id}"
-        });
+            var referenciaInicial = pedido.ReferenciaWompi ?? CreateReference(pedido.Id);
+            pago = new Pago
+            {
+                PedidoId = pedido.Id,
+                Monto = pedido.Total,
+                MetodoPago = "WOMPI",
+                Estado = EstadoPago.Pendiente,
+                ReferenciaTransaccion = referenciaInicial,
+                FechaPago = fechaActual,
+                CreadoEn = fechaActual,
+                ActualizadoEn = fechaActual
+            };
+
+            pedido.Pago = pago;
+            pedido.ReferenciaWompi = referenciaInicial;
+            pedido.ActualizadoEn = fechaActual;
+            _context.Pagos.Add(pago);
+            await _context.SaveChangesAsync();
+
+            return Ok(BuildPagoPedidoResponse(pago, pedido));
+        }
+
+        if (pedido.Estado == EstadoPedido.Cancelado || pago.Estado == EstadoPago.Cancelado)
+        {
+            return BadRequest(new { message = $"El pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
+        }
+
+        if (pedido.Estado == EstadoPedido.Pagado || pago.Estado == EstadoPago.Completado)
+        {
+            var nuevaReferencia = CreateReference(pedido.Id);
+            pedido.Estado = EstadoPedido.Pendiente;
+            pedido.ReferenciaWompi = nuevaReferencia;
+            pedido.ActualizadoEn = fechaActual;
+
+            pago.Estado = EstadoPago.Pendiente;
+            pago.Monto = pedido.Total;
+            pago.MetodoPago = string.IsNullOrWhiteSpace(pago.MetodoPago) ? "WOMPI" : pago.MetodoPago;
+            pago.ReferenciaTransaccion = nuevaReferencia;
+            pago.FechaPago = fechaActual;
+            pago.ActualizadoEn = fechaActual;
+
+            await _context.SaveChangesAsync();
+            return Ok(BuildPagoPedidoResponse(pago, pedido));
+        }
+
+        if (string.IsNullOrWhiteSpace(pago.ReferenciaTransaccion))
+        {
+            pago.ReferenciaTransaccion = pedido.ReferenciaWompi ?? CreateReference(pedido.Id);
+            pago.ActualizadoEn = fechaActual;
+        }
+
+        if (string.IsNullOrWhiteSpace(pedido.ReferenciaWompi))
+        {
+            pedido.ReferenciaWompi = pago.ReferenciaTransaccion;
+            pedido.ActualizadoEn = fechaActual;
+        }
+
+        pago.Estado = EstadoPago.Pendiente;
+        pago.Monto = pedido.Total;
+        pago.MetodoPago = string.IsNullOrWhiteSpace(pago.MetodoPago) ? "WOMPI" : pago.MetodoPago;
+        pago.ActualizadoEn = fechaActual;
+
+        if (pedido.Estado != EstadoPedido.Pendiente)
+        {
+            pedido.Estado = EstadoPedido.Pendiente;
+            pedido.ActualizadoEn = fechaActual;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(BuildPagoPedidoResponse(pago, pedido));
     }
 
     [HttpPost]
     public async Task<ActionResult<Pago>> CreatePago([FromBody] Pago pago)
     {
-        pago.FechaPago = DateTime.UtcNow;
-        pago.CreadoEn = DateTime.UtcNow;
-        pago.ActualizadoEn = DateTime.UtcNow;
+        var pedidoExiste = await _context.Pedidos.AnyAsync(p => p.Id == pago.PedidoId);
+        if (!pedidoExiste)
+        {
+            return BadRequest(new { message = $"El pedido {pago.PedidoId} no existe." });
+        }
+
+        var fechaActual = DateTime.UtcNow;
+        pago.FechaPago = pago.FechaPago == default ? fechaActual : pago.FechaPago;
+        pago.CreadoEn = fechaActual;
+        pago.ActualizadoEn = fechaActual;
 
         _context.Pagos.Add(pago);
         await _context.SaveChangesAsync();
@@ -109,24 +171,45 @@ public class PagosController : ControllerBase
     {
         if (id != pago.Id)
         {
-            return BadRequest(new { messaje = "El ID no coincide" });
+            return BadRequest(new { message = "El ID no coincide" });
         }
 
-        pago.ActualizadoEn = DateTime.UtcNow;
-        _context.Entry(pago).State = EntityState.Modified;
-        try
+        var pagoExistente = await _context.Pagos.FirstOrDefaultAsync(p => p.Id == id);
+        if (pagoExistente == null)
         {
-            await _context.SaveChangesAsync();
+            return NotFound(new { message = "Pago no encontrado" });
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!_context.Pagos.Any(e => e.Id == id))
-            {
-                return NotFound();
-            }
 
-            throw;
+        var pedidoExiste = await _context.Pedidos.AnyAsync(p => p.Id == pago.PedidoId);
+        if (!pedidoExiste)
+        {
+            return BadRequest(new { message = $"El pedido {pago.PedidoId} no existe." });
         }
+
+        pagoExistente.PedidoId = pago.PedidoId;
+        pagoExistente.Monto = pago.Monto;
+        pagoExistente.MetodoPago = pago.MetodoPago;
+        pagoExistente.Estado = pago.Estado;
+        pagoExistente.ReferenciaTransaccion = pago.ReferenciaTransaccion;
+        pagoExistente.FechaPago = pago.FechaPago == default ? pagoExistente.FechaPago : pago.FechaPago;
+        pagoExistente.ActualizadoEn = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeletePago(int id)
+    {
+        var pago = await _context.Pagos.FindAsync(id);
+        if (pago == null)
+        {
+            return NotFound(new { message = "Pago no encontrado" });
+        }
+
+        _context.Pagos.Remove(pago);
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -156,8 +239,7 @@ public class PagosController : ControllerBase
 
         if (pedido == null)
         {
-            pedido = await _context.Pedidos
-                .FirstOrDefaultAsync(p => p.ReferenciaWompi == refFinal);
+            pedido = await _context.Pedidos.FirstOrDefaultAsync(p => p.ReferenciaWompi == refFinal);
         }
 
         if (pedido == null && TryExtractPedidoId(refFinal, out var pedidoId))
@@ -172,6 +254,19 @@ public class PagosController : ControllerBase
         }
 
         var fechaActual = DateTime.UtcNow;
+
+        if ((pago != null && pago.Estado == EstadoPago.Completado) || pedido.Estado == EstadoPedido.Pagado)
+        {
+            _logger.LogWarning("Se intento procesar un pago duplicado para la referencia {Referencia}", refFinal);
+            return Conflict(new
+            {
+                mensaje = "El enlace ya fue utilizado y el pedido ya se encuentra pagado.",
+                pedidoId = pedido.Id,
+                referencia = refFinal,
+                estadoPedido = pedido.Estado.ToString(),
+                estadoPago = pago?.Estado.ToString() ?? EstadoPago.Completado.ToString()
+            });
+        }
 
         if (pago == null)
         {
@@ -199,7 +294,7 @@ public class PagosController : ControllerBase
             pago.ActualizadoEn = fechaActual;
         }
 
-        pedido.ReferenciaWompi ??= refFinal;
+        pedido.ReferenciaWompi = refFinal;
         pedido.Estado = EstadoPedido.Pagado;
         pedido.ActualizadoEn = fechaActual;
 
@@ -221,6 +316,22 @@ public class PagosController : ControllerBase
             estadoPedido = pedido.Estado.ToString(),
             estadoPago = pago.Estado.ToString()
         });
+    }
+
+    private static object BuildPagoPedidoResponse(Pago pago, Pedido? pedido) => new
+    {
+        pago.Id,
+        pago.PedidoId,
+        pago.Monto,
+        Total = pedido?.Total ?? pago.Monto,
+        pago.ReferenciaTransaccion,
+        EstadoPago = (int)pago.Estado,
+        EstadoPedido = pedido != null ? (int)pedido.Estado : 0
+    };
+
+    private static string CreateReference(int pedidoId)
+    {
+        return $"PED-{pedidoId}-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
     }
 
     private static bool TryExtractPedidoId(string referencia, out int pedidoId)
