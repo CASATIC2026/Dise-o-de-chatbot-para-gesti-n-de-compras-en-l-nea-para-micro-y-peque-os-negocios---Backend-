@@ -144,13 +144,18 @@ public class InventarioController : ControllerBase
         [FromQuery] int page = 0, [FromQuery] int pageSize = 4
     )
     {
-        var total = await _context.Productos.CountAsync();
+
         var Productos = await _context.Productos.
         Where(p => p.CategoriaId == categoriaId).
-        Where(p => p.Activo == true).
+        Where(p => p.Activo == true && p.StockDisponible > 0).
         Skip(page * pageSize).
         Take(pageSize).
         ToListAsync();
+
+        var total = await _context.Productos.
+        Where(p => p.CategoriaId == categoriaId).
+        Where(p => p.Activo == true && p.StockDisponible > 0).
+        CountAsync();
 
         return Ok(new PagedResult<Producto> { Items = Productos, TotalCount = total });
     }
