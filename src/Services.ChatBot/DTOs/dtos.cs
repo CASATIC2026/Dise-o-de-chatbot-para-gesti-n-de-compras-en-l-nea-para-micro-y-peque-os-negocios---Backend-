@@ -86,4 +86,12 @@ namespace Services.ChatBot.DTOs
         /// </summary>
         public string? Email { get; set; }
     }
+
+    public class PagosLinksDTO
+    {
+        public string Url {get; set;} = string.Empty;
+        public string Referencia {get; set;} = string.Empty;
+        public int EstadoPedido {get; set;} = 0;
+        public int EstadoPago {get; set;} = 0;
+    }
 }

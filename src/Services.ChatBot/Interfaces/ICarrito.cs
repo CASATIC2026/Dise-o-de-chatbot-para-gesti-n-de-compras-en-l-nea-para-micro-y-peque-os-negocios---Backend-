@@ -1,5 +1,7 @@
 using Shared.Core.Entities;
 using Telegram.Bot.Types.ReplyMarkups;
+using Services.ChatBot.DTOs;
+
 namespace Services.ChatBot.Interfaces;
 
 /// <summary>
@@ -22,4 +24,6 @@ public interface ICarrito
     /// <param name="cliente">The client information containing delivery details like address and phone.</param>
     /// <returns>A tuple containing the summary message text and the <see cref="InlineKeyboardMarkup"/> for final confirmation.</returns>
     (string texto, InlineKeyboardMarkup markup) BuildUIResumenFinal(Pedido? pedido, Cliente? cliente);
+
+    (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId);
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Services.Pagos.Services;
+using Shared.Core.Entities;
 using System.Text;
 using System.Text.Json;
 
@@ -216,7 +217,10 @@ public class WompiController : ControllerBase
             }
 
             _logger.LogInformation("Pago actualizado y enlace invalidado para la referencia {Ref}", referencia);
-            return Ok();
+            return Ok(new
+            {
+                estado = EstadoPedido.Pagado
+            });
         }
         catch (Exception ex)
         {
