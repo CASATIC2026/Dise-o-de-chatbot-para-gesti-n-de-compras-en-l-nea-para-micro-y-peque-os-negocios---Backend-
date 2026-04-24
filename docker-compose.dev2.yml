@@ -56,6 +56,7 @@ services:
       - Wompi__ClientId=${WOMPI_CLIENT_ID}
       - Wompi__ClientSecret=${WOMPI_CLIENT_SECRET}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
+      - Wompi__WebhookUrl=${WOMPI_WEBHOOK_URL}
       - Wompi__RedirectUrl=${WOMPI_REDIRECT_URL}
       - Wompi__NotificationEmails=${WOMPI_NOTIFICATION_EMAILS}
       - Services__InventarioBaseUrl=http://inventario-service:8080
@@ -80,6 +81,7 @@ services:
     container_name: chatbot-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - Service__PagosBaseUrl=http://pagos-service:8080
     volumes:
       - ./src/Services.Chatbot:/src/Services.ChatBot
       - ./src/Shared.Core:/src/Shared.Core

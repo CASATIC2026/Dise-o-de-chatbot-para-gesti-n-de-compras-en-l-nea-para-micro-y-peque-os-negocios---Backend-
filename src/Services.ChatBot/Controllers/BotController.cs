@@ -3,6 +3,9 @@ using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Webhook.Controllers.Services;
+using Services.ChatBot.DTOs;
+using Shared.Core.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Webhook.Controllers.Controllers;
 
@@ -46,7 +49,7 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
         // Security check: Validate the secret token provided by Telegram to prevent unauthorized requests
         var receivedToken = Request.Headers["X-Telegram-Bot-Api-Secret-Token"].ToString();
         if (receivedToken != Config.Value.SecretToken)
-            return Forbid(); 
+            return Forbid();
 
         try
         {
@@ -58,5 +61,24 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
             await handleUpdateService.HandleErrorAsync(bot, exception, Telegram.Bot.Polling.HandleErrorSource.HandleUpdateError, ct);
         }
         return Ok();
+    }
+
+    [HttpPost("pagos-completado")]
+    public async Task<IActionResult> NotificarPagoRealizado([FromServices] ITelegramBotClient bot,
+    [FromServices] ApplicationDbContext db,
+    [FromBody] NotificacionPagosDTO notificacion)
+    {
+        var pedido = await db.Pedidos.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.ReferenciaWompi == notificacion.Referencia);
+        if (pedido == null) return NotFound();
+        try
+        {
+            await bot.SendMessage(pedido!.Cliente!.TelegramId!, $"Pago del Pedido {pedido.Id} recibido, en proceso de envio");
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex + "Error al enviar notificacion de pago realizado");
+            return NotFound();
+        }
     }
 }

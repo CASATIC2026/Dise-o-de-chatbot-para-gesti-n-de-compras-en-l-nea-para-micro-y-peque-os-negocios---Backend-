@@ -1,19 +1,22 @@
 using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
+using Shared.Core.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Webhook.Controllers.Services;
 
 public class BotRenderer(IHttpClientFactory httpClientFactory,
 ICatalogoUI catalogoUI, IMenuUI menuUI,
 ICarrito carritoUI,
-IBotPersistencia _persistencia)
+IBotPersistencia _persistencia
+)
 {
     private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
     private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
-    
+
     /// <summary>
     /// Renders the product catalog for a specific category with pagination.
     /// Displays products as an interactive list with buttons for selection and navigation.
@@ -194,7 +197,7 @@ IBotPersistencia _persistencia)
         await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, msgId, texto,
             parseMode: ParseMode.Markdown, replyMarkup: markup);
     }
-    
+
     /// <summary>
     /// Renders the user's order history with pagination.
     /// Displays a list of past and current orders with status and total information.
@@ -231,5 +234,44 @@ IBotPersistencia _persistencia)
 
         //await bot.EditMessageText(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
         await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
+    }
+
+    public async Task RenderizarTicket(ITelegramBotClient bot, CallbackQuery callbackQuery, PagosLinksDTO data, PedidoDTO pedido)
+    {
+        var Succes = false; var msg = "";
+        //var data = await _paymentService.GeneratedPaymentLink(pedido.Id);        
+        if (pedido == null) return;
+        try{
+        var (texto, markup) = carritoUI.Ticket(data, pedido.Id);
+        
+
+        if (string.IsNullOrEmpty(texto))        
+            (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido); // En renderer
+        else
+        {
+            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {texto}", showAlert: true);
+            await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);            
+            return;
+        }
+
+        if (Succes)
+        {
+            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
+            await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
+        }
+        else
+        {
+            var text = "🔄 REINTENTAR";
+            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
+            var markup2 = new InlineKeyboardMarkup(new[]{
+                InlineKeyboardButton.WithCallbackData(text, "checkoutEnd"),
+                InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart")
+            });
+            await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup2);
+        }
+        }catch (Exception ex)
+        {
+            Console.WriteLine("Fallo al renderizar catalogo: " + ex);
+        }
     }
 }

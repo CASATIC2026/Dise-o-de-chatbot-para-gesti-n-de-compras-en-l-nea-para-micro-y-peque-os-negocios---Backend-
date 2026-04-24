@@ -27,8 +27,17 @@ AddTypedClient<ITelegramBotClient>(
 // Configures the client for the internal Gateway/Inventory API.
 builder.Services.AddHttpClient("GatewayApi", client =>
 {
-    var gatewayUrl = builder.Configuration["GatewaySettings:Url"];
+    var gatewayUrl = builder.Configuration["GatewaySettings:Url"] ?? "http://localhost:3000";
     client.BaseAddress = new Uri(gatewayUrl);
+}
+);
+
+builder.Services.AddHttpClient("PagosApi", client =>
+{
+    var pagosUrl = builder.Configuration["PagosSettings:Url"] ?? "http//localhost:5002"; 
+    client.BaseAddress = new Uri(pagosUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    //client.DefaultRequestHeaders.Add("Content-Type", "application/json");
 }
 );
 
@@ -42,6 +51,7 @@ builder.Services.AddScoped<IBotPersistencia, SqlBotPersistence>();
 builder.Services.AddScoped<BotRenderer>();
 builder.Services.AddScoped<BotInteractionHandler>();
 builder.Services.AddScoped<BotOnMsgInteractionHandler>();
+builder.Services.AddScoped<PaymentService>();
 builder.Services.AddControllers();
 
 // --- Background Workers ---

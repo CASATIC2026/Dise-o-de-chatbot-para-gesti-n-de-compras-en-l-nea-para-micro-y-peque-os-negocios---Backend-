@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Services.Pagos.Services;
+using Shared.Core.Entities;
 using System.Text;
 using System.Text.Json;
 
@@ -102,12 +103,14 @@ public class WompiController : ControllerBase
     [HttpPost("webhook/wompi")]
     public async Task<IActionResult> RecibirWebhookWompi()
     {
+        Console.WriteLine("Entro al webhook wompi");
         Request.EnableBuffering();
 
         using var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true);
         var rawBody = await reader.ReadToEndAsync();
         Request.Body.Position = 0;
-
+        var chatBotBaseUrl = _configuration["Services:ChatBotBaseUrl"] ?? "http://chatbot-service:8080";
+        
         _logger.LogInformation("WEBHOOK RAW: {Body}", rawBody);
 
         if (string.IsNullOrWhiteSpace(rawBody))
@@ -215,8 +218,22 @@ public class WompiController : ControllerBase
                 _logger.LogWarning("Webhook exitoso sin Id de enlace Wompi para la referencia {Ref}", referencia);
             }
 
+
+            try
+            {
+                await client.PostAsJsonAsync($"{chatBotBaseUrl}/api/bot/pagos-completado", new
+                {
+                    referencia = referencia,
+                    estado = EstadoPedido.Pagado
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo realizar la notificacion al servicio de chat bot.");
+            }
             _logger.LogInformation("Pago actualizado y enlace invalidado para la referencia {Ref}", referencia);
             return Ok();
+
         }
         catch (Exception ex)
         {
