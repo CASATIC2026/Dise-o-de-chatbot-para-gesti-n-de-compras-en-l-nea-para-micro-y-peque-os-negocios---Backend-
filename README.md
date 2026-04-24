@@ -25,7 +25,7 @@ Copia `.env.example` a `.env` y configura:
 - `DB_PASSWORD`: Contraseña de PostgreSQL
 - `JWT_SECRET`: Clave secreta para JWT
 - `TELEGRAM_BOT_TOKEN`: Token del bot de Telegram
-- `WOMPI_PUBLIC_KEY` y `WOMPI_PRIVATE_KEY`: Credenciales de Wompi
+- `WOMPI_CLIENT_ID` y `WOMPI_CLIENT_SECRET`: Credenciales de Wompi SV
 
 ### 2. Iniciar con Docker Compose
 

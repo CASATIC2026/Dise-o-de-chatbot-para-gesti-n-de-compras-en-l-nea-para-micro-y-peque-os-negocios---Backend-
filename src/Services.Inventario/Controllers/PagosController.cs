@@ -25,6 +25,7 @@ public class PagosController : ControllerBase
         _hubContext = hubContext;
     }
 
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Pago>>> GetPagos()
     {
@@ -318,17 +319,19 @@ public class PagosController : ControllerBase
         });
     }
 
-    private static object BuildPagoPedidoResponse(Pago pago, Pedido? pedido) => new
+    private object BuildPagoPedidoResponse(Pago pago, Pedido pedido)
+{
+    return new
     {
-        pago.Id,
-        pago.PedidoId,
-        pago.Monto,
-        Total = pedido?.Total ?? pago.Monto,
-        pago.ReferenciaTransaccion,
-        EstadoPago = (int)pago.Estado,
-        EstadoPedido = pedido != null ? (int)pedido.Estado : 0
+        id = pago.Id,
+        pedidoId = pedido.Id,
+        monto = pago.Monto,
+        total = pedido.Total,
+        referenciaTransaccion = pago.ReferenciaTransaccion,
+        estadoPago = (int)pago.Estado,
+        estadoPedido = (int)pedido.Estado
     };
-
+}
     private static string CreateReference(int pedidoId)
     {
         return $"PED-{pedidoId}-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
@@ -346,6 +349,7 @@ public class PagosController : ControllerBase
 
         return int.TryParse(partes[1], out pedidoId);
     }
+    
 
     public class ActualizarPagoPorReferenciaRequest
     {

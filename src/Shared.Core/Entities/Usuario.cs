@@ -2,8 +2,8 @@ namespace Shared.Core.Entities;
 
 public enum Roles
 {
-    Administrador,
-    Vendedor
+    Administrador = 1,
+    Vendedor = 2
 }
 
 public class Usuario
@@ -14,7 +14,7 @@ public class Usuario
     // ESTAS PROPIEDADES SON LAS QUE FALTABAN:
     public string Email { get; set; } = string.Empty;
     public string ContrasenaHash { get; set; } = string.Empty;
-    public Roles Rol { get; set; } = Roles.Administrador;
+    public Roles Rol { get; set; } = Roles.Vendedor;
     public bool Estado { get; set; } = true;
 
     // Propiedades para integraciones y auditoría    
