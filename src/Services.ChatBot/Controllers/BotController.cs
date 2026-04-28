@@ -62,7 +62,26 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
         }
         return Ok();
     }
-
+    [HttpPost("pago-procesando")]
+    public async Task<IActionResult> NotificarPagoProcesando(
+        [FromServices] ITelegramBotClient bot, 
+        [FromServices] ApplicationDbContext db,
+        [FromBody] NotificacionPagosDTO notificacion
+    )
+    {
+        var pedido = await db.Pedidos.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.ReferenciaWompi == notificacion.Referencia);
+        if (pedido == null) return NotFound();
+        try
+        {
+            //await bot.EditMessageCaption(pedido!.Cliente!.TelegramId!, $"Pago del Pedido {pedido.Id} recibido, en proceso de envio");
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex + "Error al enviar notificacion de pago realizado");
+            return NotFound();
+        }
+    }
     [HttpPost("pagos-completado")]
     public async Task<IActionResult> NotificarPagoRealizado([FromServices] ITelegramBotClient bot,
     [FromServices] ApplicationDbContext db,

@@ -127,7 +127,7 @@ public class CarritoModule : ICarrito
         return (sb.ToString(), new InlineKeyboardMarkup(buttons));
     }
 
-    public (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId)
+    public (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId, string url)
     {
         var sb = new StringBuilder();
         var keyboard = new InlineKeyboardMarkup();
@@ -143,7 +143,7 @@ public class CarritoModule : ICarrito
         sb.AppendLine($"💳 *Estado:* {pagosLinks.EstadoPago}\n");
         sb.AppendLine($"Haz clic en el botón de abajo para pagar.");        
         
-        keyboard.AddButton(InlineKeyboardButton.WithUrl("➡️ IR A PAGAR", pagosLinks.Url));
+        keyboard.AddButton(InlineKeyboardButton.WithUrl("➡️ IR A PAGAR", url));
         
         return (sb.ToString(), keyboard);
     }

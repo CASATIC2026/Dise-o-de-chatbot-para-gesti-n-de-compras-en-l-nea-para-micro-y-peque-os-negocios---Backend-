@@ -241,8 +241,12 @@ IBotPersistencia _persistencia
         var Succes = false; var msg = "";
         //var data = await _paymentService.GeneratedPaymentLink(pedido.Id);        
         if (pedido == null) return;
+        string urlCodec = Uri.EscapeDataString(data.Url);      
+        string urlPublic = "https://lvarl-168-227-22-146.run.pinggy-free.link/api/pagos/redirect"; 
+        string url = $"{urlPublic}?url={urlCodec}&convasacionId={callbackQuery!.Message!.MessageId}"; //cambio de url de servicio por puerto, al subir cambiar por url de microservicio generado
+
         try{
-        var (texto, markup) = carritoUI.Ticket(data, pedido.Id);
+        var (texto, markup) = carritoUI.Ticket(data, pedido.Id, url);
         
 
         if (string.IsNullOrEmpty(texto))        
@@ -271,7 +275,7 @@ IBotPersistencia _persistencia
         }
         }catch (Exception ex)
         {
-            Console.WriteLine("Fallo al renderizar catalogo: " + ex);
+            Console.WriteLine("Fallo al renderizar el ticket: " + ex);
         }
     }
 }

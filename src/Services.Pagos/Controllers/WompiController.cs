@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Services.Pagos.Services;
 using Shared.Core.Entities;
+using Shared.Core.Entities;
 using System.Text;
 using System.Text.Json;
 
