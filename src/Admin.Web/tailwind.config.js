@@ -58,12 +58,47 @@ export default {
                     700: '#495057',
                     800: '#343a40',
                     900: '#212529',
-                }
+                },
+                // ── Dark Mode: Obsidian Cyan Varied ──────────────────────
+                cyan: {
+                    DEFAULT: '#00C2CB',
+                    50:  '#e0fafa',
+                    100: '#b3f2f4',
+                    200: '#80eaec',
+                    300: '#4de1e4',
+                    400: '#26dadd',
+                    500: '#00C2CB',
+                    600: '#009fa8',
+                    700: '#007b83',
+                    800: '#00585e',
+                    900: '#003539',
+                },
+                indigo: {
+                    DEFAULT: '#9492ff',
+                    50:  '#f0efff',
+                    100: '#d9d8ff',
+                    200: '#b8b5ff',
+                    300: '#9492ff',
+                    400: '#7b77ff',
+                    500: '#5651e5',
+                    600: '#4340c2',
+                    700: '#332f9e',
+                    800: '#25217a',
+                    900: '#181456',
+                },
+                dark: {
+                    base:     '#0e0e0e',
+                    elevated: '#141414',
+                    surface:  '#1a1a1a',
+                    input:    '#242424',
+                    border:   '#2a2a2a',
+                },
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],
             }
         },
     },
+    darkMode: 'class',
     plugins: [],
 }
