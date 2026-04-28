@@ -3,7 +3,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import api from '../api/client';
 import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon, ClientsIcon } from '../components/Icons';
 
-function Dashboard() {
+function Dashboard({ notifications = [] }) {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -24,7 +24,7 @@ function Dashboard() {
             const response = await api.get('/admin/dashboard/stats');
             setStats(response.data);
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            console.error('❌ [Dashboard] Error en stats:', error);
         } finally {
             setLoading(false);
         }
@@ -41,6 +41,15 @@ function Dashboard() {
                     <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
                     <div className="text-neutral-500 font-medium tracking-wide">Cargando métricas...</div>
                 </div>
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                <div className="text-xl text-gray-600">Cargando estadísticas...</div>
             </div>
         );
     }
@@ -143,6 +152,22 @@ function Dashboard() {
                                 <div className={`${stat.bgIcon} ${stat.colorText} w-12 h-12 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform opacity-80 dark:opacity-60`}>
                                     {stat.icon}
                                 </div>
+        <div className="p-6">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+                <p className="text-gray-600 mt-2">Resumen general en tiempo real</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {statCards.map((stat, index) => (
+                    <div key={index} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
+                                <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
+                            </div>
+                            <div className={`${stat.color} w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white`}>
+                                {stat.icon}
                             </div>
                         </div>
                     ))}
@@ -234,6 +259,37 @@ function Dashboard() {
                             </div>
                             <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500">Hace 3h</span>
                         </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Ventas de la Semana</h3>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="ventas" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Actividad Reciente</h3>
+                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                        {notifications.length === 0 && <p className="text-center text-gray-400 py-4">Sin actividad reciente</p>}
+                        {notifications.map((act) => (
+                            <div key={act.id} className={`flex items-start space-x-3 p-3 ${act.color} rounded-lg border border-gray-100 animate-fade-in-down`}>
+                                <span className="text-2xl">{act.icono}</span>
+                                <div className="flex-1">
+                                    <p className="font-medium text-gray-800 text-sm">{act.titulo}</p>
+                                    <p className="text-xs text-gray-600">{act.mensaje}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1">{act.fecha}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

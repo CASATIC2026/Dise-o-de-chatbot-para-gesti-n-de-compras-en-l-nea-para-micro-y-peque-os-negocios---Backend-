@@ -85,7 +85,7 @@ public class InventarioController : ControllerBase
         productoExistente.Nombre = producto.Nombre;
         productoExistente.Descripcion = producto.Descripcion;
         productoExistente.Precio = producto.Precio;
-        productoExistente.Stock = producto.Stock;
+        productoExistente.StockTotal = producto.StockTotal;
         productoExistente.ImagenUrl = producto.ImagenUrl;
         productoExistente.Activo = producto.Activo;
         productoExistente.ActualizadoEn = DateTime.UtcNow;
@@ -137,6 +137,28 @@ public class InventarioController : ControllerBase
 
         return NoContent();
     }
+
+    //Personal Queries 
+    [HttpGet("productos/list-4/{categoriaId}")]
+    public async Task<ActionResult<IEnumerable<Producto>>> GetProductosList(int categoriaId,
+        [FromQuery] int page = 0, [FromQuery] int pageSize = 4
+    )
+    {
+
+        var Productos = await _context.Productos.
+        Where(p => p.CategoriaId == categoriaId).
+        Where(p => p.Activo == true && p.StockDisponible > 0).
+        Skip(page * pageSize).
+        Take(pageSize).
+        ToListAsync();
+
+        var total = await _context.Productos.
+        Where(p => p.CategoriaId == categoriaId).
+        Where(p => p.Activo == true && p.StockDisponible > 0).
+        CountAsync();
+
+        return Ok(new PagedResult<Producto> { Items = Productos, TotalCount = total });
+    }
     // POST: api/inventario/reservar
     [HttpPost("reservar")]
     public async Task<IActionResult> ReservarStock([FromBody] ReservaProductoRequest request)
@@ -161,18 +183,18 @@ public class InventarioController : ControllerBase
             return BadRequest(new { message = "Producto no disponible" });
         }
 
-        if (producto.Stock < request.Cantidad)
+        if (producto.StockTotal < request.Cantidad)
         {
             return BadRequest(new
             {
                 message = "Stock insuficiente",
-                stockDisponible = producto.Stock,
+                stockDisponible = producto.StockTotal,
                 stockSolicitado = request.Cantidad
             });
         }
 
         // Reserve stock (decrease temporarily)
-        producto.Stock -= request.Cantidad;
+        producto.StockTotal -= request.Cantidad;
         producto.ActualizadoEn = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -188,7 +210,7 @@ public class InventarioController : ControllerBase
             reservaId = reservaId,
             productoId = producto.Id,
             cantidadReservada = request.Cantidad,
-            stockRestante = producto.Stock
+            stockRestante = producto.StockTotal
         });
     }
 
@@ -214,7 +236,7 @@ public class InventarioController : ControllerBase
         }
 
         // Return stock
-        producto.Stock += request.Cantidad;
+        producto.StockTotal += request.Cantidad;
         producto.ActualizadoEn = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

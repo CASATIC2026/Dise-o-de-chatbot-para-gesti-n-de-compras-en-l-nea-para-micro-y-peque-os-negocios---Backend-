@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PaymentsIcon, CloseIcon } from '../components/Icons';
 
@@ -25,6 +25,37 @@ function Pagos() {
     const handleOpenModal = (pago = null) => {
         if (pago) { setEditingPago(pago); setFormData(pago); }
         else { setEditingPago(null); setFormData({ pedidoId: 0, monto: 0, metodoPago: '', estado: 1, referenciaTransaccion: '' }); }
+        try {
+            setLoading(true);
+            const response = await api.get('/admin/pagos');
+            setPagos(response.data);
+        } catch (error) {
+            console.error('Error fetching pagos:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOpenModal = (pago = null) => {
+        if (pago) {
+            setEditingPago(pago);
+            setFormData({
+                pedidoId: pago.pedidoId,
+                monto: pago.monto,
+                metodoPago: pago.metodoPago,
+                estado: pago.estado,
+                referenciaTransaccion: pago.referenciaTransaccion || ''
+            });
+        } else {
+            setEditingPago(null);
+            setFormData({
+                pedidoId: '',
+                monto: '',
+                metodoPago: '',
+                estado: 1,
+                referenciaTransaccion: ''
+            });
+        }
         setShowModal(true);
     };
 
@@ -63,6 +94,65 @@ function Pagos() {
                 <div>
                     <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">Pagos</h1>
                     <p className="text-neutral-500 dark:text-neutral-400 mt-2">Gestiona el historial de transacciones</p>
+            const dataToSave = {
+                id: editingPago ? Number(editingPago.id) : 0,
+                pedidoId: Number(formData.pedidoId),
+                monto: Number(formData.monto),
+                metodoPago: formData.metodoPago,
+                estado: Number(formData.estado),
+                referenciaTransaccion: formData.referenciaTransaccion
+            };
+
+            if (editingPago) {
+                await api.put(`/admin/pagos/${editingPago.id}`, dataToSave);
+            } else {
+                await api.post('/admin/pagos', dataToSave);
+            }
+
+            await fetchPagos();
+            handleCloseModal();
+            alert(editingPago ? 'Pago actualizado correctamente' : 'Pago registrado correctamente');
+        } catch (error) {
+            console.error('Error al guardar:', error);
+            alert('Error al procesar la solicitud');
+        }
+    };
+
+    const obtenerEstadoInfo = (estado) => {
+        const estados = {
+            1: { texto: 'Pendiente', clase: 'bg-yellow-100 text-yellow-800' },
+            2: { texto: 'Completado', clase: 'bg-green-100 text-green-800' },
+            3: { texto: 'Rechazado', clase: 'bg-red-100 text-red-800' },
+            4: { texto: 'Cancelado', clase: 'bg-gray-100 text-gray-800' }
+        };
+        return estados[estado] || { texto: 'Desconocido', clase: 'bg-gray-100 text-gray-400' };
+    };
+
+
+    const handleDeletePermanently = async (id) => {
+        if (!confirm('Estas seguro de eliminar este registro?')) return;
+        try {
+            await api.delete(`/admin/pagos/${id}`);
+            await fetchPagos();
+        } catch (error) {
+            console.error('Error deleting pago:', error);
+        }
+    };
+
+    const filteredPagos = pagos.filter(pago =>
+        (pago.referenciaTransaccion?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        pago.metodoPago.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pago.pedidoId.toString().includes(searchTerm)
+    );
+
+    if (loading) return <div className="text-center py-12 font-medium">Cargando historial de pagos...</div>;
+
+    return (
+        <div className="p-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-800">Pagos</h1>
+                    <p className="text-gray-600 mt-1">Control de transacciones y estados de pedidos</p>
                 </div>
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">

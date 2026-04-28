@@ -2,16 +2,37 @@ using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.ReplyMarkups;
+using Services.ChatBot.Interfaces;
+using Shared.Core.Entities;
 
 namespace Webhook.Controllers.Services;
 
-public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger) : IUpdateHandler
+/// <summary>
+/// Handles Telegram bot updates including messages and callback queries.
+/// Processes user interactions such as catalog browsing, product selection, cart management, and checkout workflow.
+/// </summary>
+public class UpdateHandler(ITelegramBotClient bot,
+ILogger<UpdateHandler> logger,
+IHttpClientFactory httpClientFactory,
+IUtilsUI utilsUI,
+IBotPersistencia _persistencia,
+BotRenderer renderer,
+BotInteractionHandler interactionHandler,
+BotOnMsgInteractionHandler onMsgInteractionHandler
+) : IUpdateHandler
 {
-    private static readonly InputPollOption[] PollOptions = ["Hello", "World!"];
+    private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
+    private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
 
+    /// <summary>
+    /// Handles errors that occur during bot update processing.
+    /// Implements a cooldown delay for network connection errors.
+    /// </summary>
+    /// <param name="botClient">The Telegram bot client.</param>
+    /// <param name="exception">The exception that was thrown.</param>
+    /// <param name="source">The source of the error.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
     {
         logger.LogInformation("HandleError: {Exception}", exception);
@@ -20,168 +41,173 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
     }
 
+    /// <summary>
+    /// Processes incoming Telegram updates including messages and callback queries.
+    /// Validates callback queries against active conversation session tokens and enforces timeout limits.
+    /// </summary>
+    /// <param name="botClient">The Telegram bot client.</param>
+    /// <param name="update">The incoming Telegram update.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
+        if (update.Message is { Text: { } } msg)
+        {
+            await OnMessage(msg, msg.Text);
+            return;
+        }
+
+        if (update.CallbackQuery is not { } cb) return;
+        var conv = await _persistencia.ObtenerConversacionActiva(cb.From.Id);
+        if (conv != null)
+        {
+            var tiempoLimite = TimeSpan.FromSeconds(120); //Limited de token de conversacion
+            var inactividad = DateTime.UtcNow - conv.ActualizadoEn;
+
+            bool esMessajeValido = cb.Message!.MessageId.ToString() == conv.Asunto;
+            bool estaEnTiempo = inactividad < tiempoLimite;
+
+            if (!esMessajeValido || !estaEnTiempo)
+            {
+                await bot.AnswerCallbackQuery(cb.Id, "❌ Sesión expirada", showAlert: true);
+                await utilsUI.InvalidarMenu(cb.Message.Chat.Id, cb.Message.MessageId, "expirado", null);
+                return;
+            }
+            await _persistencia.RegistrarMensaje(conv.Id, $"Clic en: {cb.Data}", TipoRemitente.Cliente);
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
         await (update switch
         {
-            { Message: { } message }                        => OnMessage(message),
-            { EditedMessage: { } message }                  => OnMessage(message),
-            { CallbackQuery: { } callbackQuery }            => OnCallbackQuery(callbackQuery),
-            { InlineQuery: { } inlineQuery }                => OnInlineQuery(inlineQuery),
-            { ChosenInlineResult: { } chosenInlineResult }  => OnChosenInlineResult(chosenInlineResult),
-            { Poll: { } poll }                              => OnPoll(poll),
-            { PollAnswer: { } pollAnswer }                  => OnPollAnswer(pollAnswer),
-            // ChannelPost:
-            // EditedChannelPost:
-            // ShippingQuery:
-            // PreCheckoutQuery:
-            _                                               => UnknownUpdateHandlerAsync(update)
+            { Message: { Text: { } text } message } => OnMessage(message, text),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+            _ => Task.CompletedTask
         });
     }
-
-    private async Task OnMessage(Message msg)
-    {
-        logger.LogInformation("Receive message type: {MessageType}", msg.Type);
-        if (msg.Text is not { } messageText)
-            return;
-
-        Message sentMessage = await (messageText.Split(' ')[0] switch
-        {
-            "/photo" => SendPhoto(msg),
-            "/inline_buttons" => SendInlineKeyboard(msg),
-            "/keyboard" => SendReplyKeyboard(msg),
-            "/remove" => RemoveKeyboard(msg),
-            "/request" => RequestContactAndLocation(msg),
-            "/inline_mode" => StartInlineQuery(msg),
-            "/poll" => SendPoll(msg),
-            "/poll_anonymous" => SendAnonymousPoll(msg),
-            "/throw" => FailingHandler(msg),
-            _ => Usage(msg)
-        });
-        logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
-    }
-
-    async Task<Message> Usage(Message msg)
-    {
-        const string usage = """
-                <b><u>Bot menu</u></b>:
-                /photo          - send a photo
-                /inline_buttons - send inline buttons
-                /keyboard       - send keyboard buttons
-                /remove         - remove keyboard buttons
-                /request        - request location or contact
-                /inline_mode    - send inline-mode results list
-                /poll           - send a poll
-                /poll_anonymous - send an anonymous poll
-                /throw          - what happens if handler fails
-            """;
-        return await bot.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html, replyMarkup: new ReplyKeyboardRemove());
-    }
-
-    async Task<Message> SendPhoto(Message msg)
-    {
-        await bot.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
-        await Task.Delay(2000); // simulate a long task
-        await using var fileStream = new FileStream("Files/bot.gif", FileMode.Open, FileAccess.Read);
-        return await bot.SendPhoto(msg.Chat, fileStream, caption: "Read https://telegrambots.github.io/book/");
-    }
-
-    // Send inline keyboard. You can process responses in OnCallbackQuery handler
-    async Task<Message> SendInlineKeyboard(Message msg)
-    {
-        return await bot.SendMessage(msg.Chat, "Inline buttons:", replyMarkup: new InlineKeyboardButton[][] {
-                ["1.1", "1.2", "1.3"],
-                [("WithCallbackData", "CallbackData"), ("WithUrl", "https://github.com/TelegramBots/Telegram.Bot")]
-            });
-    }
-
-    async Task<Message> SendReplyKeyboard(Message msg)
-    {
-        return await bot.SendMessage(msg.Chat, "Keyboard buttons:", replyMarkup: new string[][] { ["1.1", "1.2", "1.3"], ["2.1", "2.2"] });
-    }
-
+    /// <summary>
+    /// Removes the inline keyboard from a message by editing its caption.
+    /// </summary>
+    /// <param name="msg">The message to remove the keyboard from.</param>
+    /// <returns>The updated message.</returns>
     async Task<Message> RemoveKeyboard(Message msg)
     {
-        return await bot.SendMessage(msg.Chat, "Removing keyboard", replyMarkup: new ReplyKeyboardRemove());
+        //return await bot.EditMessageText(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
+        return await bot.EditMessageCaption(msg.Chat, msg.Id, "Removing keyboard", replyMarkup: null);
     }
 
-    async Task<Message> RequestContactAndLocation(Message msg)
+    /// <summary>
+    /// Processes text messages from users, routing them to appropriate handlers based on content.
+    /// Supports start command, catalog browsing, manual product quantity editing, and checkout workflow.
+    /// </summary>
+    /// <param name="msg">The message object containing sender and chat information.</param>
+    /// <param name="text">The text content of the message.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task OnMessage(Message msg, string text)
     {
-        var replyMarkup = new ReplyKeyboardMarkup(true)
-            .AddButton(KeyboardButton.WithRequestLocation("Location"))
-            .AddButton(KeyboardButton.WithRequestContact("Contact"));
-        return await bot.SendMessage(msg.Chat, "Who or Where are you?", replyMarkup: replyMarkup);
+        if (text == "/start" || text.ToLower().Contains("Catalogo"))
+        {
+            await onMsgInteractionHandler.ManejoMsgInicioConversacion(bot, msg);
+            return;
+        }
+        var conv = await _persistencia.ObtenerConversacionActiva(msg.From!.Id);
+        if (conv == null) return;
+
+        if (await onMsgInteractionHandler.ManejoMsgEdicionManualCantProduc(bot, msg, text)) return;
+
+        if (await onMsgInteractionHandler.ManejoMsgCheckout(bot, msg, text)) return;
+
+        if (text == "/remove")
+        {
+            await RemoveKeyboard(msg);
+            return;
+        }
+        await bot.SendMessage(msg.Chat, "Usa /start para ver el catalogo");
     }
 
-    async Task<Message> StartInlineQuery(Message msg)
+    /// <summary>
+    /// Processes callback queries from inline buttons, routing to specific handlers based on the action type.
+    /// Supports product catalog navigation, cart operations, and checkout workflow actions.
+    /// </summary>
+    /// <param name="callbackQuerry">The callback query from the user's button interaction.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task OnCallbackQuery(CallbackQuery callbackQuerry)
     {
-        var button = InlineKeyboardButton.WithSwitchInlineQueryCurrentChat("Inline Mode");
-        return await bot.SendMessage(msg.Chat, "Press the button to start Inline Query\n\n" +
-            "(Make sure you enabled Inline Mode in @BotFather)", replyMarkup: new InlineKeyboardMarkup(button));
-    }
+        //Logica de consumo de productos
+        var rf = callbackQuerry.Data;
+        if (string.IsNullOrEmpty(rf)) return;
 
-    async Task<Message> SendPoll(Message msg)
-    {
-        return await bot.SendPoll(msg.Chat, "Question", PollOptions, isAnonymous: false);
-    }
+        var parts = rf.Split('_');
+        var action = parts[0];
+        //Console.WriteLine($"Chat {callbackQuerry.Message!.Chat}, MessageID {callbackQuerry.Message.MessageId}");
+        //Console.WriteLine(action);
+        //Console.WriteLine(parts.Length + " line parts " + rf.ToString());
 
-    async Task<Message> SendAnonymousPoll(Message msg)
-    {
-        return await bot.SendPoll(chatId: msg.Chat, "Question", PollOptions);
-    }
+        if (action == "pcat")
+        {
+            int page = int.Parse(parts[1]);
+            await renderer.RenderizarCategorias(bot, page, callbackQuerry);
+            return;
+        }
+        if (action == "cat" || action == "pprod")
+        {
+            int catId = int.Parse(parts[1]);
+            int page = parts.Length > 2 ? int.Parse(parts[2]) : 0;
+            await renderer.RenderizarCatalogo(bot, callbackQuerry, catId, page);
+            return;
+        }
+        if (action == "menu")
+        {
+            await renderer.RenderizarMenu(bot, callbackQuerry.Message!, callbackQuerry);
+            return;
+        }
+        if (action == "prod")
+        {
+            int prodId = int.Parse(parts[1]);
+            int catId = int.Parse(parts[2]);
+            int page = int.Parse(parts[3]);
+            int cantidad = (parts.Length > 4) ? int.Parse(parts[4]) : 0;
+            await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuerry, callbackQuerry.Message!.MessageId, cantidad);
+        }
 
-    static Task<Message> FailingHandler(Message msg)
-    {
-        throw new NotImplementedException("FailingHandler");
-    }
+        if (action == "inc" || action == "dec")
+            await interactionHandler.ManejarCambioCantidad(bot, parts, callbackQuerry, action);
 
-    // Process Inline Keyboard callback data
-    private async Task OnCallbackQuery(CallbackQuery callbackQuery)
-    {
-        logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
-        await bot.AnswerCallbackQuery(callbackQuery.Id, $"Received {callbackQuery.Data}");
-        await bot.SendMessage(callbackQuery.Message!.Chat, $"Received {callbackQuery.Data}");
-    }
+        if (rf.StartsWith("edit_qty_"))
+            await interactionHandler.ManejarEdicionManual(bot, parts, callbackQuerry);
 
-    #region Inline Mode
+        if (rf.StartsWith("add_prod_"))
+            await interactionHandler.ManejarAgregarAlCarrito(bot, parts, callbackQuerry);
 
-    private async Task OnInlineQuery(InlineQuery inlineQuery)
-    {
-        logger.LogInformation("Received inline query from: {InlineQueryFromId}", inlineQuery.From.Id);
+        if (action == "cart")
+            await renderer.RenderizarCarrito(bot, callbackQuerry, callbackQuerry.Message!.MessageId);
 
-        InlineQueryResult[] results = [ // displayed result
-            new InlineQueryResultArticle("1", "Telegram.Bot", new InputTextMessageContent("hello")),
-            new InlineQueryResultArticle("2", "is the best", new InputTextMessageContent("world"))
-        ];
-        await bot.AnswerInlineQuery(inlineQuery.Id, results, cacheTime: 0, isPersonal: true);
-    }
+        if (rf.StartsWith("ask_rmv"))
+            await interactionHandler.ManejarAskEliminarItem(bot, callbackQuerry, parts);
 
-    private async Task OnChosenInlineResult(ChosenInlineResult chosenInlineResult)
-    {
-        logger.LogInformation("Received inline result: {ChosenInlineResultId}", chosenInlineResult.ResultId);
-        await bot.SendMessage(chosenInlineResult.From.Id, $"You chose result with Id: {chosenInlineResult.ResultId}");
-    }
+        if (rf.StartsWith("ask_clear"))
+            await interactionHandler.ManejarAskVaciarCarrito(bot, callbackQuerry);
 
-    #endregion
+        if (action == "clear")
+            await interactionHandler.ManejarVaciarCarrito(bot, callbackQuerry);
 
-    private Task OnPoll(Poll poll)
-    {
-        logger.LogInformation("Received Poll info: {Question}", poll.Question);
-        return Task.CompletedTask;
-    }
+        if (rf.StartsWith("upd_prod_"))
+            await interactionHandler.ManejarEditarItem(bot, parts, callbackQuerry);
 
-    private async Task OnPollAnswer(PollAnswer pollAnswer)
-    {
-        var answer = pollAnswer.OptionIds.FirstOrDefault();
-        var selectedOption = PollOptions[answer];
-        if (pollAnswer.User != null)
-            await bot.SendMessage(pollAnswer.User.Id, $"You've chosen: {selectedOption.Text} in poll");
-    }
+        if (rf.StartsWith("rmv"))
+            await interactionHandler.ManejarEliminarItem(bot, parts, callbackQuerry);
 
-    private Task UnknownUpdateHandlerAsync(Update update)
-    {
-        logger.LogInformation("Unknown update type: {UpdateType}", update.Type);
-        return Task.CompletedTask;
+        if (action == "checkout")
+            await interactionHandler.ManejarRegistroDireccionEnvio(bot, callbackQuerry);
+
+        if (action == "ords")
+            await renderer.RenderizarOrdenes(bot, callbackQuerry, 0);
+
+        if (action == "pords")
+        {
+            int page = int.Parse(parts[1]);
+            await renderer.RenderizarOrdenes(bot, callbackQuerry, page);
+        }
+        if (action == "checkoutEnd")
+            await interactionHandler.ManejarFinalizacionPedido(bot, callbackQuerry);
     }
 }

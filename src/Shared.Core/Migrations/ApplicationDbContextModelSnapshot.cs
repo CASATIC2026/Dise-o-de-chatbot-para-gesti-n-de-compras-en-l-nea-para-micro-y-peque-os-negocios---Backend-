@@ -350,7 +350,17 @@ namespace Shared.Core.Migrations
                     b.Property<decimal>("Precio")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("Stock")
+                    b.Property<int?>("StockDisponible")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer")
+                        .HasComputedColumnSql("\"StockTotal\" -\"StockReservado\"", true);
+
+                    b.Property<int?>("StockReservado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("StockTotal")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

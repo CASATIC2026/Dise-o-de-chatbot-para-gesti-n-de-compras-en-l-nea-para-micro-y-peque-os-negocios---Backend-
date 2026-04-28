@@ -4,6 +4,8 @@ using Shared.Core.Data;
 using Shared.Core.Entities;
 using Services.Inventario.Validators;
 
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
 namespace Services.Inventario.Controllers;
 
 [ApiController]
@@ -107,4 +109,26 @@ public class CategoriaController : ControllerBase
 
         return NoContent();
     }
+    //Personal Queries 
+    [HttpGet("categorias/list-6")]
+    public async Task<ActionResult<IEnumerable<Categoria>>> GetCategoriasList(
+        [FromQuery] int page = 0, [FromQuery] int pageSize = 6
+    )
+    {
+        var total = await _context.Categorias.
+        Include(c => c.Productos).
+        Where(c => c.Productos.Any(p => p.StockDisponible > 0 && p.Activo))
+        .CountAsync();
+
+        var Categorias = await _context.Categorias.
+        Include(c => c.Productos).
+        Where(c => c.Productos.Any(p => p.StockDisponible > 0 && p.Activo)).
+        OrderBy(c => c.Nombre).
+        Skip(page * pageSize).
+        Take(pageSize).
+        ToListAsync();
+
+        return Ok(new PagedResult<Categoria> { Items = Categorias, TotalCount = total });
+    }
+
 }

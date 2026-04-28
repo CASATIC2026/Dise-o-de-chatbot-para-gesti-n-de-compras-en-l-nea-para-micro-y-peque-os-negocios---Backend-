@@ -14,7 +14,7 @@ function Inventario() {
         nombre: '',
         descripcion: '',
         precio: 0,
-        stock: 0,
+        stockTotal: 0,
         imagenUrl: '',
         activo: true
     });
@@ -58,7 +58,7 @@ function Inventario() {
                 nombre: '',
                 descripcion: '',
                 precio: 0,
-                stock: 0,
+                stockTotal: 0,
                 imagenUrl: '',
                 activo: true
             });
@@ -93,7 +93,7 @@ function Inventario() {
                 nombre: formData.nombre,
                 descripcion: formData.descripcion,
                 precio: Number(formData.precio),
-                stock: Number(formData.stock),
+                stockTotal: Number(formData.stockTotal),
                 imagenUrl: formData.imagenUrl,
                 activo: Boolean(formData.activo),
                 categoriaId: Number(formData.categoriaId)

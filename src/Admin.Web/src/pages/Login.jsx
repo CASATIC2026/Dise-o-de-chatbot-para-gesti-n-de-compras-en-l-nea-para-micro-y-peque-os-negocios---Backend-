@@ -36,6 +36,18 @@ function Login({ onLogin, isDark, toggleDark }) {
         try {
             const response = await axios.post('/api/auth/login', { email, password });
             if (response.data.token) onLogin(response.data.token);
+            const response = await axios.post('/api/auth/login', {
+                email,
+                password,
+            });
+
+            const token = response.data?.token || response.data?.Token;
+
+            if (token) {
+                onLogin(token);
+            } else {
+                setError('La respuesta del servidor no incluyo un token valido');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Error al iniciar sesión');
         } finally {
