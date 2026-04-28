@@ -12,6 +12,7 @@ import Pagos from './pages/Pagos';
 import Conversaciones from './pages/Conversaciones';
 import Mensajes from './pages/Mensajes';
 import Categoria from './pages/Categoria';
+import { useDarkMode } from './hooks/useDarkMode';
 
 const SIGNALR_HUB_URL = import.meta.env.VITE_SIGNALR_URL || '/notificationHub';
 
@@ -30,6 +31,13 @@ const iconoMap = {
 };
 
 function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const { isDark, toggleDark } = useDarkMode();
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) setIsAuthenticated(true);
+    }, []);
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
     const [notifications, setNotifications] = useState([
         {
@@ -195,9 +203,27 @@ function App() {
     });
 
     if (!isAuthenticated) {
-        return <Login onLogin={handleLogin} />;
+        return <Login onLogin={handleLogin} isDark={isDark} toggleDark={toggleDark} />;
     }
 
+    return (
+        <Router>
+            <Layout onLogout={handleLogout} isDark={isDark} toggleDark={toggleDark}>
+                <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/inventario" element={<Inventario />} />
+                    <Route path="/pedidos" element={<Pedidos />} />
+                    <Route path="/clientes" element={<Clientes />} />
+                    <Route path="/usuarios" element={<Usuarios />} />
+                    <Route path="/pagos" element={<Pagos />} />
+                    <Route path="/conversaciones" element={<Conversaciones />} />
+                    <Route path="/mensajes" element={<Mensajes />} />
+                    <Route path="/categorias" element={<Categoria />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Layout>
+        </Router>
+    );
     return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
 }
 
