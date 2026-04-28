@@ -34,8 +34,6 @@ function Login({ onLogin, isDark, toggleDark }) {
         setError('');
         setLoading(true);
         try {
-            const response = await axios.post('/api/auth/login', { email, password });
-            if (response.data.token) onLogin(response.data.token);
             const response = await axios.post('/api/auth/login', {
                 email,
                 password,
