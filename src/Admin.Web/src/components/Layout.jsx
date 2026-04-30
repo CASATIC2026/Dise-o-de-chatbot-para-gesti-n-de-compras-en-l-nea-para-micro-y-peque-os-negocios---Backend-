@@ -4,13 +4,25 @@ import {
     DashboardIcon, InventoryIcon, OrdersIcon, CategoriesIcon,
     ClientsIcon, UsersIcon, PaymentsIcon, ConversationsIcon,
     MessagesIcon, LogoutIcon, MenuIcon, CloseIcon,
-    ChatlyIcon, SunIcon, MoonIcon
+    ChatlyIcon, SunIcon, MoonIcon, CheckCircleIcon, AlertIcon
 } from './Icons';
 
 function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotifications, isDark, toggleDark }) {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+    const Icon = ({ name, className }) => {
+        const icons = {
+            notification: MessagesIcon,
+            close: CloseIcon,
+            success: CheckCircleIcon,
+            warning: AlertIcon,
+            error: AlertIcon,
+            info: MessagesIcon,
+        };
+        const SelectedIcon = icons[name] || MessagesIcon;
+        return <SelectedIcon className={className} />;
+    };
 
     const navItems = [
         { path: '/',              label: 'Dashboard',      Icon: DashboardIcon },

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PhoneIcon, ShieldIcon, CrossIcon } from '../components/Icons';
 
-const inputCls = "w-full px-4 py-2.5 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all";
+const inputCls = "w-full px-4 py-2.5 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all";
 const labelCls = "block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5";
 
 function ActionIcon({ name }) {
@@ -133,11 +133,11 @@ function Usuarios() {
     const getRolColor = (rol) => {
         switch (rol) {
             case ROLES.ADMINISTRADOR:
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400';
             case ROLES.VENDEDOR:
-                return 'bg-emerald-100 text-emerald-800';
+                return 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
         }
     };
 
@@ -175,30 +175,30 @@ function Usuarios() {
     const vendedores = filteredUsuarios.filter((usuario) => usuario.rol === ROLES.VENDEDOR);
 
     const renderTablaUsuarios = (listaUsuarios, emptyMessage) => (
-        <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-            <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none border border-gray-200 dark:border-dark-border overflow-x-auto">
+            <table className="w-full min-w-[920px]">
+                <thead className="bg-gray-50 dark:bg-dark-input border-b border-gray-200 dark:border-dark-border">
                     <tr>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Nombre</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Email</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rol</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-dark-border">
                     {listaUsuarios.length > 0 ? (
                         listaUsuarios.map((usuario) => (
-                            <tr key={usuario.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium text-gray-900">{usuario.nombre}</td>
-                                <td className="px-6 py-4 text-gray-900">{usuario.email}</td>
+                            <tr key={usuario.id} className="hover:bg-gray-50 dark:hover:bg-dark-input/50">
+                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{usuario.nombre}</td>
+                                <td className="px-6 py-4 text-gray-900 dark:text-gray-200">{usuario.email}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
                                         {getRolText(usuario.rol)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'}`}>
                                         {usuario.estado ? 'Activo' : 'Inactivo'}
                                     </span>
                                 </td>
@@ -206,19 +206,19 @@ function Usuarios() {
                                     <div className="flex space-x-2">
                                         <button
                                             onClick={() => handleOpenModal(usuario)}
-                                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors inline-flex items-center gap-2"
+                                            className="p-2 text-primary-600 dark:text-cyan-400 hover:bg-primary-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
                                             title="Editar"
                                         >
                                             <ActionIcon name="edit" />
-                                            Editar
+                                            <span className="hidden sm:inline">Editar</span>
                                         </button>
                                         <button
                                             onClick={() => handleDeletePermanently(usuario.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center gap-2"
+                                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
                                             title="Eliminar"
                                         >
                                             <ActionIcon name="delete" />
-                                            Eliminar
+                                            <span className="hidden sm:inline">Eliminar</span>
                                         </button>
                                     </div>
                                 </td>
@@ -226,7 +226,7 @@ function Usuarios() {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                                 {emptyMessage}
                             </td>
                         </tr>
@@ -242,8 +242,8 @@ function Usuarios() {
         <div className="animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Usuarios</h1>
-                    <p className="text-gray-600 mt-2">Gestiona administradores y vendedores del panel</p>
+                    <h1 className="text-3xl font-bold dark:text-gray-100 tracking-tight">Usuarios</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">Gestiona administradores y vendedores del panel</p>
                 </div>
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-64">
@@ -255,12 +255,12 @@ function Usuarios() {
                             placeholder="Buscar usuarios..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-input border border-gray-200 dark:border-dark-border text-gray-900 dark:text-gray-100 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-cyan-500 transition-all"
                         />
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="bg-primary-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center whitespace-nowrap"
+                        className="bg-primary-600 dark:bg-cyan-600 text-white p-3 md:px-6 md:py-3 rounded-lg font-medium hover:bg-primary-700 dark:hover:bg-cyan-700 transition-colors flex items-center justify-center whitespace-nowrap"
                         title="Nuevo Usuario"
                     >
                         Nuevo Usuario
@@ -269,84 +269,84 @@ function Usuarios() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-blue-500">
-                    <p className="text-sm text-gray-500">Administradores</p>
-                    <p className="text-3xl font-bold text-gray-800 mt-2">{administradores.length}</p>
+                <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none p-5 border-l-4 border-blue-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Administradores</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{administradores.length}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-emerald-500">
-                    <p className="text-sm text-gray-500">Vendedores</p>
-                    <p className="text-3xl font-bold text-gray-800 mt-2">{vendedores.length}</p>
+                <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none p-5 border-l-4 border-emerald-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Vendedores</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{vendedores.length}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-gray-400">
-                    <p className="text-sm text-gray-500">Total usuarios panel</p>
-                    <p className="text-3xl font-bold text-gray-800 mt-2">{filteredUsuarios.length}</p>
+                <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none p-5 border-l-4 border-gray-400">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total usuarios panel</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{filteredUsuarios.length}</p>
                 </div>
             </div>
 
             <div className="space-y-8">
                 <section>
                     <div className="mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Vendedores</h2>
-                        <p className="text-sm text-gray-600 mt-1">Usuarios con acceso operativo limitado respecto al administrador.</p>
+                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Vendedores</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Usuarios con acceso operativo limitado respecto al administrador.</p>
                     </div>
                     {renderTablaUsuarios(vendedores, 'No hay vendedores para mostrar.')}
                 </section>
 
                 <section>
                     <div className="mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Administradores</h2>
-                        <p className="text-sm text-gray-600 mt-1">Estos usuarios mantienen acceso completo al panel.</p>
+                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Administradores</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Estos usuarios mantienen acceso completo al panel.</p>
                     </div>
                     {renderTablaUsuarios(administradores, 'No hay administradores para mostrar.')}
                 </section>
             </div>
 
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl text-gray-700 font-bold mb-6">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-surface rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-dark-border">
+                        <h2 className="text-2xl text-gray-700 dark:text-gray-100 font-bold mb-6">
                             {editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
                         </h2>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                <label className={labelCls}>Nombre</label>
                                 <input
                                     type="text"
                                     value={formData.nombre}
                                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    className={inputCls}
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <label className={labelCls}>Email</label>
                                 <input
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    className={inputCls}
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className={labelCls}>
                                     {editingUsuario ? 'Nueva contrasena (opcional)' : 'Contrasena'}
                                 </label>
                                 <input
                                     type="password"
                                     value={formData.contrasenaHash}
                                     onChange={(e) => setFormData({ ...formData, contrasenaHash: e.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    className={inputCls}
                                     required={!editingUsuario}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                                <label className={labelCls}>Rol</label>
                                 <select
                                     value={formData.rol}
                                     onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    className={inputCls}
                                     required
                                 >
                                     <option value={ROLES.VENDEDOR}>Vendedor</option>
@@ -354,12 +354,12 @@ function Usuarios() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
+                                <label className={labelCls}>Telefono</label>
                                 <input
                                     type="text"
                                     value={formData.telefono || ''}
                                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    className={inputCls}
                                 />
                             </div>
                             <div className="flex items-center">
@@ -369,13 +369,13 @@ function Usuarios() {
                                     onChange={(e) => setFormData({ ...formData, estado: e.target.checked })}
                                     className="w-4 h-4 text-primary-600"
                                 />
-                                <label className="ml-2 text-sm text-gray-700">Usuario activo</label>
+                                <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">Usuario activo</label>
                             </div>
                             <div className="flex space-x-3 pt-4">
-                                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700">
+                                <button type="submit" className="flex-1 bg-primary-600 dark:bg-cyan-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 dark:hover:bg-cyan-700">
                                     Guardar
                                 </button>
-                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-medium hover:bg-gray-300">
+                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600">
                                     Cancelar
                                 </button>
                             </div>

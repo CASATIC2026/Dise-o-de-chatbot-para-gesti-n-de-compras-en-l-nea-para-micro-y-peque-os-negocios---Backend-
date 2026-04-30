@@ -184,7 +184,7 @@ function Inventario() {
 
             <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-sm dark:shadow-none border border-neutral-200 dark:border-dark-border overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full min-w-[980px] text-left border-collapse">
                         <thead>
                             <tr className="bg-neutral-50/50 dark:bg-dark-input/50 border-b border-neutral-200 dark:border-dark-border">
                                 {['Producto', 'Precio', 'Stock', 'Categoría', 'Estado', 'Acciones'].map(h => (
