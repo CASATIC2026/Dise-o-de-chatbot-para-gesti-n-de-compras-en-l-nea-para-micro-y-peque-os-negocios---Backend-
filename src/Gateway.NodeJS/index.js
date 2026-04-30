@@ -93,7 +93,27 @@ app.post('/api/webhook', async (req, res) => {
         res.sendStatus(500);
     }
 });
-
+app.all('api/pagos/*', async (req, res) => {
+    subPath = req.params[0];
+    targetUrl = `${PAGOS_URL}/api/pagos${subPath}`;
+    console.log(`📡 Reenviando a: ${targetUrl}`);
+    try {
+        const response = await axios({
+            method: req.method,
+            url : targetUrl,
+            data : req.body,
+            params : req.query,
+            headers : req.headers
+        });
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error(`Error ruteando al Pagos (${subPath}):`, error.message);
+        res.status(error.response?.status || 500).json({
+            message: "Error en el microservicio de pagos",
+            details: error.message
+        });
+    }
+});
 /**
  * Proxy interno: El Bot llama aquí para obtener datos del Inventario
  * Ruta: /api/proxy/inventario/productos?page=0...
