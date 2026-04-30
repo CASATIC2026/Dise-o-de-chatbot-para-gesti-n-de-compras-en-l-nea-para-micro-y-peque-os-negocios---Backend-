@@ -20,6 +20,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddHttpClient();
+        builder.Services.AddHostedService<PagoTimeoutWorker>();
 
         var app = builder.Build();
 
