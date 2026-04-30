@@ -95,22 +95,22 @@ function Dashboard({ notifications = [] }) {
 
     return (
         <div className="animate-fade-in">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Dashboard Financiero</h1>
-                    <p className="text-gray-500 mt-1">Monitorea los KPIs de tu E-commerce en tiempo real</p>
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Dashboard Financiero</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Monitorea los KPIs de tu E-commerce en tiempo real</p>
                 </div>
 
                 {/* Customization Menu */}
-                <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                    <span className="text-sm font-medium text-gray-500 px-2 border-r border-gray-200">Personalizar</span>
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-300 px-2 border-r border-gray-200 dark:border-gray-600">Personalizar</span>
                     {Object.keys(widgets).map(key => (
                         <button
                             key={key}
                             onClick={() => toggleWidget(key)}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${widgets[key]
                                     ? 'bg-primary-50 text-primary-600'
-                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}
                         >
                             {key.charAt(0).toUpperCase() + key.slice(1)}
@@ -125,19 +125,19 @@ function Dashboard({ notifications = [] }) {
                     {statCards.map((stat, index) => (
                         <div
                             key={index}
-                            className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 group"
+                            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300 group"
                         >
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-1">{stat.title}</p>
-                                    <p className="text-3xl font-bold text-gray-800 tracking-tight mb-2">{stat.value}</p>
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{stat.title}</p>
+                                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight mb-2">{stat.value}</p>
                                     <div className="flex items-center gap-1.5">
                                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stat.trend.startsWith('+') ? 'bg-green-100 text-green-700' :
                                                 stat.trend.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                                             }`}>
                                             {stat.trend}
                                         </span>
-                                        <span className="text-xs text-gray-400">vs semana pasada</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">vs semana pasada</span>
                                     </div>
                                 </div>
                                 <div className={`${stat.bgIcon} ${stat.colorText} w-12 h-12 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform opacity-80`}>
@@ -152,9 +152,9 @@ function Dashboard({ notifications = [] }) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {/* Revenue Premium Chart */}
                 {widgets.revenue && (
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:col-span-2">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 lg:col-span-2">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-gray-800 tracking-tight">Ingresos Financieros (Hoy)</h3>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight">Ingresos Financieros (Hoy)</h3>
                             <span className="flex h-3 w-3 relative">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
@@ -185,8 +185,8 @@ function Dashboard({ notifications = [] }) {
 
                 {/* Sales Chart */}
                 {widgets.sales && (
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-gray-800 tracking-tight mb-6">Pedidos Semanales</h3>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight mb-6">Pedidos Semanales</h3>
                         <div className="h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -204,19 +204,19 @@ function Dashboard({ notifications = [] }) {
 
             {/* Recent Activity — fed by real-time notifications */}
             {widgets.activity && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 w-full lg:w-1/2">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 w-full lg:w-1/2">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-gray-800 tracking-tight">Actividad Reciente</h3>
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight">Actividad Reciente</h3>
                     </div>
                     <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                        {notifications.length === 0 && <p className="text-center text-gray-400 py-4">Sin actividad reciente</p>}
+                        {notifications.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-4">Sin actividad reciente</p>}
                         {notifications.map((act) => (
                             <div key={act.id} className={`flex items-start gap-3 p-3 ${act.color} rounded-xl border border-gray-100 animate-fade-in-up`}>
                                 <span className="text-2xl">{act.icono}</span>
                                 <div className="flex-1">
-                                    <p className="font-semibold text-gray-800 text-sm">{act.titulo}</p>
-                                    <p className="text-sm text-gray-600">{act.mensaje}</p>
-                                    <p className="text-xs text-gray-400 mt-1">{act.fecha}</p>
+                                    <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{act.titulo}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">{act.mensaje}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{act.fecha}</p>
                                 </div>
                             </div>
                         ))}

@@ -77,6 +77,7 @@ const createProtectedElement = (element, userRole) => {
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+    const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole'));
     const { isDark, toggleDark } = useDarkMode();
     const [notifications, setNotifications] = useState([
         {
