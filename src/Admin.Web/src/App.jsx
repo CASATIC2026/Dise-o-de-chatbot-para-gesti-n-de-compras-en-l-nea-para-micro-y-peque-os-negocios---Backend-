@@ -12,6 +12,7 @@ import Pagos from './pages/Pagos';
 import Conversaciones from './pages/Conversaciones';
 import Mensajes from './pages/Mensajes';
 import Categoria from './pages/Categoria';
+import { useDarkMode } from './hooks/useDarkMode';
 
 const SIGNALR_HUB_URL = import.meta.env.VITE_SIGNALR_URL || '/notificationHub';
 
@@ -76,7 +77,7 @@ const createProtectedElement = (element, userRole) => {
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
-    const [userRole, setUserRole] = useState(() => getUserRoleFromToken(localStorage.getItem('token') || ''));
+    const { isDark, toggleDark } = useDarkMode();
     const [notifications, setNotifications] = useState([
         {
             id: 1,
@@ -229,8 +230,8 @@ function App() {
                     notifications={notifications}
                     unreadCount={unreadCount}
                     onOpenNotifications={markNotificationsAsRead}
-                    userRole={userRole}
-                    allowedRoutes={allowedRoutes}
+                    isDark={isDark}
+                    toggleDark={toggleDark}
                 />
             ),
             children: [
@@ -258,7 +259,7 @@ function App() {
     });
 
     if (!isAuthenticated) {
-        return <Login onLogin={handleLogin} />;
+        return <Login onLogin={handleLogin} isDark={isDark} toggleDark={toggleDark} />;
     }
 
     return <RouterProvider router={router} future={{ v7_startTransition: true }} />;

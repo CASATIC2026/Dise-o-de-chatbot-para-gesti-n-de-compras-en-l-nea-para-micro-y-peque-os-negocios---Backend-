@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PhoneIcon, ShieldIcon, CrossIcon } from '../components/Icons';
+
+const inputCls = "w-full px-4 py-2.5 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all";
+const labelCls = "block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5";
 
 function ActionIcon({ name }) {
     const commonProps = {
@@ -61,11 +65,9 @@ function Usuarios() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingUsuario, setEditingUsuario] = useState(null);
-    const [formData, setFormData] = useState(initialFormData);
+    const [formData, setFormData] = useState({ nombre: '', email: '', contrasenaHash: '', rol: 1, estado: true, telefono: '' });
 
-    useEffect(() => {
-        fetchUsuarios();
-    }, []);
+    useEffect(() => { fetchUsuarios(); }, []);
 
     const fetchUsuarios = async () => {
         try {
@@ -101,7 +103,6 @@ function Usuarios() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         try {
             const dataToSave = {
                 id: editingUsuario ? Number(editingUsuario.id) : 0,
@@ -235,18 +236,15 @@ function Usuarios() {
         </div>
     );
 
-    if (loading) {
-        return <div className="text-center py-12">Cargando usuarios...</div>;
-    }
+    if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div></div>;
 
     return (
-        <div>
+        <div className="animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Usuarios</h1>
                     <p className="text-gray-600 mt-2">Gestiona administradores y vendedores del panel</p>
                 </div>
-
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-64">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">

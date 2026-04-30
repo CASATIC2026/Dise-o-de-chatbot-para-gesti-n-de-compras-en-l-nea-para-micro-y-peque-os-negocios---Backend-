@@ -1,173 +1,28 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import {
+    DashboardIcon, InventoryIcon, OrdersIcon, CategoriesIcon,
+    ClientsIcon, UsersIcon, PaymentsIcon, ConversationsIcon,
+    MessagesIcon, LogoutIcon, MenuIcon, CloseIcon,
+    ChatlyIcon, SunIcon, MoonIcon
+} from './Icons';
 
-function Icon({ name, className = 'w-5 h-5' }) {
-    const commonProps = {
-        className,
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        strokeWidth: 1.8,
-        strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-        'aria-hidden': true,
-    };
-
-    switch (name) {
-        case 'dashboard':
-            return (
-                <svg {...commonProps}>
-                    <path d="M3 13h8V3H3zM13 21h8v-6h-8zM13 10h8V3h-8zM3 21h8v-4H3z" />
-                </svg>
-            );
-        case 'inventario':
-            return (
-                <svg {...commonProps}>
-                    <path d="M4 7 12 3l8 4-8 4-8-4Z" />
-                    <path d="M4 7v10l8 4 8-4V7" />
-                    <path d="M12 11v10" />
-                </svg>
-            );
-        case 'pedidos':
-            return (
-                <svg {...commonProps}>
-                    <circle cx="9" cy="20" r="1.5" />
-                    <circle cx="17" cy="20" r="1.5" />
-                    <path d="M5 5h2l2.2 9.5a1 1 0 0 0 1 .8h7.9a1 1 0 0 0 1-.8L21 8H8" />
-                </svg>
-            );
-        case 'categorias':
-            return (
-                <svg {...commonProps}>
-                    <path d="M20 10 10 20l-6-6L14 4h4l2 2v4Z" />
-                    <circle cx="16.5" cy="7.5" r="1" />
-                </svg>
-            );
-        case 'clientes':
-            return (
-                <svg {...commonProps}>
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
-                    <circle cx="9.5" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-            );
-        case 'usuarios':
-            return (
-                <svg {...commonProps}>
-                    <path d="M15 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="8" cy="7" r="4" />
-                    <path d="M20 8v6" />
-                    <path d="M23 11h-6" />
-                </svg>
-            );
-        case 'pagos':
-            return (
-                <svg {...commonProps}>
-                    <path d="M12 2v20" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-            );
-        case 'conversaciones':
-            return (
-                <svg {...commonProps}>
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-            );
-        case 'mensajes':
-            return (
-                <svg {...commonProps}>
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <path d="m3 7 9 6 9-6" />
-                </svg>
-            );
-        case 'notification':
-            return (
-                <svg {...commonProps}>
-                    <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                    <path d="M10 17a2 2 0 0 0 4 0" />
-                </svg>
-            );
-        case 'logout':
-            return (
-                <svg {...commonProps}>
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <path d="M16 17l5-5-5-5" />
-                    <path d="M21 12H9" />
-                </svg>
-            );
-        case 'panel':
-            return (
-                <svg {...commonProps}>
-                    <path d="M4 19h16" />
-                    <path d="M5 19V9l7-5 7 5v10" />
-                    <path d="M9 19v-6h6v6" />
-                </svg>
-            );
-        case 'close':
-            return (
-                <svg {...commonProps}>
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                </svg>
-            );
-        case 'menu':
-            return (
-                <svg {...commonProps}>
-                    <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            );
-        case 'success':
-            return (
-                <svg {...commonProps}>
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="m8.5 12 2.5 2.5 4.5-5" />
-                </svg>
-            );
-        case 'warning':
-            return (
-                <svg {...commonProps}>
-                    <path d="M12 3 2.8 19h18.4L12 3Z" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
-            );
-        case 'error':
-            return (
-                <svg {...commonProps}>
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="m15 9-6 6" />
-                    <path d="m9 9 6 6" />
-                </svg>
-            );
-        case 'info':
-        default:
-            return (
-                <svg {...commonProps}>
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 10v5" />
-                    <path d="M12 7h.01" />
-                </svg>
-            );
-    }
-}
-
-function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotifications, userRole, allowedRoutes = [] }) {
+function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotifications, isDark, toggleDark }) {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
 
     const navItems = [
-        { path: '/', label: 'Dashboard', icon: 'dashboard' },
-        { path: '/inventario', label: 'Inventario', icon: 'inventario' },
-        { path: '/pedidos', label: 'Pedidos', icon: 'pedidos' },
-        { path: '/categorias', label: 'Categorias', icon: 'categorias' },
-        { path: '/clientes', label: 'Clientes', icon: 'clientes' },
-        { path: '/usuarios', label: 'Usuarios', icon: 'usuarios' },
-        { path: '/pagos', label: 'Pagos', icon: 'pagos' },
-        { path: '/conversaciones', label: 'Conversaciones', icon: 'conversaciones' },
-        { path: '/mensajes', label: 'Mensajes', icon: 'mensajes' }
-    ].filter((item) => allowedRoutes.includes(item.path));
+        { path: '/',              label: 'Dashboard',      Icon: DashboardIcon },
+        { path: '/inventario',    label: 'Inventario',     Icon: InventoryIcon },
+        { path: '/pedidos',       label: 'Pedidos',        Icon: OrdersIcon },
+        { path: '/categorias',    label: 'Categorías',     Icon: CategoriesIcon },
+        { path: '/clientes',      label: 'Clientes',       Icon: ClientsIcon },
+        { path: '/usuarios',      label: 'Usuarios',       Icon: UsersIcon },
+        { path: '/pagos',         label: 'Pagos',          Icon: PaymentsIcon },
+        { path: '/conversaciones',label: 'Conversaciones', Icon: ConversationsIcon },
+        { path: '/mensajes',      label: 'Mensajes',       Icon: MessagesIcon },
+    ];
 
     const isActive = (path) => location.pathname === path;
     const recentNotifications = notifications.slice(0, 6);
@@ -175,106 +30,143 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
     const toggleNotificationPanel = () => {
         const nextValue = !isNotificationPanelOpen;
         setIsNotificationPanelOpen(nextValue);
-
-        if (nextValue) {
-            onOpenNotifications?.();
-        }
+        if (nextValue) onOpenNotifications?.();
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden relative">
-            <div className="md:hidden bg-white shadow-sm p-4 flex items-center justify-between z-10 shrink-0">
-                <div className="flex items-center">
-                    <span className="text-primary-600"><Icon name="panel" className="w-6 h-6" /></span>
-                    <span className="ml-2 font-bold text-primary-600">Panel</span>
+        <div className="flex flex-col md:flex-row h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden relative transition-colors duration-300">
+
+            {/* ── Mobile Header ──────────────────────────────────── */}
+            <div className="md:hidden bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10 shrink-0 transition-colors">
+                {/* LEFT: hamburger */}
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 bg-gray-100 dark:bg-gray-700 hover:bg-primary-50 dark:hover:bg-gray-600 rounded-xl transition-colors"
+                    aria-label="Abrir menú"
+                >
+                    <MenuIcon className="w-6 h-6" />
+                </button>
+
+                {/* CENTER: brand */}
+                <div className="flex items-center gap-2">
+                    <ChatlyIcon className="w-7 h-7 text-primary-600 dark:text-primary-400" />
+                    <span className="font-black text-lg text-gray-900 dark:text-gray-100 tracking-tighter">CHATLY</span>
                 </div>
+
+                {/* RIGHT: dark-mode toggle + notifications */}
                 <div className="flex items-center gap-2">
                     <button
+                        onClick={toggleDark}
+                        className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                    >
+                        {isDark
+                            ? <SunIcon className="w-5 h-5 text-amber-400" />
+                            : <MoonIcon className="w-5 h-5 text-indigo-500" />
+                        }
+                    </button>
+                    <button
                         onClick={toggleNotificationPanel}
-                        className="relative p-2 text-gray-500 hover:text-gray-700 bg-gray-100 rounded-lg"
+                        className="relative p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                        aria-label="Notificaciones"
                     >
                         <Icon name="notification" className="w-5 h-5" />
                         {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
                         )}
                     </button>
-                    <button
-                        onClick={() => setIsMobileMenuOpen(true)}
-                        className="p-2 text-gray-500 hover:text-gray-700 bg-gray-100 rounded-lg"
-                    >
-                        <Icon name="menu" className="w-6 h-6" />
-                    </button>
                 </div>
             </div>
 
+            {/* ── Mobile Overlay ─────────────────────────────────── */}
             {isMobileMenuOpen && (
                 <div
-                    className="md:hidden fixed inset-0 bg-black/50 z-20"
+                    className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-20 transition-opacity"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
+            {/* ── Sidebar ────────────────────────────────────────── */}
             <aside className={`
                 fixed md:static inset-y-0 left-0
                 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
-                w-64 bg-white shadow-lg transition-transform duration-300 ease-in-out flex flex-col z-30
+                w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
+                transition-all duration-300 ease-out flex flex-col z-30
             `}>
-                <div className="p-4 md:p-6 flex items-center justify-between md:justify-start shrink-0">
+                {/* Logo */}
+                <div className="p-6 flex items-center justify-between md:justify-start shrink-0 border-b border-gray-100 dark:border-gray-700">
                     <div className="flex flex-col">
-                        <h1 className="text-xl md:text-2xl font-bold text-primary-600 flex items-center">
-                            <Icon name="panel" className="w-6 h-6" />
-                            <span className="ml-2 whitespace-nowrap">Admin Panel</span>
-                        </h1>
-                        <p className="text-sm text-gray-500 mt-1 whitespace-nowrap">{userRole || 'Sin rol'}</p>
+                        <div className="flex items-center gap-3">
+                            <ChatlyIcon className="w-9 h-9 text-primary-600 dark:text-primary-400" />
+                            <span className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tighter">CHATLY</span>
+                        </div>
+                        <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wider ml-12">Admin Panel</p>
                     </div>
                     <button
-                        className="md:hidden text-gray-500 hover:text-gray-700 p-2"
+                        className="md:hidden text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
+                        aria-label="Cerrar menú"
                     >
-                        <Icon name="close" className="w-5 h-5" />
+                        <CloseIcon className="w-4 h-4" />
                     </button>
                 </div>
 
-                <nav className="mt-2 md:mt-6 flex-1 overflow-y-auto overflow-x-hidden w-full">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`flex items-center justify-start px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors ${isActive(item.path) ? 'bg-primary-100 text-primary-600 border-r-4 border-primary-600' : ''}`}
-                        >
-                            <span className="mr-3 text-gray-500">
-                                <Icon name={item.icon} className="w-5 h-5" />
-                            </span>
-                            <span className="font-medium whitespace-nowrap">{item.label}</span>
-                        </Link>
-                    ))}
+                {/* Nav */}
+                <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden w-full px-4 space-y-0.5">
+                    {navItems.map(({ path, label, Icon }) => {
+                        const active = isActive(path);
+                        return (
+                            <Link
+                                key={path}
+                                to={path}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group gap-3 ${
+                                    active
+                                        ? 'bg-primary-600 text-white shadow-md shadow-primary-500/20'
+                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                                }`}
+                            >
+                                <Icon className={`w-5 h-5 shrink-0 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                                <span className="font-medium text-sm">{label}</span>
+                            </Link>
+                        );
+                    })}
                 </nav>
 
-                <div className="p-4 md:p-6 shrink-0">
+                {/* Footer */}
+                <div className="p-4 shrink-0 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                    {/* Dark mode toggle (desktop) */}
+                    <button
+                        onClick={toggleDark}
+                        className="hidden md:flex w-full items-center gap-3 px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+                        title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                    >
+                        {isDark
+                            ? <><SunIcon className="w-5 h-5 text-amber-400" /><span>Modo Claro</span></>
+                            : <><MoonIcon className="w-5 h-5 text-indigo-500" /><span>Modo Oscuro</span></>
+                        }
+                    </button>
+
                     <button
                         onClick={onLogout}
-                        title="Cerrar Sesion"
-                        className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors"
                     >
-                        <Icon name="logout" className="w-5 h-5 mr-2" />
-                        <span className="whitespace-nowrap">Cerrar Sesion</span>
+                        <LogoutIcon className="w-5 h-5" />
+                        <span>Cerrar Sesión</span>
                     </button>
                 </div>
             </aside>
 
-            <main className="flex-1 overflow-y-auto">
+            {/* ── Main Content ──────────────────────────────────── */}
+            <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors">
                 <div className="p-4 md:p-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <p className="text-sm text-gray-500">Acceso actual</p>
-                            <p className="font-semibold text-gray-800">{userRole || 'Sin rol'}</p>
-                        </div>
+                    {/* Desktop: top bar with notifications button */}
+                    <div className="hidden md:flex items-center justify-end mb-4">
                         <button
                             onClick={toggleNotificationPanel}
-                            className="relative hidden md:flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm border border-gray-200 text-gray-700 hover:bg-gray-50"
+                            className="relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                             <Icon name="notification" className="w-5 h-5" />
                             <span>Notificaciones</span>
@@ -286,37 +178,37 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
                         </button>
                     </div>
 
+                    {/* Notification Panel */}
                     {isNotificationPanelOpen && (
-                        <div className="mb-6 bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <div className="mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors">
+                            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-800">Centro de notificaciones</h2>
-                                    <p className="text-sm text-gray-500">Siguen llegando aunque no estes dentro del dashboard.</p>
+                                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Centro de notificaciones</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Siguen llegando aunque no estés dentro del dashboard.</p>
                                 </div>
                                 <button
                                     onClick={() => setIsNotificationPanelOpen(false)}
-                                    className="text-gray-400 hover:text-gray-600"
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
                                 >
                                     <Icon name="close" className="w-5 h-5" />
                                 </button>
                             </div>
-
                             <div className="max-h-80 overflow-y-auto p-4 space-y-3">
                                 {recentNotifications.length === 0 && (
-                                    <p className="text-sm text-gray-400">Todavia no hay notificaciones.</p>
+                                    <p className="text-sm text-gray-400 dark:text-gray-500">Todavía no hay notificaciones.</p>
                                 )}
                                 {recentNotifications.map((notification) => (
                                     <div
                                         key={notification.id}
-                                        className={`flex items-start gap-3 p-3 rounded-xl border border-gray-100 ${notification.color}`}
+                                        className={`flex items-start gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-700 ${notification.color}`}
                                     >
                                         <span className="mt-0.5 text-gray-700">
                                             <Icon name={notification.icono} className="w-5 h-5" />
                                         </span>
                                         <div className="flex-1">
-                                            <p className="text-sm font-semibold text-gray-800">{notification.titulo}</p>
-                                            <p className="text-sm text-gray-600">{notification.mensaje}</p>
-                                            <p className="text-xs text-gray-400 mt-1">{notification.fecha}</p>
+                                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{notification.titulo}</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400">{notification.mensaje}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{notification.fecha}</p>
                                         </div>
                                     </div>
                                 ))}
