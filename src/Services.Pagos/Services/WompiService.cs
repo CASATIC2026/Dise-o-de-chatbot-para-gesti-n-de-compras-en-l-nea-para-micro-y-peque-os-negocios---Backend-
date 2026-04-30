@@ -20,8 +20,8 @@ public class WompiService
 
     private async Task<string> ObtenerTokenAsync()
     {
-        var clientId = _configuration["Wompi:ClientId"];
-        var clientSecret = _configuration["Wompi:ClientSecret"];
+        var clientId = _configuration["Wompi:ClientId"] ?? _configuration["WOMPI_CLIENT_ID"];
+        var clientSecret = _configuration["Wompi:ClientSecret"] ?? _configuration["WOMPI_CLIENT_SECRET"];
 
         var content = new FormUrlEncodedContent(new[]
         {
@@ -62,7 +62,7 @@ public class WompiService
             }
 
             var notificationEmails = _configuration["Wompi:NotificationEmails"];
-            var webhookUrl = _configuration["Wompi:WebhookUrl"];
+            var webhookUrl = ResolveWebhookUrl();
             var maxSuccessfulPayments = Math.Max(1, _configuration.GetValue<int?>("Wompi:MaxSuccessfulPayments") ?? 1);
             Dictionary<string, object?>? configuracion = null;
 
@@ -131,6 +131,12 @@ public class WompiService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("Error Wompi SV: {Response}", responseContent);
+                
+                if (responseContent.Contains("identificadorEnlaceComercio_duplicado"))
+                {
+                    return new WompiTransactionResponse { Success = false, Error = "La referencia de este pedido ya fue utilizada en otro enlace de pago." };
+                }
+
                 return new WompiTransactionResponse
                 {
                     Success = false,
@@ -202,5 +208,25 @@ public class WompiService
             _logger.LogError(ex, "Error desactivando enlace Wompi {EnlaceId}", enlaceId);
             return false;
         }
+    }
+
+    private string? ResolveWebhookUrl()
+    {
+        var webhookUrl = _configuration["Wompi:WebhookUrl"];
+        if (!string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            return webhookUrl;
+        }
+
+        var legacyValue = _configuration["Wompi:WebhookSecret"];
+        if (Uri.TryCreate(legacyValue, UriKind.Absolute, out var legacyUri)
+            && (legacyUri.Scheme == Uri.UriSchemeHttp || legacyUri.Scheme == Uri.UriSchemeHttps))
+        {
+            _logger.LogWarning("Usando Wompi:WebhookSecret como fallback de URL de webhook. Conviene migrar a Wompi:WebhookUrl.");
+            return legacyValue;
+        }
+
+        _logger.LogWarning("No se encontro una URL de webhook valida para Wompi. Los cambios de estado no se reflejaran automaticamente.");
+        return null;
     }
 }

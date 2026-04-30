@@ -3,7 +3,7 @@
  */
 import express from 'express';
 import axios from 'axios';
-import { authenticateToken } from '../middleware/Auth.js';
+import { authenticateToken, requireRole } from '../middleware/Auth.js';
 
 const router = express.Router();
 
@@ -13,6 +13,20 @@ const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://pagos-service:8080';
 
 // Aplicar autenticacion a todas las rutas de admin
 router.use(authenticateToken);
+
+const requireAdmin = requireRole('Administrador');
+const requireAdminExceptGet = (req, res, next) => {
+    if (req.method === 'GET') {
+        return next();
+    }
+
+    return requireAdmin(req, res, next);
+};
+
+router.use('/inventario/usuarios', requireAdmin);
+router.use('/inventario/conversaciones', requireAdmin);
+router.use('/inventario/mensajes', requireAdmin);
+router.use('/inventario/categorias', requireAdminExceptGet);
 
 /**
  * Proxy generico para Inventario

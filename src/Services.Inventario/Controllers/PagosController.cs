@@ -25,6 +25,7 @@ public class PagosController : ControllerBase
         _hubContext = hubContext;
     }
 
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Pago>>> GetPagos()
     {
@@ -318,17 +319,81 @@ public class PagosController : ControllerBase
         });
     }
 
-    private static object BuildPagoPedidoResponse(Pago pago, Pedido? pedido) => new
+    [HttpPost("marcar-rechazado/{referencia}")]
+    public async Task<IActionResult> MarcarRechazadoPorTimeout(string referencia, [FromBody] MarcarRechazadoRequest? request)
     {
-        pago.Id,
-        pago.PedidoId,
-        pago.Monto,
-        Total = pedido?.Total ?? pago.Monto,
-        pago.ReferenciaTransaccion,
-        EstadoPago = (int)pago.Estado,
-        EstadoPedido = pedido != null ? (int)pedido.Estado : 0
-    };
+        if (string.IsNullOrWhiteSpace(referencia))
+        {
+            return BadRequest(new { mensaje = "Debe enviar una referencia valida." });
+        }
 
+        var pago = await _context.Pagos
+            .Include(p => p.Pedido)
+            .OrderByDescending(p => p.CreadoEn)
+            .FirstOrDefaultAsync(p =>
+                p.ReferenciaTransaccion == referencia ||
+                (p.Pedido != null && p.Pedido.ReferenciaWompi == referencia));
+
+        if (pago == null)
+        {
+            return NotFound(new { mensaje = $"No se encontro un pago para la referencia {referencia}" });
+        }
+
+        if (pago.Estado == EstadoPago.Completado)
+        {
+            return Conflict(new { mensaje = "El pago ya fue completado y no puede marcarse como rechazado.", referencia });
+        }
+
+        if (pago.Estado == EstadoPago.Rechazado)
+        {
+            return Ok(new { mensaje = "El pago ya estaba rechazado.", referencia });
+        }
+
+        var fechaActual = DateTime.UtcNow;
+        pago.Estado = EstadoPago.Rechazado;
+        pago.ActualizadoEn = fechaActual;
+
+        if (pago.Pedido != null && pago.Pedido.Estado != EstadoPedido.Cancelado)
+        {
+            pago.Pedido.Estado = EstadoPedido.Cancelado;
+            pago.Pedido.ActualizadoEn = fechaActual;
+        }
+
+        await _context.SaveChangesAsync();
+
+        var motivo = string.IsNullOrWhiteSpace(request?.Motivo) ? "Timeout sin confirmacion de Wompi" : request!.Motivo!;
+        _logger.LogWarning("Pago rechazado por timeout. Referencia: {Referencia}. Motivo: {Motivo}", referencia, motivo);
+
+        await _hubContext.Clients.All.SendAsync("ReceiveNotification", new
+        {
+            titulo = "Pago rechazado por timeout",
+            mensaje = $"El pago con referencia {referencia} fue rechazado por tiempo excedido.",
+            tipo = "warning",
+            fecha = DateTime.Now
+        });
+
+        return Ok(new
+        {
+            mensaje = "Pago marcado como rechazado por timeout",
+            referencia,
+            estadoPago = pago.Estado.ToString(),
+            estadoPedido = pago.Pedido?.Estado.ToString()
+        });
+    }
+
+    private object BuildPagoPedidoResponse(Pago pago, Pedido pedido)
+{
+    return new
+    {
+        id = pago.Id,
+        pedidoId = pedido.Id,
+        monto = pago.Monto,
+        total = pedido.Total,
+        referenciaTransaccion = pago.ReferenciaTransaccion,
+        estadoPago = (int)pago.Estado,
+        estadoPedido = (int)pedido.Estado
+    };
+}
     private static string CreateReference(int pedidoId)
     {
         return $"PED-{pedidoId}-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
@@ -346,6 +411,7 @@ public class PagosController : ControllerBase
 
         return int.TryParse(partes[1], out pedidoId);
     }
+    
 
     public class ActualizarPagoPorReferenciaRequest
     {
@@ -355,5 +421,10 @@ public class PagosController : ControllerBase
         public string? MetodoPago { get; set; }
         public string? ResultadoTransaccion { get; set; }
         public bool? EsProductiva { get; set; }
+    }
+
+    public class MarcarRechazadoRequest
+    {
+        public string? Motivo { get; set; }
     }
 }
