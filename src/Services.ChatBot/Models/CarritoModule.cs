@@ -138,12 +138,13 @@ public class CarritoModule : ICarrito
             return ("⚠️ No pudimos generar el pago. Inténtalo de nuevo", keyboard);
         }
             
-        sb.AppendLine($"✨ *¡ORDEN #{pedidoId} LISTA!*\n");
-        sb.AppendLine($"🔖 *Referencia:* `{pagosLinks.Referencia}`");
-        sb.AppendLine($"💳 *Estado:* {pagosLinks.EstadoPago}\n");
-        sb.AppendLine($"Haz clic en el botón de abajo para pagar.");        
+        sb.AppendLine($"*¡ORDEN \\#{pedidoId} LISTA\\!*\n");
+        sb.AppendLine($"*Referencia:* `{pagosLinks.Referencia}`");
+        sb.AppendLine($"*Estado:* {pagosLinks.EstadoPago}\n");
+        sb.AppendLine($"Haz clic en el botón de abajo para pagar");        
         
         keyboard.AddButton(InlineKeyboardButton.WithUrl("➡️ IR A PAGAR", url));
+        keyboard.AddButton(InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart"));
         
         return (sb.ToString(), keyboard);
     }

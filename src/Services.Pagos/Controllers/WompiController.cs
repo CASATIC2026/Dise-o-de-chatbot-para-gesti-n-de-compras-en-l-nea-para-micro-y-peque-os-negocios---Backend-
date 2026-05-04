@@ -224,8 +224,9 @@ public class WompiController : ControllerBase
             {
                 await client.PostAsJsonAsync($"{chatBotBaseUrl}/api/bot/pagos-completado", new
                 {
-                    referencia = referencia,
-                    estado = EstadoPedido.Pagado
+                    referencia,
+                    estado = EstadoPedido.Pagado,
+                    url = ""
                 });
             }
             catch (Exception ex)

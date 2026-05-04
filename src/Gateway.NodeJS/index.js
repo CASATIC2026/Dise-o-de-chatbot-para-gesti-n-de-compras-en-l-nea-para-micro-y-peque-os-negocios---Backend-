@@ -93,10 +93,12 @@ app.post('/api/webhook', async (req, res) => {
         res.sendStatus(500);
     }
 });
+
 app.all('/api/pagos/*', async (req, res) => {
     const subPath = req.params[0];
     const targetUrl = `${PAGOS_URL}/api/pagos/${subPath}`;
     console.log(` Reenviando a: ${targetUrl}`);
+        
     try {
         const response = await axios({
             method: req.method,
@@ -109,8 +111,15 @@ app.all('/api/pagos/*', async (req, res) => {
                 'x-event-checksum': req.headers['x-event-checksum'],
                 'user-agent': req.headers['user-agent']
             },
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
             timeout: 5000 // tiempo de solicitud
         });
+        if(response.status >= 300 && response.status < 400){
+            res.setHeader('Location', response.headers.location);
+            return res.status(response.status).end();
+        }
+
         res.status(response.status).json(response.data);
     } catch (error) {
         console.error(`Error ruteando al Pagos (${subPath}):`, error.message);

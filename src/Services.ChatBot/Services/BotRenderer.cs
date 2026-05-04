@@ -242,8 +242,8 @@ IBotPersistencia _persistencia
         //var data = await _paymentService.GeneratedPaymentLink(pedido.Id);        
         if (pedido == null) return;
         string urlCodec = Uri.EscapeDataString(data.Url);      
-        string urlPublic = "https://lvarl-168-227-22-146.run.pinggy-free.link/api/pagos/redirect"; 
-        string url = $"{urlPublic}?url={urlCodec}&convasacionId={callbackQuery!.Message!.MessageId}"; //cambio de url de servicio por puerto, al subir cambiar por url de microservicio generado
+        string urlPublic = "https://adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect"; 
+        string url = $"{urlPublic}?url={urlCodec}&convasacionId={callbackQuery!.Message!.MessageId}&refe={data.Referencia}"; //cambio de url de servicio por puerto, al subir cambiar por url de microservicio generado
 
         try{
         var (texto, markup) = carritoUI.Ticket(data, pedido.Id, url);

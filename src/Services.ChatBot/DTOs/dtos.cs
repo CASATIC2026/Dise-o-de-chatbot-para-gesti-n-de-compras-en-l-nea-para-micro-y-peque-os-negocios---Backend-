@@ -99,5 +99,7 @@ namespace Services.ChatBot.DTOs
     {
         public string Referencia {get; set;} = string.Empty;
         public int EstadoPago {get; set;} = 0;
+        public string Url {get; set;} = string.Empty;
+    
     }    
 }
