@@ -87,11 +87,11 @@ export default {
                     900: '#181456',
                 },
                 dark: {
-                    base:     '#0e0e0e',
-                    elevated: '#141414',
-                    surface:  '#1a1a1a',
-                    input:    '#242424',
-                    border:   '#2a2a2a',
+                    base:     '#111827',
+                    elevated: '#374151',
+                    surface:  '#1f2937',
+                    input:    '#374151',
+                    border:   '#4b5563',
                 },
             },
             fontFamily: {
