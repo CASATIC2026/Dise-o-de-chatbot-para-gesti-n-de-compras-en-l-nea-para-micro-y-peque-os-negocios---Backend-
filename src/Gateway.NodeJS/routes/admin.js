@@ -72,6 +72,34 @@ const buildPagosTargetUrl = (path = '') => {
     return `${targetBaseUrl}/api/pagos${normalizedPath}`;
 };
 
+const getUpstreamErrorMessage = (payload, fallback) => {
+    if (!payload) {
+        return fallback;
+    }
+
+    if (typeof payload === 'string') {
+        return payload;
+    }
+
+    if (typeof payload.message === 'string') {
+        return payload.message;
+    }
+
+    if (typeof payload.mensaje === 'string') {
+        return payload.mensaje;
+    }
+
+    if (typeof payload.error === 'string') {
+        return payload.error;
+    }
+
+    if (typeof payload.error?.message === 'string') {
+        return payload.error.message;
+    }
+
+    return fallback;
+};
+
 const proxyPagosRequest = async (req, res, path = '') => {
     try {
         const url = buildPagosTargetUrl(path);
@@ -90,9 +118,10 @@ const proxyPagosRequest = async (req, res, path = '') => {
         res.status(response.status).json(response.data);
     } catch (error) {
         console.error('[Admin] Error proxying to Pagos:', error.message);
+        const upstreamError = error.response?.data || error.message;
         res.status(error.response?.status || 500).json({
-            message: 'Error communicating with Payments service',
-            error: error.response?.data || error.message
+            message: getUpstreamErrorMessage(upstreamError, 'Error communicating with Payments service'),
+            error: upstreamError
         });
     }
 };

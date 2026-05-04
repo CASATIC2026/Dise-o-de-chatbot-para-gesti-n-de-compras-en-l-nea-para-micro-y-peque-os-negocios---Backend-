@@ -1,10 +1,36 @@
 import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PaymentsIcon, CloseIcon } from '../components/Icons';
 
 // Shared input class
 const inputCls = "w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-xl placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 transition-all";
 const labelCls = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5";
+
+const QrIcon = ({ className = 'w-5 h-5', ...props }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true" {...props}>
+        <rect width="5" height="5" x="3" y="3" rx="1" />
+        <rect width="5" height="5" x="16" y="3" rx="1" />
+        <rect width="5" height="5" x="3" y="16" rx="1" />
+        <path d="M16 16h.01" />
+        <path d="M21 16h-2v3" />
+        <path d="M16 21h3" />
+        <path d="M21 21h.01" />
+        <path d="M12 7v3" />
+        <path d="M12 14h.01" />
+        <path d="M7 12h3" />
+        <path d="M14 12h1" />
+    </svg>
+);
+
+const getErrorMessage = (error) => {
+    const payload = error.response?.data;
+    if (typeof payload === 'string') return payload;
+    if (typeof payload?.error === 'string') return payload.error;
+    if (typeof payload?.error?.message === 'string') return payload.error.message;
+    if (typeof payload?.error?.mensaje === 'string') return payload.error.mensaje;
+    return payload?.message || payload?.mensaje || error.message || 'No se pudo generar el QR de pago';
+};
 
 function Pagos() {
     const [pagos, setPagos] = useState([]);
@@ -13,6 +39,8 @@ function Pagos() {
     const [showModal, setShowModal] = useState(false);
     const [editingPago, setEditingPago] = useState(null);
     const [formData, setFormData] = useState({ pedidoId: '', monto: '', metodoPago: '', estado: 1, referenciaTransaccion: '' });
+    const [generatingQrId, setGeneratingQrId] = useState(null);
+    const [qrModal, setQrModal] = useState(null);
 
     useEffect(() => { fetchPagos(); }, []);
 
@@ -90,6 +118,45 @@ function Pagos() {
         }
     };
 
+    const handleGenerateQr = async (pago) => {
+        if (!pago?.pedidoId) {
+            alert('Este pago no tiene un pedido asociado.');
+            return;
+        }
+
+        try {
+            setGeneratingQrId(pago.id);
+            const response = await api.post(`/admin/pagos/crear-enlace-automatico/${pago.pedidoId}`);
+            const paymentUrl = response.data?.url;
+
+            if (!paymentUrl) {
+                throw new Error('El servicio no devolvio un enlace de pago para generar el QR.');
+            }
+
+            const qrDataUrl = await QRCode.toDataURL(paymentUrl, {
+                width: 320,
+                margin: 2,
+                color: {
+                    dark: '#111827',
+                    light: '#ffffff'
+                }
+            });
+
+            setQrModal({
+                pedidoId: pago.pedidoId,
+                referencia: response.data?.referencia || pago.referenciaTransaccion || '',
+                url: paymentUrl,
+                qrDataUrl
+            });
+            await fetchPagos();
+        } catch (error) {
+            console.error('Error generando QR de pago:', error);
+            alert(getErrorMessage(error));
+        } finally {
+            setGeneratingQrId(null);
+        }
+    };
+
     const getEstadoText = (s) => ({ 1: 'Pendiente', 2: 'Completado', 3: 'Rechazado', 4: 'Cancelado' }[s] || 'Desconocido');
 const getEstadoColor = (s) => ({
         1: 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/30',
@@ -108,6 +175,7 @@ const getEstadoColor = (s) => ({
 
     return (
         <div className="animate-fade-in">
+            <div className={qrModal ? 'blur-sm pointer-events-none select-none transition duration-200' : 'transition duration-200'}>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Pagos</h1>
@@ -159,6 +227,14 @@ const getEstadoColor = (s) => ({
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1.5">
+                                            <button onClick={() => handleGenerateQr(pago)} title="Generar QR" disabled={generatingQrId === pago.id}
+                                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-wait rounded-lg transition-colors border border-transparent hover:border-emerald-100">
+                                                {generatingQrId === pago.id ? (
+                                                    <span className="block w-4 h-4 rounded-full border-2 border-emerald-200 border-t-emerald-600 animate-spin" />
+                                                ) : (
+                                                    <QrIcon className="w-4 h-4" />
+                                                )}
+                                            </button>
                                             <button onClick={() => handleOpenModal(pago)} title="Editar"
                                                 className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100">
                                                 <EditIcon className="w-4 h-4" />
@@ -225,6 +301,37 @@ const getEstadoColor = (s) => ({
                         <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-2xl flex gap-3">
                             <button type="button" onClick={handleCloseModal} className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancelar</button>
                             <button type="submit" form="pagoForm" className="flex-1 bg-primary-600 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:bg-primary-700 transition-all">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            </div>
+
+            {qrModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 dark:border-gray-700">
+                        <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-lg text-gray-900 dark:text-gray-100 font-bold tracking-tight">QR de pago</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Pedido #{qrModal.pedidoId}</p>
+                            </div>
+                            <button onClick={() => setQrModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg p-1.5 transition-colors">
+                                <CloseIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-6 flex flex-col items-center gap-4">
+                            <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                <img src={qrModal.qrDataUrl} alt={`QR de pago para pedido ${qrModal.pedidoId}`} className="w-64 h-64" />
+                            </div>
+                            {qrModal.referencia && (
+                                <div className="w-full text-center">
+                                    <span className="text-xs font-semibold uppercase text-gray-400 dark:text-gray-500">Referencia</span>
+                                    <p className="font-mono text-sm text-gray-700 dark:text-gray-200 break-all">{qrModal.referencia}</p>
+                                </div>
+                            )}
+                            <a href={qrModal.url} target="_blank" rel="noreferrer" className="w-full bg-primary-600 text-white py-2.5 rounded-xl font-semibold shadow-sm hover:bg-primary-700 transition-all text-center">
+                                Abrir enlace
+                            </a>
                         </div>
                     </div>
                 </div>
