@@ -1,18 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/client';
-import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon, ClientsIcon } from '../components/Icons';
+import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon } from '../components/Icons';
 
 function Dashboard({ notifications = [] }) {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    // Customizable dashboard state
     const [widgets, setWidgets] = useState({
-        stats: true,
-        revenue: true,
-        sales: true,
-        activity: true
+        Estadisticas: true,
+        Ventas: true,
+        Ingresos: true,
+        Actividad: true
     });
 
     useEffect(() => {
@@ -24,22 +22,28 @@ function Dashboard({ notifications = [] }) {
             const response = await api.get('/admin/dashboard/stats');
             setStats(response.data);
         } catch (error) {
-            console.error('❌ [Dashboard] Error en stats:', error);
+            console.error('[Dashboard] Error en stats:', error);
         } finally {
             setLoading(false);
         }
     };
 
     const toggleWidget = (widget) => {
-        setWidgets(prev => ({ ...prev, [widget]: !prev[widget] }));
+        setWidgets((prev) => ({ ...prev, [widget]: !prev[widget] }));
     };
+
+    const formatCurrency = (value) =>
+        `$${Number(value || 0).toLocaleString('es-CO', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })}`;
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="flex flex-col items-center">
                     <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-                    <div className="text-gray-500 font-medium tracking-wide">Cargando métricas...</div>
+                    <div className="text-gray-500 font-medium tracking-wide">Cargando metricas...</div>
                 </div>
             </div>
         );
@@ -48,50 +52,40 @@ function Dashboard({ notifications = [] }) {
     const statCards = [
         {
             title: 'Ingresos Totales (Hoy)',
-            value: '$' + ((stats?.totalVentas || 12450) / 100).toFixed(2),
+            value: formatCurrency(stats?.totalVentasHoy),
             icon: <MoneyIcon />,
             colorText: 'text-primary-600',
             bgIcon: 'bg-primary-50',
-            trend: '+12.5%'
+            trend: stats?.trends?.totalVentasHoy || '0%'
         },
         {
             title: 'Pedidos',
-            value: stats?.totalPedidos || 0,
+            value: stats?.totalPedidos ?? 0,
             icon: <OrdersIcon />,
             colorText: 'text-secondary-600',
             bgIcon: 'bg-secondary-50',
-            trend: '+5.2%'
+            trend: stats?.trends?.totalPedidos || '0%'
         },
         {
             title: 'Productos Activos',
-            value: stats?.productosActivos || 0,
+            value: stats?.productosActivos ?? 0,
             icon: <InventoryIcon />,
             colorText: 'text-tertiary-600',
             bgIcon: 'bg-tertiary-50',
-            trend: 'Estable'
+            trend: stats?.trends?.productosActivos || 'Estable'
         },
         {
             title: 'Stock Bajo',
-            value: stats?.stockBajo || 0,
+            value: stats?.stockBajo ?? 0,
             icon: <AlertIcon />,
             colorText: 'text-red-500',
             bgIcon: 'bg-red-50',
-            trend: '-2.1%'
+            trend: stats?.trends?.stockBajo || '0%'
         },
     ];
 
-    const salesData = [
-        { name: 'Lun', ventas: 12 }, { name: 'Mar', ventas: 19 },
-        { name: 'Mié', ventas: 15 }, { name: 'Jue', ventas: 25 },
-        { name: 'Vie', ventas: 22 }, { name: 'Sáb', ventas: 30 },
-        { name: 'Dom', ventas: 18 },
-    ];
-
-    const revenueData = [
-        { time: '08:00', revenue: 400 }, { time: '10:00', revenue: 900 },
-        { time: '12:00', revenue: 1500 }, { time: '14:00', revenue: 1100 },
-        { time: '16:00', revenue: 2300 }, { time: '18:00', revenue: 3200 },
-    ];
+    const salesData = stats?.charts?.salesData || [];
+    const revenueData = stats?.charts?.revenueData || [];
 
     return (
         <div className="animate-fade-in">
@@ -101,30 +95,28 @@ function Dashboard({ notifications = [] }) {
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Monitorea los KPIs de tu E-commerce en tiempo real</p>
                 </div>
 
-                {/* Customization Menu */}
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-300 px-2 border-r border-gray-200 dark:border-gray-600">Personalizar</span>
-                    {Object.keys(widgets).map(key => (
+                    {Object.keys(widgets).map((key) => (
                         <button
                             key={key}
                             onClick={() => toggleWidget(key)}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${widgets[key]
-                                    ? 'bg-primary-50 text-primary-600'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                ? 'bg-primary-50 text-primary-600'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}
                         >
-                            {key.charAt(0).toUpperCase() + key.slice(1)}
+                            {key}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            {widgets.stats && (
+            {widgets.Estadisticas && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {statCards.map((stat, index) => (
+                    {statCards.map((stat) => (
                         <div
-                            key={index}
+                            key={stat.title}
                             className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300 group"
                         >
                             <div className="flex items-start justify-between">
@@ -132,12 +124,17 @@ function Dashboard({ notifications = [] }) {
                                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{stat.title}</p>
                                     <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight mb-2">{stat.value}</p>
                                     <div className="flex items-center gap-1.5">
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stat.trend.startsWith('+') ? 'bg-green-100 text-green-700' :
-                                                stat.trend.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stat.trend.startsWith('+')
+                                            ? 'bg-green-100 text-green-700'
+                                            : stat.trend.startsWith('-')
+                                                ? 'bg-red-100 text-red-700'
+                                                : 'bg-gray-100 text-gray-600'
                                             }`}>
                                             {stat.trend}
                                         </span>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500">vs semana pasada</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                                            {stat.title === 'Ingresos Totales (Hoy)' ? 'vs ayer' : 'comparativo actual'}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className={`${stat.bgIcon} ${stat.colorText} w-12 h-12 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform opacity-80`}>
@@ -150,8 +147,7 @@ function Dashboard({ notifications = [] }) {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Revenue Premium Chart */}
-                {widgets.revenue && (
+                {widgets.Ingresos && (
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 lg:col-span-2">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight">Ingresos Financieros (Hoy)</h3>
@@ -173,18 +169,18 @@ function Dashboard({ notifications = [] }) {
                                     <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#868e96', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#868e96', fontSize: 12 }} />
                                     <Tooltip
+                                        formatter={(value) => [formatCurrency(value), 'Ingresos']}
                                         contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#333' }}
                                         itemStyle={{ color: '#00C2CB', fontWeight: 600 }}
                                     />
-                                    <Area type="monotone" dataKey="revenue" stroke="#00C2CB" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                    <Area type="monotone" dataKey="revenue" name="Ingresos" stroke="#00C2CB" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
                 )}
 
-                {/* Sales Chart */}
-                {widgets.sales && (
+                {widgets.Ventas && (
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
                         <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight mb-6">Pedidos Semanales</h3>
                         <div className="h-72">
@@ -193,7 +189,11 @@ function Dashboard({ notifications = [] }) {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#868e96', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#868e96', fontSize: 12 }} />
-                                    <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#333' }} />
+                                    <Tooltip
+                                        formatter={(value) => [value, 'Pedidos']}
+                                        cursor={{ fill: '#f3f4f6' }}
+                                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#333' }}
+                                    />
                                     <Bar dataKey="ventas" fill="#9492ff" radius={[4, 4, 0, 0]} barSize={24} />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -202,8 +202,7 @@ function Dashboard({ notifications = [] }) {
                 )}
             </div>
 
-            {/* Recent Activity — fed by real-time notifications */}
-            {widgets.activity && (
+            {widgets.Actividad && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 w-full lg:w-1/2">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight">Actividad Reciente</h3>

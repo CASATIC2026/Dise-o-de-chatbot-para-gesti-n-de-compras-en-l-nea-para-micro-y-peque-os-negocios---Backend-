@@ -44,11 +44,18 @@ function Clientes() {
         catch (error) { console.error('Error deleting cliente:', error); }
     };
 
-    const filteredClientes = clientes.filter(c =>
-        c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.telefono.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const normalizedSearchTerm = searchTerm.toLowerCase();
+    const filteredClientes = clientes.filter((cliente) => {
+        const nombre = (cliente?.nombre || '').toLowerCase();
+        const email = (cliente?.email || '').toLowerCase();
+        const telefono = (cliente?.telefono || '').toLowerCase();
+
+        return (
+            nombre.includes(normalizedSearchTerm) ||
+            email.includes(normalizedSearchTerm) ||
+            telefono.includes(normalizedSearchTerm)
+        );
+    });
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -78,20 +85,20 @@ function Clientes() {
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-sm dark:shadow-none border border-neutral-200 dark:border-dark-border overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm dark:shadow-none border border-neutral-200 dark:border-gray-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[860px] text-left border-collapse">
                         <thead>
-                            <tr className="bg-neutral-50/50 dark:bg-dark-input/50 border-b border-neutral-200 dark:border-dark-border">
+                            <tr className="bg-neutral-50/50 dark:bg-gray-700 border-b border-neutral-200 dark:border-gray-600">
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider">Nombre</th>
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider">Contacto</th>
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider">Dirección</th>
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
+                        <tbody className="divide-y divide-neutral-100 dark:divide-gray-700">
                             {filteredClientes.map((cliente) => (
-                                <tr key={cliente.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
+                                <tr key={cliente.id} className="hover:bg-neutral-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-neutral-900 dark:text-neutral-100">{cliente.nombre}</td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-0.5 flex items-center gap-1.5"><PhoneIcon className="w-3.5 h-3.5" /> {cliente.telefono || <span className="italic text-neutral-400">N/A</span>}</div>
