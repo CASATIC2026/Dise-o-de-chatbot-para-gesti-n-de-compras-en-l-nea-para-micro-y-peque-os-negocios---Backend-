@@ -93,17 +93,23 @@ app.post('/api/webhook', async (req, res) => {
         res.sendStatus(500);
     }
 });
-app.all('api/pagos/*', async (req, res) => {
-    subPath = req.params[0];
-    targetUrl = `${PAGOS_URL}/api/pagos${subPath}`;
-    console.log(`📡 Reenviando a: ${targetUrl}`);
+app.all('/api/pagos/*', async (req, res) => {
+    const subPath = req.params[0];
+    const targetUrl = `${PAGOS_URL}/api/pagos/${subPath}`;
+    console.log(` Reenviando a: ${targetUrl}`);
     try {
         const response = await axios({
             method: req.method,
-            url : targetUrl,
-            data : req.body,
-            params : req.query,
-            headers : req.headers
+            url: targetUrl,
+            data: req.body,
+            params: req.query,
+            headers: {
+                //firmas de wompi
+                'content-type': req.headers['content-type'] || 'application/json',
+                'x-event-checksum': req.headers['x-event-checksum'],
+                'user-agent': req.headers['user-agent']
+            },
+            timeout: 5000 // tiempo de solicitud
         });
         res.status(response.status).json(response.data);
     } catch (error) {
