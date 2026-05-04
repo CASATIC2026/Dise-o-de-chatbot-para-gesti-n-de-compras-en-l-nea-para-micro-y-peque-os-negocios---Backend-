@@ -238,9 +238,9 @@ function App() {
             children: [
                 { index: true, element: createProtectedElement(<Dashboard notifications={notifications} />, userRole) },
                 { path: 'inventario', element: allowedRoutes.includes('/inventario') ? <Inventario /> : <Navigate to="/" replace /> },
-                { path: 'pedidos', element: allowedRoutes.includes('/pedidos') ? <Pedidos /> : <Navigate to="/" replace /> },
                 { path: 'clientes', element: allowedRoutes.includes('/clientes') ? <Clientes /> : <Navigate to="/" replace /> },
                 { path: 'usuarios', element: allowedRoutes.includes('/usuarios') ? <Usuarios /> : <Navigate to="/" replace /> },
+                { path: 'pedidos', element: allowedRoutes.includes('/pedidos') ? <Pedidos /> : <Navigate to="/" replace /> },
                 { path: 'pagos', element: allowedRoutes.includes('/pagos') ? <Pagos /> : <Navigate to="/" replace /> },
                 { path: 'conversaciones', element: allowedRoutes.includes('/conversaciones') ? <Conversaciones /> : <Navigate to="/" replace /> },
                 { path: 'mensajes', element: allowedRoutes.includes('/mensajes') ? <Mensajes /> : <Navigate to="/" replace /> },

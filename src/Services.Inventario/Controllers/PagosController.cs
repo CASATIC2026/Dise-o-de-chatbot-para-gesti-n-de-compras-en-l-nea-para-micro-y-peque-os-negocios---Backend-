@@ -94,7 +94,12 @@ public class PagosController : ControllerBase
             return Ok(BuildPagoPedidoResponse(pago, pedido));
         }
 
-        if (pedido.Estado == EstadoPedido.Cancelado || pago.Estado == EstadoPago.Cancelado)
+        if (pago.Estado == EstadoPago.Cancelado)
+        {
+            return BadRequest(new { message = $"El pago del pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
+        }
+
+        if (pedido.Estado == EstadoPedido.Cancelado && pago.Estado != EstadoPago.Pendiente)
         {
             return BadRequest(new { message = $"El pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
         }

@@ -27,10 +27,10 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
     const navItems = [
         { path: '/',              label: 'Dashboard',      Icon: DashboardIcon },
         { path: '/inventario',    label: 'Inventario',     Icon: InventoryIcon },
-        { path: '/pedidos',       label: 'Pedidos',        Icon: OrdersIcon },
         { path: '/categorias',    label: 'Categorías',     Icon: CategoriesIcon },
         { path: '/clientes',      label: 'Clientes',       Icon: ClientsIcon },
         { path: '/usuarios',      label: 'Usuarios',       Icon: UsersIcon },
+        { path: '/pedidos',       label: 'Pedidos',        Icon: OrdersIcon },
         { path: '/pagos',         label: 'Pagos',          Icon: PaymentsIcon },
         { path: '/conversaciones',label: 'Conversaciones', Icon: ConversationsIcon },
         { path: '/mensajes',      label: 'Mensajes',       Icon: MessagesIcon },
