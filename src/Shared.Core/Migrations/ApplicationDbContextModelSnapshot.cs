@@ -411,7 +411,7 @@ namespace Shared.Core.Migrations
                     b.Property<int>("Rol")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(1);
+                        .HasDefaultValue(2);
 
                     b.Property<string>("Telefono")
                         .HasColumnType("text");

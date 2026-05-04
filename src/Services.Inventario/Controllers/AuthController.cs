@@ -27,7 +27,8 @@ public class AuthController : ControllerBase
         var usuario = await _context.Usuarios
             .FirstOrDefaultAsync(u => u.Email == request.Email);
         
-        /*Console.WriteLine($"Email: {request.Email}, Password: {request.Password}");
+        /*
+        Console.WriteLine($"Email: {request.Email}, Password: {request.Password}");
         Console.WriteLine("Hash en DB: {hash}" + usuario.ContrasenaHash + " " + usuario.ContrasenaHash.Length);
         Console.WriteLine(BCrypt.Net.BCrypt.HashPassword(request.Password));
         if (usuario == null)

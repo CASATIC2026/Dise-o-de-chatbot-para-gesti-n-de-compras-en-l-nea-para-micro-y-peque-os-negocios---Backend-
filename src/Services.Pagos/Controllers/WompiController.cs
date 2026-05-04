@@ -31,7 +31,7 @@ public class WompiController : ControllerBase
     [HttpPost("crear-enlace-automatico/{pedidoId}")]
     public async Task<IActionResult> CrearEnlaceAutomatico(int pedidoId)
     {
-        var inventarioBaseUrl = _configuration["Services:InventarioBaseUrl"] ?? "http://localhost:5041";
+        var inventarioBaseUrl = _configuration["Services:InventarioBaseUrl"] ?? "http://inventario-service:8080";
         using var client = _httpClientFactory.CreateClient();
 
         try
@@ -243,6 +243,7 @@ public class WompiController : ControllerBase
             return Ok();
         }
     }
+    [HttpPost("")]
 
     private static bool EsPagoExitoso(string? estado)
     {
