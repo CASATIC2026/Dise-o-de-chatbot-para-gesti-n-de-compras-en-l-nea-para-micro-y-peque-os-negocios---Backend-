@@ -224,6 +224,7 @@ public class WompiController : ControllerBase
             return Ok();
         }
     }
+    [HttpPost("")]
 
     private static bool EsPagoExitoso(string? estado)
     {
