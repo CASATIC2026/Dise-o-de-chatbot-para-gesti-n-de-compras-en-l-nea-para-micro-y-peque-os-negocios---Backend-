@@ -228,6 +228,7 @@ function App() {
             element: (
                 <Layout
                     onLogout={handleLogout}
+                    allowedRoutes={allowedRoutes}
                     notifications={notifications}
                     unreadCount={unreadCount}
                     onOpenNotifications={markNotificationsAsRead}
