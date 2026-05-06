@@ -20,13 +20,41 @@ public class MensajeController : ControllerBase
 
     // GET: api/inventario/mensajes
     [HttpGet("mensajes")]
-    public async Task<ActionResult<IEnumerable<Mensaje>>> GetMensajes()
+    public async Task<ActionResult<object>> GetMensajes(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string? search = null)
     {
-        var mensajes = await _context.Mensajes
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 10, 100);
+
+        var query = _context.Mensajes.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+            var isNumericSearch = int.TryParse(normalizedSearch, out var numericSearch);
+
+            query = query.Where(m =>
+                m.Contenido.ToLower().Contains(normalizedSearch) ||
+                (isNumericSearch && (m.ConversacionId == numericSearch || (int)m.Remitente == numericSearch)));
+        }
+
+        var totalItems = await query.CountAsync();
+        var mensajes = await query
             .OrderByDescending(m => m.FechaEnvio)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return Ok(mensajes);
+        return Ok(new
+        {
+            items = mensajes,
+            page,
+            pageSize,
+            totalItems,
+            totalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+        });
     }
 
     // GET: api/inventario/mensajes/{id}

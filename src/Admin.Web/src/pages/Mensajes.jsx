@@ -5,19 +5,53 @@ import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, UserIcon, HeadsetIcon, Bo
 function Mensajes() {
     const [mensajes, setMensajes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isFetching, setIsFetching] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingMensaje, setEditingMensaje] = useState(null);
     const [formData, setFormData] = useState({ conversacionId: 0, contenido: '', remitente: 1 });
 
-    useEffect(() => { fetchMensajes(); }, []);
-
-    const fetchMensajes = async () => {
+    const fetchMensajes = async (page = currentPage, size = pageSize, search = searchTerm) => {
         try {
-            const response = await api.get('/admin/inventario/mensajes');
-            setMensajes(response.data);
+            setIsFetching(true);
+            const response = await api.get('/admin/inventario/mensajes', {
+                params: {
+                    page,
+                    pageSize: size,
+                    search: search.trim() || undefined
+                }
+            });
+
+            const payload = response.data;
+            const items = Array.isArray(payload) ? payload : payload.items || [];
+
+            setMensajes(items);
+            setTotalItems(payload.totalItems ?? items.length);
+            setTotalPages(Math.max(payload.totalPages ?? 1, 1));
         } catch (error) { console.error('Error fetching mensajes:', error); }
-        finally { setLoading(false); }
+        finally { setLoading(false); setIsFetching(false); }
+    };
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            fetchMensajes(currentPage, pageSize, searchTerm);
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [currentPage, pageSize, searchTerm]);
+
+    const handleSearchChange = (value) => {
+        setSearchTerm(value);
+        setCurrentPage(1);
+    };
+
+    const handlePageSizeChange = (value) => {
+        setPageSize(Number(value));
+        setCurrentPage(1);
     };
 
     const handleOpenModal = (mensaje = null) => {
@@ -32,15 +66,31 @@ function Mensajes() {
         e.preventDefault();
         try {
             const dataToSave = { id: editingMensaje ? Number(editingMensaje.id) : 0, conversacionId: Number(formData.conversacionId), contenido: formData.contenido, remitente: Number(formData.remitente) };
-            if (editingMensaje) { await api.put(`/admin/inventario/mensajes/${editingMensaje.id}`, dataToSave); alert('¡Mensaje actualizado!'); }
-            else { await api.post('/admin/inventario/mensajes', dataToSave); alert('¡Mensaje agregado!'); }
-            fetchMensajes(); handleCloseModal();
+            if (editingMensaje) {
+                await api.put(`/admin/inventario/mensajes/${editingMensaje.id}`, dataToSave);
+                alert('Mensaje actualizado');
+                fetchMensajes();
+            }
+            else {
+                await api.post('/admin/inventario/mensajes', dataToSave);
+                alert('Mensaje agregado');
+                setCurrentPage(1);
+                fetchMensajes(1, pageSize, searchTerm);
+            }
+            handleCloseModal();
         } catch (error) { console.error('Error:', error); alert('Error al guardar/modificar el mensaje'); }
     };
 
     const handleDeletePermanently = async (id) => {
-        if (!confirm('¿Estás seguro de eliminar este mensaje?')) return;
-        try { await api.delete(`/admin/inventario/mensajes/${id}`); fetchMensajes(); }
+        if (!confirm('Estas seguro de eliminar este mensaje?')) return;
+        try {
+            await api.delete(`/admin/inventario/mensajes/${id}`);
+            if (mensajes.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            } else {
+                fetchMensajes();
+            }
+        }
         catch (error) { console.error('Error deleting mensaje:', error); }
     };
 
@@ -48,10 +98,8 @@ function Mensajes() {
     const getRemitenteIcon = (r) => ({ 1: <UserIcon className="w-3.5 h-3.5" />, 2: <HeadsetIcon className="w-3.5 h-3.5" />, 3: <BotIcon className="w-3.5 h-3.5" /> }[r] || null);
     const getRemitenteText = (r) => ({ 1: 'Cliente', 2: 'Soporte', 3: 'Sistema' }[r] || 'Desconocido');
 
-    const filteredMensajes = mensajes.filter(m =>
-        (m.contenido && m.contenido.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (m.remitente && m.remitente.toString().includes(searchTerm))
-    );
+    const firstItem = totalItems === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+    const lastItem = Math.min(currentPage * pageSize, totalItems);
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -69,7 +117,7 @@ function Mensajes() {
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input type="text" placeholder="Buscar mensajes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar mensajes..." value={searchTerm} onChange={(e) => handleSearchChange(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none" />
                     </div>
                     <button onClick={() => handleOpenModal()}
@@ -80,18 +128,34 @@ function Mensajes() {
             </div>
 
             <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-sm dark:shadow-none border border-neutral-200 dark:border-dark-border overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-neutral-200 dark:border-dark-border bg-neutral-50/50 dark:bg-dark-input/30">
+                    <div className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                        {isFetching ? 'Actualizando...' : `Mostrando ${firstItem}-${lastItem} de ${totalItems} mensajes`}
+                    </div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                        Filas
+                        <select value={pageSize} onChange={(e) => handlePageSizeChange(e.target.value)}
+                            className="px-3 py-2 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-lg focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500">
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </label>
+                </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[980px] text-left border-collapse">
                         <thead>
                             <tr className="bg-neutral-50/50 dark:bg-dark-input/50 border-b border-neutral-200 dark:border-dark-border">
-                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider whitespace-nowrap">Conversación</th>
+                                <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider whitespace-nowrap">Conversacion</th>
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider">Remitente</th>
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider w-1/2">Contenido</th>
                                 <th className="px-6 py-4 text-xs font-bold text-neutral-500 dark:text-neutral-500 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
-                            {filteredMensajes.map((msg) => (
+                            {mensajes.map((msg) => (
                                 <tr key={msg.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-dark-border bg-white dark:bg-dark-input rounded-md px-2 py-1 inline-block text-sm">#{msg.conversacionId}</div>
@@ -120,12 +184,26 @@ function Mensajes() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredMensajes.length === 0 && (
+                    {mensajes.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
                             <MessagesIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron mensajes.</span>
                         </div>
                     )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-neutral-200 dark:border-dark-border">
+                    <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Pagina {currentPage} de {totalPages}</span>
+                    <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))} disabled={currentPage <= 1 || isFetching}
+                            className="px-4 py-2 rounded-lg border border-neutral-200 dark:border-dark-border text-sm font-semibold text-neutral-700 dark:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 dark:hover:bg-dark-input transition-colors">
+                            Anterior
+                        </button>
+                        <button type="button" onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))} disabled={currentPage >= totalPages || isFetching}
+                            className="px-4 py-2 rounded-lg border border-neutral-200 dark:border-dark-border text-sm font-semibold text-neutral-700 dark:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 dark:hover:bg-dark-input transition-colors">
+                            Siguiente
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -140,7 +218,7 @@ function Mensajes() {
                             <form id="mensajeForm" onSubmit={handleSubmit} className="space-y-5">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">Conversación ID <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">Conversacion ID <span className="text-red-500">*</span></label>
                                         <input type="number" value={formData.conversacionId} onChange={(e) => setFormData({ ...formData, conversacionId: e.target.value })}
                                             className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all font-mono" required />
                                     </div>
@@ -158,7 +236,7 @@ function Mensajes() {
                                     <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">Contenido <span className="text-red-500">*</span></label>
                                     <textarea value={formData.contenido} onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
                                         className="w-full px-4 py-3 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all resize-y min-h-[120px]"
-                                        placeholder="Escribe el mensaje aquí..." rows="4" required />
+                                        placeholder="Escribe el mensaje aqui..." rows="4" required />
                                 </div>
                             </form>
                         </div>
