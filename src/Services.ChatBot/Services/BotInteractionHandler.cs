@@ -15,7 +15,8 @@ namespace Webhook.Controllers.Services;
 public class BotInteractionHandler(
 IBotPersistencia _persistencia,
 BotRenderer renderer,
-ICatalogoUI catalogoUI)
+ICatalogoUI catalogoUI,
+PaymentService _paymentService)
 {
     /// <summary>
     /// Handles the increment and decrement of product quantities in the product detail view.
@@ -229,14 +230,17 @@ ICatalogoUI catalogoUI)
         var pedido = new PedidoDTO();
         pedido.Estado = EstadoPedido.Confirmado;
         if (pedidoactual != null)
-            pedido.Total = pedidoactual.Total;
-
-
-        var (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido);
-        if (Succes)
         {
-            await bot.AnswerCallbackQuery(callbackQuery.Id, msg, showAlert: true);
-            await renderer.RenderizarOrdenes(bot, callbackQuery, 0);
+            pedido.Total = pedidoactual.Total;
+            pedido.Id = pedidoactual.Id;
+        }
+        
+        var data = await _paymentService.GeneratedPaymentLink(pedido.Id);
+        await renderer.RenderizarTicket(bot, callbackQuery, data!, pedido);
+        /*if (data != null)
+        {
+            //await bot.AnswerCallbackQuery(callbackQuery.Id, msg, showAlert: true);
+            //await renderer.RenderizarOrdenes(bot, callbackQuery, 0);                                
         }
         else
         {
@@ -247,6 +251,6 @@ ICatalogoUI catalogoUI)
             await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
             //await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
             await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
-        }
+        }*/
     }
 }

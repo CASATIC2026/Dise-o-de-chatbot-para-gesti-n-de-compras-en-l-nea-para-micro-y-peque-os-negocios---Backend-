@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Humanizer;
 using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
 using Shared.Core.Entities;
@@ -125,4 +126,27 @@ public class CarritoModule : ICarrito
     };
         return (sb.ToString(), new InlineKeyboardMarkup(buttons));
     }
+
+    public (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId, string url)
+    {
+        var sb = new StringBuilder();
+        var keyboard = new InlineKeyboardMarkup();
+        if (pagosLinks == null || string.IsNullOrEmpty(pagosLinks.Url))
+        {
+            keyboard.AddButton(InlineKeyboardButton.WithCallbackData("🔄 Reintentar", "checkoutEnd"));
+            keyboard.AddButton(InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart"));            
+            return ("⚠️ No pudimos generar el pago. Inténtalo de nuevo", keyboard);
+        }
+            
+        sb.AppendLine($"*¡ORDEN \\#{pedidoId} LISTA\\!*\n");
+        sb.AppendLine($"*Referencia:* `{pagosLinks.Referencia}`");
+        sb.AppendLine($"*Estado:* {pagosLinks.EstadoPago}\n");
+        sb.AppendLine($"Haz clic en el botón de abajo para pagar");        
+        
+        keyboard.AddButton(InlineKeyboardButton.WithUrl("➡️ IR A PAGAR", url));
+        keyboard.AddButton(InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart"));
+        
+        return (sb.ToString(), keyboard);
+    }
+    
 }

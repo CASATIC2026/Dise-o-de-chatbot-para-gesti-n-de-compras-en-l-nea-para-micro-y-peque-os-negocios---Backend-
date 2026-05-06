@@ -61,7 +61,7 @@ BotOnMsgInteractionHandler onMsgInteractionHandler
         var conv = await _persistencia.ObtenerConversacionActiva(cb.From.Id);
         if (conv != null)
         {
-            var tiempoLimite = TimeSpan.FromSeconds(120); //Limited de token de conversacion
+            var tiempoLimite = TimeSpan.FromSeconds(300); //Limited de token de conversacion
             var inactividad = DateTime.UtcNow - conv.ActualizadoEn;
 
             bool esMessajeValido = cb.Message!.MessageId.ToString() == conv.Asunto;
