@@ -8,6 +8,9 @@ using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
+/// <summary>
+/// API Controller for managing system users and their credentials.
+/// </summary>
 [ApiController]
 [Route("api/inventario")]
 public class UsuarioController : ControllerBase
@@ -15,12 +18,21 @@ public class UsuarioController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<UsuarioController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UsuarioController"/> class.
+    /// </summary>
+    /// <param name="context">The database context.</param>
+    /// <param name="logger">The logger instance.</param>
     public UsuarioController(ApplicationDbContext context, ILogger<UsuarioController> logger)
     {
         _context = context;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Retrieves all users ordered by name.
+    /// </summary>
+    /// <returns>A list of all users.</returns>
     // GET: api/inventario/usuarios
     [HttpGet("usuarios")]
     public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
@@ -32,6 +44,13 @@ public class UsuarioController : ControllerBase
         return Ok(usuarios);
     }
 
+    /// <summary>
+    /// Retrieves a paged result of users with optional search filtering by name, email, or phone.
+    /// </summary>
+    /// <param name="page">The page number (defaults to 1).</param>
+    /// <param name="pageSize">The number of items per page (defaults to 10).</param>
+    /// <param name="search">A string to filter users.</param>
+    /// <returns>A paged result containing the requested users.</returns>
     // GET: api/inventario/usuarios/paged
     [HttpGet("usuarios/paged")]
     public async Task<ActionResult<PagedResult<Usuario>>> GetUsuariosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
@@ -56,6 +75,11 @@ public class UsuarioController : ControllerBase
         return Ok(new PagedResult<Usuario> { Items = items, TotalCount = total });
     }
 
+    /// <summary>
+    /// Retrieves a specific user by their unique identifier.
+    /// </summary>
+    /// <param name="id">The user ID.</param>
+    /// <returns>The requested user if found; otherwise, 404 Not Found.</returns>
     // GET: api/inventario/usuarios/{id}
     [HttpGet("usuarios/{id}")]
     public async Task<ActionResult<Usuario>> GetUsuario(int id)
@@ -70,6 +94,11 @@ public class UsuarioController : ControllerBase
         return Ok(usuario);
     }
 
+    /// <summary>
+    /// Creates a new user and hashes the provided password.
+    /// </summary>
+    /// <param name="usuario">The user data to create.</param>
+    /// <returns>The created user record.</returns>
     // POST: api/inventario/usuarios
     [HttpPost("usuarios")]
     public async Task<ActionResult<Usuario>> CreateUsuario([FromBody] Usuario usuario)
@@ -91,6 +120,12 @@ public class UsuarioController : ControllerBase
         return CreatedAtAction(nameof(GetUsuario), new { id = usuario.Id }, usuario);
     }
 
+    /// <summary>
+    /// Updates an existing user's details and re-hashes the password if provided.
+    /// </summary>
+    /// <param name="id">The user ID to update.</param>
+    /// <param name="usuario">The updated user data.</param>
+    /// <returns>204 No Content if successful; otherwise, an error response.</returns>
     // PUT: api/inventario/usuarios/{id}
     [HttpPut("usuarios/{id}")]
     public async Task<IActionResult> UpdateUsuario(int id, [FromBody] Usuario usuario)
@@ -125,6 +160,11 @@ public class UsuarioController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Permanently deletes a user from the database.
+    /// </summary>
+    /// <param name="id">The unique identifier of the user to delete.</param>
+    /// <returns>204 No Content if successful; otherwise, 404 Not Found.</returns>
     // DELETE: api/inventario/usuarios/{id}
     [HttpDelete("usuarios/{id}")]
     public async Task<IActionResult> DeleteUsuario(int id)

@@ -8,6 +8,9 @@ using System.Text;
 
 namespace Services.Inventario.Controllers;
 
+/// <summary>
+/// Controller responsible for handling authentication and authorization requests.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -15,12 +18,22 @@ public class AuthController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _config;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthController"/> class.
+    /// </summary>
+    /// <param name="context">The database context used to access user information.</param>
+    /// <param name="config">The configuration used to retrieve security settings like JWT secrets.</param>
     public AuthController(ApplicationDbContext context, IConfiguration config)
     {
         _context = context;
         _config = config;
     }
 
+    /// <summary>
+    /// Authenticates a user based on email and password and returns a JWT token.
+    /// </summary>
+    /// <param name="request">The login request details.</param>
+    /// <returns>An <see cref="IActionResult"/> containing the JWT token and user info if successful, or Unauthorized if not.</returns>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
@@ -85,9 +98,18 @@ public class AuthController : ControllerBase
     }
 }
 
-// Clase para recibir los datos del post
+/// <summary>
+/// Represents a request to log in to the system.
+/// </summary>
 public class LoginRequest
 {
+    /// <summary>
+    /// The email address of the user.
+    /// </summary>
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The plain-text password of the user.
+    /// </summary>
     public string Password { get; set; } = string.Empty;
 }
