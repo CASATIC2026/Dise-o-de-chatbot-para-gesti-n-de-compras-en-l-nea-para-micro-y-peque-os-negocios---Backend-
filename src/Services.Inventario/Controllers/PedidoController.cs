@@ -4,6 +4,7 @@ using Shared.Core.Data;
 using Shared.Core.Entities;
 using Microsoft.AspNetCore.SignalR; // <-- Agregado
 using Service.Inventario.Hubs;      // <-- Agregado (Asegúrate que el namespace coincida con tu NotificationHub)
+using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
@@ -35,6 +36,30 @@ public class PedidoController : ControllerBase
             .ToListAsync();
 
         return Ok(pedidos);
+    }
+
+    // GET: api/inventario/pedidos/paged
+    [HttpGet("pedidos/paged")]
+    public async Task<ActionResult<PagedResult<Pedido>>> GetPedidosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
+    {
+        var query = _context.Pedidos.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(p => p.Id.ToString().Contains(s) || 
+                                    (p.DireccionEntrega != null && p.DireccionEntrega.ToLower().Contains(s)) ||
+                                    (p.ReferenciaWompi != null && p.ReferenciaWompi.ToLower().Contains(s)));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(p => p.CreadoEn)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new PagedResult<Pedido> { Items = items, TotalCount = total });
     }
 
     // GET: api/inventario/pedidos/{id}

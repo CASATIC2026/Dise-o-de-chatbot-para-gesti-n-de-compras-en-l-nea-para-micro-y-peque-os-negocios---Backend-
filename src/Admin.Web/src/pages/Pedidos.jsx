@@ -1,24 +1,41 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, OrdersIcon, ClockIcon, CheckCircleIcon, MoneyIcon, TruckIcon, CloseIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 const inputCls = "w-full px-4 py-2.5 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all";
 const labelCls = "block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5";
 
 function Pedidos() {
     const [pedidos, setPedidos] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingPedido, setEditingPedido] = useState(null);
     const [formData, setFormData] = useState({ usuarioId: 0, clienteId: 0, estado: 0, total: 0, direccionEntrega: '', detallesJson: '[]', referenciaWompi: '' });
 
-    useEffect(() => { fetchPedidos(); }, []);
+    useEffect(() => { 
+        fetchPedidos(); 
+    }, [currentPage, searchTerm]);
 
     const fetchPedidos = async () => {
-        try { const r = await api.get('/admin/inventario/pedidos'); setPedidos(r.data); }
-        catch (e) { console.error('Error fetching pedidos:', e); }
-        finally { setLoading(false); }
+        try {
+            const response = await api.get('/admin/inventario/pedidos/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setPedidos(response.data.items);
+            setTotalCount(response.data.totalCount);
+        } catch (e) { 
+            console.error('Error fetching pedidos:', e); 
+        } finally { setLoading(false); }
     };
 
     const handleOpenModal = (pedido = null) => {
@@ -48,11 +65,8 @@ function Pedidos() {
     const getEstadoStyles = (s) => ({ 0: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/30', 1: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/30', 2: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/30', 3: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/30', 4: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/30' }[s] || 'bg-neutral-50 dark:bg-dark-input text-neutral-700 dark:text-neutral-400 border-neutral-200 dark:border-dark-border');
     const getEstadoText = (s) => ({ 0: 'Pendiente', 1: 'Confirmado', 2: 'Pagado', 3: 'Enviado', 4: 'Cancelado' }[s] || 'Desconocido');
 
-    const filteredPedidos = pedidos.filter(p =>
-        p.clienteId.toString().includes(searchTerm) ||
-        getEstadoText(p.estado).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.total.toString().includes(searchTerm)
-    );
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
     if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div></div>;
 
@@ -66,7 +80,7 @@ function Pedidos() {
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input type="text" placeholder="Buscar pedidos..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar pedidos..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none" />
                     </div>
                     <button onClick={() => handleOpenModal()} className="bg-primary-600 dark:bg-cyan-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-primary-500/30 dark:shadow-cyan-500/20 hover:bg-primary-700 dark:hover:bg-cyan-700 hover:shadow-md transition-all flex items-center justify-center whitespace-nowrap gap-2">
@@ -86,7 +100,7 @@ function Pedidos() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
-                            {filteredPedidos.map((pedido) => (
+                            {pedidos.map((pedido) => (
                                 <tr key={pedido.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-neutral-900 dark:text-neutral-100">#{pedido.id.toString().padStart(4, '0')}</td>
                                     <td className="px-6 py-4">
@@ -118,13 +132,20 @@ function Pedidos() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredPedidos.length === 0 && (
+                    {pedidos.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
                             <OrdersIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron pedidos.</span>
                         </div>
                     )}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {showModal && (

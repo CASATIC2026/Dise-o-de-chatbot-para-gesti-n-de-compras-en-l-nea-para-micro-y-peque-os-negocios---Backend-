@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PhoneIcon, ShieldIcon, CrossIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
 
 const inputCls = "w-full px-4 py-2.5 bg-neutral-50 dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 rounded-xl placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:bg-white dark:focus:bg-dark-surface focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all";
 const labelCls = "block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5";
@@ -61,18 +62,32 @@ const initialFormData = {
 
 function Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingUsuario, setEditingUsuario] = useState(null);
     const [formData, setFormData] = useState({ nombre: '', email: '', contrasenaHash: '', rol: 1, estado: true, telefono: '' });
 
-    useEffect(() => { fetchUsuarios(); }, []);
+    const ITEMS_PER_PAGE = 10;
+
+    useEffect(() => { 
+        fetchUsuarios(); 
+    }, [currentPage, searchTerm]);
 
     const fetchUsuarios = async () => {
         try {
-            const response = await api.get('/admin/inventario/usuarios');
-            setUsuarios(response.data);
+            setLoading(true);
+            const response = await api.get('/admin/inventario/usuarios/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setUsuarios(response.data.items);
+            setTotalCount(response.data.totalCount);
         } catch (error) {
             console.error('Error fetching usuarios:', error);
         } finally {
@@ -165,76 +180,9 @@ function Usuarios() {
         }
     };
 
-    const filteredUsuarios = usuarios.filter((user) =>
-        user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getRolText(user.rol).toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
-    const administradores = filteredUsuarios.filter((usuario) => usuario.rol === ROLES.ADMINISTRADOR);
-    const vendedores = filteredUsuarios.filter((usuario) => usuario.rol === ROLES.VENDEDOR);
-
-    const renderTablaUsuarios = (listaUsuarios, emptyMessage) => (
-        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none border border-gray-200 dark:border-dark-border overflow-x-auto">
-            <table className="w-full min-w-[920px]">
-                <thead className="bg-gray-50 dark:bg-dark-input border-b border-gray-200 dark:border-dark-border">
-                    <tr>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Nombre</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Email</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rol</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-dark-border">
-                    {listaUsuarios.length > 0 ? (
-                        listaUsuarios.map((usuario) => (
-                            <tr key={usuario.id} className="hover:bg-gray-50 dark:hover:bg-dark-input/50">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{usuario.nombre}</td>
-                                <td className="px-6 py-4 text-gray-900 dark:text-gray-200">{usuario.email}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
-                                        {getRolText(usuario.rol)}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'}`}>
-                                        {usuario.estado ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => handleOpenModal(usuario)}
-                                            className="p-2 text-primary-600 dark:text-cyan-400 hover:bg-primary-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
-                                            title="Editar"
-                                        >
-                                            <ActionIcon name="edit" />
-                                            <span className="hidden sm:inline">Editar</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePermanently(usuario.id)}
-                                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
-                                            title="Eliminar"
-                                        >
-                                            <ActionIcon name="delete" />
-                                            <span className="hidden sm:inline">Eliminar</span>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                {emptyMessage}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
-    );
 
     if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div></div>;
 
@@ -254,7 +202,7 @@ function Usuarios() {
                             type="text"
                             placeholder="Buscar usuarios..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-input border border-gray-200 dark:border-dark-border text-gray-900 dark:text-gray-100 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-cyan-500 transition-all"
                         />
                     </div>
@@ -268,37 +216,73 @@ function Usuarios() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none p-5 border-l-4 border-blue-500">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Administradores</p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{administradores.length}</p>
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none border border-gray-200 dark:border-dark-border overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[920px]">
+                        <thead className="bg-gray-50 dark:bg-dark-input border-b border-gray-200 dark:border-dark-border">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Nombre</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Email</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rol</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-dark-border">
+                            {usuarios.length > 0 ? (
+                                usuarios.map((usuario) => (
+                                    <tr key={usuario.id} className="hover:bg-gray-50 dark:hover:bg-dark-input/50">
+                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{usuario.nombre}</td>
+                                        <td className="px-6 py-4 text-gray-900 dark:text-gray-200">{usuario.email}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
+                                                {getRolText(usuario.rol)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'}`}>
+                                                {usuario.estado ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => handleOpenModal(usuario)}
+                                                    className="p-2 text-primary-600 dark:text-cyan-400 hover:bg-primary-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
+                                                    title="Editar"
+                                                >
+                                                    <ActionIcon name="edit" />
+                                                    <span className="hidden sm:inline">Editar</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePermanently(usuario.id)}
+                                                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
+                                                    title="Eliminar"
+                                                >
+                                                    <ActionIcon name="delete" />
+                                                    <span className="hidden sm:inline">Eliminar</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                        No se encontraron usuarios.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-                <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none p-5 border-l-4 border-emerald-500">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Vendedores</p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{vendedores.length}</p>
-                </div>
-                <div className="bg-white dark:bg-dark-surface rounded-xl shadow-md dark:shadow-none p-5 border-l-4 border-gray-400">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total usuarios panel</p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{filteredUsuarios.length}</p>
-                </div>
-            </div>
-
-            <div className="space-y-8">
-                <section>
-                    <div className="mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Vendedores</h2>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Usuarios con acceso operativo limitado respecto al administrador.</p>
-                    </div>
-                    {renderTablaUsuarios(vendedores, 'No hay vendedores para mostrar.')}
-                </section>
-
-                <section>
-                    <div className="mb-4">
-                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Administradores</h2>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Estos usuarios mantienen acceso completo al panel.</p>
-                    </div>
-                    {renderTablaUsuarios(administradores, 'No hay administradores para mostrar.')}
-                </section>
+                <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {showModal && (

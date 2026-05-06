@@ -6,22 +6,16 @@ import {
     MessagesIcon, LogoutIcon, MenuIcon, CloseIcon,
     ChatlyIcon, SunIcon, MoonIcon, CheckCircleIcon, AlertIcon
 } from './Icons';
+import { getNotifColor, getNotifIcon, getNotifTextColor } from '../utils/notifications';
 
 function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotifications, isDark, toggleDark }) {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
-    const Icon = ({ name, className }) => {
-        const icons = {
-            notification: MessagesIcon,
-            close: CloseIcon,
-            success: CheckCircleIcon,
-            warning: AlertIcon,
-            error: AlertIcon,
-            info: MessagesIcon,
-        };
-        const SelectedIcon = icons[name] || MessagesIcon;
-        return <SelectedIcon className={className} />;
+    const toggleNotificationPanel = () => {
+        const nextValue = !isNotificationPanelOpen;
+        setIsNotificationPanelOpen(nextValue);
+        if (nextValue) onOpenNotifications?.();
     };
 
     const navItems = [
@@ -38,12 +32,6 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
 
     const isActive = (path) => location.pathname === path;
     const recentNotifications = notifications.slice(0, 6);
-
-    const toggleNotificationPanel = () => {
-        const nextValue = !isNotificationPanelOpen;
-        setIsNotificationPanelOpen(nextValue);
-        if (nextValue) onOpenNotifications?.();
-    };
 
     return (
         <div className="flex flex-col md:flex-row h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden relative transition-colors duration-300">
@@ -82,7 +70,7 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
                         className="relative p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                         aria-label="Notificaciones"
                     >
-                        <Icon name="notification" className="w-5 h-5" />
+                        <MessagesIcon className="w-5 h-5" />
                         {unreadCount > 0 && (
                             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -180,7 +168,7 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
                             onClick={toggleNotificationPanel}
                             className="relative flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
-                            <Icon name="notification" className="w-5 h-5" />
+                            <MessagesIcon className="w-5 h-5" />
                             <span>Notificaciones</span>
                             {unreadCount > 0 && (
                                 <span className="min-w-[22px] h-[22px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
@@ -202,28 +190,31 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
                                     onClick={() => setIsNotificationPanelOpen(false)}
                                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
                                 >
-                                    <Icon name="close" className="w-5 h-5" />
+                                    <CloseIcon className="w-5 h-5" />
                                 </button>
                             </div>
                             <div className="max-h-80 overflow-y-auto p-4 space-y-3">
                                 {recentNotifications.length === 0 && (
                                     <p className="text-sm text-gray-400 dark:text-gray-500">Todavía no hay notificaciones.</p>
                                 )}
-                                {recentNotifications.map((notification) => (
-                                    <div
-                                        key={notification.id}
-                                        className={`flex items-start gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-700 ${notification.color}`}
-                                    >
-                                        <span className="mt-0.5 text-gray-700">
-                                            <Icon name={notification.icono} className="w-5 h-5" />
-                                        </span>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{notification.titulo}</p>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{notification.mensaje}</p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{notification.fecha}</p>
+                                {recentNotifications.map((notification) => {
+                                    const NotifIcon = getNotifIcon(notification.icono);
+                                    return (
+                                        <div
+                                            key={notification.id}
+                                            className={`flex items-start gap-3 p-3 rounded-xl border ${getNotifColor(notification.color)}`}
+                                        >
+                                            <span className={`mt-0.5 shrink-0 ${getNotifTextColor(notification.color)}`}>
+                                                <NotifIcon className="w-5 h-5" />
+                                            </span>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{notification.titulo}</p>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">{notification.mensaje}</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{notification.fecha}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

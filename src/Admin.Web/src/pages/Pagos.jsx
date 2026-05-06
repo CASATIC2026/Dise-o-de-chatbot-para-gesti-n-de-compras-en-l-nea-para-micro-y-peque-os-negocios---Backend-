@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PaymentsIcon, CloseIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
 
 // Shared input class
 const inputCls = "w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-xl placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 transition-all";
@@ -34,21 +35,34 @@ const getErrorMessage = (error) => {
 
 function Pagos() {
     const [pagos, setPagos] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingPago, setEditingPago] = useState(null);
     const [formData, setFormData] = useState({ pedidoId: '', monto: '', metodoPago: '', estado: 1, referenciaTransaccion: '' });
     const [generatingQrId, setGeneratingQrId] = useState(null);
     const [qrModal, setQrModal] = useState(null);
 
-    useEffect(() => { fetchPagos(); }, []);
+    const ITEMS_PER_PAGE = 10;
+
+    useEffect(() => { 
+        fetchPagos(); 
+    }, [currentPage, searchTerm]);
 
     const fetchPagos = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/admin/pagos');
-            setPagos(response.data);
+            const response = await api.get('/admin/pagos/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setPagos(response.data.items);
+            setTotalCount(response.data.totalCount);
         } catch (error) {
             console.error('Error fetching pagos:', error);
         } finally {
@@ -165,13 +179,10 @@ const getEstadoColor = (s) => ({
         4: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'
     }[s] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600');
 
-    const filteredPagos = pagos.filter(pago =>
-        (pago.referenciaTransaccion?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        pago.metodoPago.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pago.pedidoId.toString().includes(searchTerm)
-    );
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
-    if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>;
+    if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div></div>;
 
     return (
         <div className="animate-fade-in">
@@ -184,7 +195,7 @@ const getEstadoColor = (s) => ({
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder="Buscar pagos..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar pagos..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 transition-all shadow-sm" />
                     </div>
                     <button onClick={() => handleOpenModal()} className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-primary-500/30 hover:bg-primary-700 hover:shadow-md transition-all flex items-center justify-center whitespace-nowrap gap-2">
@@ -204,7 +215,7 @@ const getEstadoColor = (s) => ({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {filteredPagos.map((pago) => (
+                            {pagos.map((pago) => (
                                 <tr key={pago.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md px-2 py-1 inline-block text-sm">#{pago.pedidoId}</div>
@@ -249,13 +260,20 @@ const getEstadoColor = (s) => ({
                             ))}
                         </tbody>
                     </table>
-                    {filteredPagos.length === 0 && (
+                    {pagos.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-gray-500 dark:text-gray-400">
                             <PaymentsIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron pagos.</span>
                         </div>
                     )}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {showModal && (

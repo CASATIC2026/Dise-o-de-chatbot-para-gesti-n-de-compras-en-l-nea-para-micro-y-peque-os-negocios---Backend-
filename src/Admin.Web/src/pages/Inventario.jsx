@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, EyeIcon, UnavailableIcon, ImageIcon, AlertIcon, CrossIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
 
 function Inventario() {
     const [productos, setProductos] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [showImagePreview, setShowImagePreview] = useState(false);
     const [previewImageUrl, setPreviewImageUrl] = useState('');
@@ -21,15 +24,28 @@ function Inventario() {
     const [categorias, setCategorias] = useState([]);
     const [wasSubmitted, setWasSubmitted] = useState(false);
 
+    const ITEMS_PER_PAGE = 10;
+
     useEffect(() => {
         fetchProductos();
+    }, [currentPage, searchTerm]);
+
+    useEffect(() => {
         fetchCategorias();
     }, []);
 
     const fetchProductos = async () => {
         try {
-            const response = await api.get('/admin/inventario/productos?soloActivos=false');
-            setProductos(response.data);
+            setLoading(true);
+            const response = await api.get('/admin/inventario/productos/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setProductos(response.data.items);
+            setTotalCount(response.data.totalCount);
         } catch (error) {
             console.error('Error fetching productos:', error);
         } finally {
@@ -137,11 +153,8 @@ function Inventario() {
         }
     };
 
-    const filteredProductos = productos.filter(producto =>
-        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.categoriaId.toString().includes(searchTerm)
-    );
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
     if (loading) {
         return (
@@ -167,7 +180,7 @@ function Inventario() {
                             type="text"
                             placeholder="Buscar productos..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none"
                         />
                     </div>
@@ -193,7 +206,7 @@ function Inventario() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
-                            {filteredProductos.map((producto) => (
+                            {productos.map((producto) => (
                                 <tr key={producto.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -220,7 +233,7 @@ function Inventario() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-50 dark:bg-indigo-900/20 text-secondary-700 dark:text-indigo-400 border border-secondary-100 dark:border-indigo-800/30">
-                                            {producto.categoria.nombre}
+                                            {producto.categoria?.nombre || 'Sin categoría'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
@@ -253,7 +266,20 @@ function Inventario() {
                             ))}
                         </tbody>
                     </table>
+                    {productos.length === 0 && (
+                        <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
+                            <AlertIcon className="w-12 h-12 mb-4 opacity-40" />
+                            <span className="font-medium">No se encontraron productos.</span>
+                        </div>
+                    )}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {/* Modal */}

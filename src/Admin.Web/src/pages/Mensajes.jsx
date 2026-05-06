@@ -1,23 +1,38 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, UserIcon, HeadsetIcon, BotIcon, MessagesIcon, CloseIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 function Mensajes() {
     const [mensajes, setMensajes] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingMensaje, setEditingMensaje] = useState(null);
     const [formData, setFormData] = useState({ conversacionId: 0, contenido: '', remitente: 1 });
 
-    useEffect(() => { fetchMensajes(); }, []);
+    useEffect(() => { 
+        fetchMensajes(); 
+    }, [currentPage, searchTerm]);
 
     const fetchMensajes = async () => {
         try {
-            const response = await api.get('/admin/inventario/mensajes');
-            setMensajes(response.data);
-        } catch (error) { console.error('Error fetching mensajes:', error); }
-        finally { setLoading(false); }
+            const response = await api.get('/admin/inventario/mensajes/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setMensajes(response.data.items);
+            setTotalCount(response.data.totalCount);
+        } catch (error) { 
+            console.error('Error fetching mensajes:', error); 
+        } finally { setLoading(false); }
     };
 
     const handleOpenModal = (mensaje = null) => {
@@ -48,10 +63,8 @@ function Mensajes() {
     const getRemitenteIcon = (r) => ({ 1: <UserIcon className="w-3.5 h-3.5" />, 2: <HeadsetIcon className="w-3.5 h-3.5" />, 3: <BotIcon className="w-3.5 h-3.5" /> }[r] || null);
     const getRemitenteText = (r) => ({ 1: 'Cliente', 2: 'Soporte', 3: 'Sistema' }[r] || 'Desconocido');
 
-    const filteredMensajes = mensajes.filter(m =>
-        (m.contenido && m.contenido.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (m.remitente && m.remitente.toString().includes(searchTerm))
-    );
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -69,7 +82,7 @@ function Mensajes() {
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input type="text" placeholder="Buscar mensajes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar mensajes..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none" />
                     </div>
                     <button onClick={() => handleOpenModal()}
@@ -91,7 +104,7 @@ function Mensajes() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
-                            {filteredMensajes.map((msg) => (
+                            {mensajes.map((msg) => (
                                 <tr key={msg.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-dark-border bg-white dark:bg-dark-input rounded-md px-2 py-1 inline-block text-sm">#{msg.conversacionId}</div>
@@ -120,13 +133,20 @@ function Mensajes() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredMensajes.length === 0 && (
+                    {mensajes.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
                             <MessagesIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron mensajes.</span>
                         </div>
                     )}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {showModal && (
