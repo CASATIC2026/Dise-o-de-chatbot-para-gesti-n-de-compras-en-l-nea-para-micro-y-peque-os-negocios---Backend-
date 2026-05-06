@@ -70,6 +70,16 @@ public class PagosController : ControllerBase
 
         var fechaActual = DateTime.UtcNow;
 
+        if (pedido.Estado == EstadoPedido.Cancelado)
+        {
+            return Conflict(new { message = $"El pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
+        }
+
+        if (pedido.Estado == EstadoPedido.Pagado)
+        {
+            return Conflict(new { message = $"El pedido {pedidoId} ya esta pagado y no puede generar nuevos enlaces de pago." });
+        }
+
         if (pago == null)
         {
             var referenciaInicial = pedido.ReferenciaWompi ?? CreateReference(pedido.Id);
@@ -96,30 +106,12 @@ public class PagosController : ControllerBase
 
         if (pago.Estado == EstadoPago.Cancelado)
         {
-            return BadRequest(new { message = $"El pago del pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
+            return Conflict(new { message = $"El pago del pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
         }
 
-        if (pedido.Estado == EstadoPedido.Cancelado && pago.Estado != EstadoPago.Pendiente)
+        if (pago.Estado == EstadoPago.Completado)
         {
-            return BadRequest(new { message = $"El pedido {pedidoId} esta cancelado y no puede generar enlaces de pago." });
-        }
-
-        if (pedido.Estado == EstadoPedido.Pagado || pago.Estado == EstadoPago.Completado)
-        {
-            var nuevaReferencia = CreateReference(pedido.Id);
-            pedido.Estado = EstadoPedido.Pendiente;
-            pedido.ReferenciaWompi = nuevaReferencia;
-            pedido.ActualizadoEn = fechaActual;
-
-            pago.Estado = EstadoPago.Pendiente;
-            pago.Monto = pedido.Total;
-            pago.MetodoPago = string.IsNullOrWhiteSpace(pago.MetodoPago) ? "WOMPI" : pago.MetodoPago;
-            pago.ReferenciaTransaccion = nuevaReferencia;
-            pago.FechaPago = fechaActual;
-            pago.ActualizadoEn = fechaActual;
-
-            await _context.SaveChangesAsync();
-            return Ok(BuildPagoPedidoResponse(pago, pedido));
+            return Conflict(new { message = $"El pago del pedido {pedidoId} ya esta completado y no puede generar nuevos enlaces de pago." });
         }
 
         if (string.IsNullOrWhiteSpace(pago.ReferenciaTransaccion))

@@ -53,6 +53,12 @@ public class WompiController : ControllerBase
                 return BadRequest("Datos invalidos desde Inventario");
             }
 
+            var validacionEstado = ValidarEstadosParaCrearEnlace(pedidoId, pagoDb);
+            if (validacionEstado != null)
+            {
+                return Conflict(validacionEstado);
+            }
+
             var montoFinal = pagoDb.Monto > 0 ? pagoDb.Monto : pagoDb.Total;
             var montoMaximoPorEnlace = _configuration.GetValue<decimal?>("Wompi:MaxAmountPerLink") ?? 1000m;
 
@@ -236,6 +242,60 @@ public class WompiController : ControllerBase
         return estado.Equals("ExitosaAprobada", StringComparison.OrdinalIgnoreCase)
             || estado.Contains("Aprobada", StringComparison.OrdinalIgnoreCase)
             || estado.Contains("Exitosa", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static object? ValidarEstadosParaCrearEnlace(int pedidoId, PagoDto pago)
+    {
+        const int estadoPedidoPagado = 2;
+        const int estadoPedidoCancelado = 4;
+        const int estadoPagoCompletado = 2;
+        const int estadoPagoCancelado = 4;
+
+        if (pago.EstadoPedido == estadoPedidoCancelado)
+        {
+            return new
+            {
+                message = $"El pedido {pedidoId} esta cancelado y no puede generar enlaces de pago.",
+                pedidoId,
+                estadoPedido = pago.EstadoPedido,
+                estadoPago = pago.EstadoPago
+            };
+        }
+
+        if (pago.EstadoPedido == estadoPedidoPagado)
+        {
+            return new
+            {
+                message = $"El pedido {pedidoId} ya esta pagado y no puede generar nuevos enlaces de pago.",
+                pedidoId,
+                estadoPedido = pago.EstadoPedido,
+                estadoPago = pago.EstadoPago
+            };
+        }
+
+        if (pago.EstadoPago == estadoPagoCompletado)
+        {
+            return new
+            {
+                message = $"El pago del pedido {pedidoId} ya esta completado y no puede generar nuevos enlaces de pago.",
+                pedidoId,
+                estadoPedido = pago.EstadoPedido,
+                estadoPago = pago.EstadoPago
+            };
+        }
+
+        if (pago.EstadoPago == estadoPagoCancelado)
+        {
+            return new
+            {
+                message = $"El pago del pedido {pedidoId} esta cancelado y no puede generar enlaces de pago.",
+                pedidoId,
+                estadoPedido = pago.EstadoPedido,
+                estadoPago = pago.EstadoPago
+            };
+        }
+
+        return null;
     }
 
     public class PagoDto

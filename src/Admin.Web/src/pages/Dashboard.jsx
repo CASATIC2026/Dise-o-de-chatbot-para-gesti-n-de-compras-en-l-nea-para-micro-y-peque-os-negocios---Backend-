@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/client';
-import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon } from '../components/Icons';
+import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon, InfoIcon } from '../components/Icons';
 
 function Dashboard({ notifications = [] }) {
     const [stats, setStats] = useState(null);
@@ -30,6 +30,17 @@ function Dashboard({ notifications = [] }) {
 
     const toggleWidget = (widget) => {
         setWidgets((prev) => ({ ...prev, [widget]: !prev[widget] }));
+    };
+
+    const NotificationIcon = ({ name }) => {
+        const icons = {
+            success: CheckCircleIcon,
+            warning: AlertIcon,
+            error: AlertIcon,
+            info: InfoIcon,
+        };
+        const SelectedIcon = icons[name] || InfoIcon;
+        return <SelectedIcon className="w-5 h-5" />;
     };
 
     const formatCurrency = (value) =>
@@ -211,7 +222,9 @@ function Dashboard({ notifications = [] }) {
                         {notifications.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-4">Sin actividad reciente</p>}
                         {notifications.map((act) => (
                             <div key={act.id} className={`flex items-start gap-3 p-3 ${act.color} rounded-xl border border-gray-100 animate-fade-in-up`}>
-                                <span className="text-2xl">{act.icono}</span>
+                                <span className="mt-0.5 text-gray-700 dark:text-gray-300">
+                                    <NotificationIcon name={act.icono} />
+                                </span>
                                 <div className="flex-1">
                                     <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{act.titulo}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300">{act.mensaje}</p>
