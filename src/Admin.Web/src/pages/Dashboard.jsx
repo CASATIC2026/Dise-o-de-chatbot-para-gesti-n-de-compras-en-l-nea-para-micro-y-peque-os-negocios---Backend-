@@ -36,6 +36,17 @@ function Dashboard({ notifications = [] }) {
         setWidgets((prev) => ({ ...prev, [widget]: !prev[widget] }));
     };
 
+    const NotificationIcon = ({ name }) => {
+        const icons = {
+            success: CheckCircleIcon,
+            warning: AlertIcon,
+            error: AlertIcon,
+            info: InfoIcon,
+        };
+        const SelectedIcon = icons[name] || InfoIcon;
+        return <SelectedIcon className="w-5 h-5" />;
+    };
+
     const formatCurrency = (value) =>
         `$${Number(value || 0).toLocaleString('es-CO', {
             minimumFractionDigits: 2,

@@ -4,11 +4,11 @@ import {
     DashboardIcon, InventoryIcon, OrdersIcon, CategoriesIcon,
     ClientsIcon, UsersIcon, PaymentsIcon, ConversationsIcon,
     MessagesIcon, LogoutIcon, MenuIcon, CloseIcon,
-    ChatlyIcon, SunIcon, MoonIcon, CheckCircleIcon, AlertIcon
+    ChatlyIcon, SunIcon, MoonIcon, CheckCircleIcon, AlertIcon, InfoIcon
 } from './Icons';
 import { getNotifColor, getNotifIcon, getNotifTextColor } from '../utils/notifications';
 
-function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotifications, isDark, toggleDark }) {
+function Layout({ onLogout, allowedRoutes = [], notifications = [], unreadCount = 0, onOpenNotifications, isDark, toggleDark }) {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
@@ -29,6 +29,9 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
         { path: '/conversaciones',label: 'Conversaciones', Icon: ConversationsIcon },
         { path: '/mensajes',      label: 'Mensajes',       Icon: MessagesIcon },
     ];
+    const visibleNavItems = allowedRoutes.length
+        ? navItems.filter(({ path }) => allowedRoutes.includes(path))
+        : navItems;
 
     const isActive = (path) => location.pathname === path;
     const recentNotifications = notifications.slice(0, 6);
@@ -115,7 +118,7 @@ function Layout({ onLogout, notifications = [], unreadCount = 0, onOpenNotificat
 
                 {/* Nav */}
                 <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden w-full px-4 space-y-0.5">
-                    {navItems.map(({ path, label, Icon }) => {
+                    {visibleNavItems.map(({ path, label, Icon }) => {
                         const active = isActive(path);
                         return (
                             <Link

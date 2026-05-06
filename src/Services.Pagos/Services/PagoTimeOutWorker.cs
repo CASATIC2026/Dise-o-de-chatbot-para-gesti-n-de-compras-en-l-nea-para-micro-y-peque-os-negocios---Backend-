@@ -70,7 +70,7 @@ public class PagoTimeoutWorker : BackgroundService
                         new { motivo = motivoRechazo },
                         cancellationToken: stoppingToken);
 
-                    if (rechazarResponse.IsSuccessStatusCode || rechazarResponse.StatusCode == HttpStatusCode.Conflict)
+                    if (rechazarResponse.IsSuccessStatusCode)
                     {
                         _logger.LogInformation(
                             "Pago rechazado por timeout. Ref: {Ref}. TiempoPendienteMin: {Minutos}",
@@ -80,6 +80,15 @@ public class PagoTimeoutWorker : BackgroundService
                     }
 
                     var detalle = await rechazarResponse.Content.ReadAsStringAsync(stoppingToken);
+                    if (rechazarResponse.StatusCode == HttpStatusCode.Conflict)
+                    {
+                        _logger.LogInformation(
+                            "No se marco pago por timeout porque ya esta en estado final. Ref: {Ref}. Detalle: {Detalle}",
+                            pago.ReferenciaTransaccion,
+                            detalle);
+                        continue;
+                    }
+
                     _logger.LogWarning(
                         "No se pudo rechazar pago por timeout. Ref: {Ref}. Status: {Status}. Detalle: {Detalle}",
                         pago.ReferenciaTransaccion,
@@ -98,13 +107,15 @@ public class PagoTimeoutWorker : BackgroundService
 
     private static bool EsPendiente(PagoDto pago)
     {
-        return pago.EstadoPago == EstadoPendienteActual || pago.EstadoPago == EstadoPendienteLegacy;
+        var estado = pago.EstadoPago ?? pago.Estado;
+        return estado == EstadoPendienteActual || estado == EstadoPendienteLegacy;
     }
 
     private sealed class PagoDto
     {
         public string ReferenciaTransaccion { get; set; } = string.Empty;
-        public int EstadoPago { get; set; }
+        public int? Estado { get; set; }
+        public int? EstadoPago { get; set; }
         public DateTime FechaPago { get; set; }
     }
 }
