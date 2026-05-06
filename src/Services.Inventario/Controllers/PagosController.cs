@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Service.Inventario.Hubs;
 using Shared.Core.Data;
 using Shared.Core.Entities;
+using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
@@ -35,6 +36,29 @@ public class PagosController : ControllerBase
             .ToListAsync();
 
         return Ok(pagos);
+    }
+
+    [HttpGet("paged")]
+    public async Task<ActionResult<PagedResult<Pago>>> GetPagosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
+    {
+        var query = _context.Pagos.Include(p => p.Pedido).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(p => p.ReferenciaTransaccion.ToLower().Contains(s) || 
+                                    p.MetodoPago.ToLower().Contains(s) ||
+                                    p.PedidoId.ToString().Contains(s));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(p => p.FechaPago)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new PagedResult<Pago> { Items = items, TotalCount = total });
     }
 
     [HttpGet("{id}")]

@@ -1,23 +1,38 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, ConversationsIcon, CloseIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 function Conversaciones() {
     const [conversaciones, setConversaciones] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingConversacion, setEditingConversacion] = useState(null);
     const [formData, setFormData] = useState({ clienteId: 0, activa: false });
 
-    useEffect(() => { fetchConversaciones(); }, []);
+    useEffect(() => { 
+        fetchConversaciones(); 
+    }, [currentPage, searchTerm]);
 
     const fetchConversaciones = async () => {
         try {
-            const response = await api.get('/admin/inventario/conversaciones');
-            setConversaciones(response.data);
-        } catch (error) { console.error('Error fetching conversaciones:', error); }
-        finally { setLoading(false); }
+            const response = await api.get('/admin/inventario/conversaciones/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setConversaciones(response.data.items);
+            setTotalCount(response.data.totalCount);
+        } catch (error) { 
+            console.error('Error fetching conversaciones:', error); 
+        } finally { setLoading(false); }
     };
 
     const handleOpenModal = (conversacion = null) => {
@@ -48,7 +63,8 @@ function Conversaciones() {
         catch (error) { console.error('Error deleting conversacion:', error); }
     };
 
-    const filteredConversaciones = conversaciones.filter(c => c.clienteId.toString().includes(searchTerm));
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -66,7 +82,7 @@ function Conversaciones() {
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input type="text" placeholder="Buscar por Cliente ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar por Cliente ID..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none" />
                     </div>
                     <button onClick={() => handleOpenModal()}
@@ -87,7 +103,7 @@ function Conversaciones() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
-                            {filteredConversaciones.map((conv) => (
+                            {conversaciones.map((conv) => (
                                 <tr key={conv.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-dark-border bg-white dark:bg-dark-input rounded-md px-2 py-1 inline-block text-sm">
@@ -118,13 +134,20 @@ function Conversaciones() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredConversaciones.length === 0 && (
+                    {conversaciones.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
                             <ConversationsIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron conversaciones.</span>
                         </div>
                     )}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {showModal && (

@@ -4,8 +4,6 @@ using Shared.Core.Data;
 using Shared.Core.Entities;
 using Services.Inventario.Validators;
 
-using Microsoft.AspNetCore.Mvc.RazorPages;
-
 namespace Services.Inventario.Controllers;
 
 [ApiController]
@@ -28,11 +26,34 @@ public class CategoriaController : ControllerBase
         var query = _context.Categorias.AsQueryable();
 
         var categorias = await query
-            .OrderBy(p => p.Nombre).
-            Include(p => p.Productos)
+            .OrderBy(p => p.Nombre)
+            .Include(p => p.Productos)
             .ToListAsync();
 
         return Ok(categorias);
+    }
+
+    // GET: api/inventario/categorias/paged
+    [HttpGet("categorias/paged")]
+    public async Task<ActionResult<PagedResult<Categoria>>> GetCategoriasPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
+    {
+        var query = _context.Categorias.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(c => c.Nombre.ToLower().Contains(s) || (c.Descripcion != null && c.Descripcion.ToLower().Contains(s)));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderBy(c => c.Nombre)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(c => c.Productos)
+            .ToListAsync();
+
+        return Ok(new PagedResult<Categoria> { Items = items, TotalCount = total });
     }
 
     // GET: api/inventario/categorias/{id}
@@ -115,18 +136,18 @@ public class CategoriaController : ControllerBase
         [FromQuery] int page = 0, [FromQuery] int pageSize = 6
     )
     {
-        var total = await _context.Categorias.
-        Include(c => c.Productos).
-        Where(c => c.Productos.Any(p => p.StockDisponible > 0 && p.Activo))
-        .CountAsync();
+        var total = await _context.Categorias
+            .Include(c => c.Productos)
+            .Where(c => c.Productos.Any(p => p.StockDisponible > 0 && p.Activo))
+            .CountAsync();
 
-        var Categorias = await _context.Categorias.
-        Include(c => c.Productos).
-        Where(c => c.Productos.Any(p => p.StockDisponible > 0 && p.Activo)).
-        OrderBy(c => c.Nombre).
-        Skip(page * pageSize).
-        Take(pageSize).
-        ToListAsync();
+        var Categorias = await _context.Categorias
+            .Include(c => c.Productos)
+            .Where(c => c.Productos.Any(p => p.StockDisponible > 0 && p.Activo))
+            .OrderBy(c => c.Nombre)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
         return Ok(new PagedResult<Categoria> { Items = Categorias, TotalCount = total });
     }

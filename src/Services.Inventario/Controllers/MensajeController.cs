@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
 using Shared.Core.Entities;
+using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
@@ -27,6 +28,28 @@ public class MensajeController : ControllerBase
             .ToListAsync();
 
         return Ok(mensajes);
+    }
+
+    // GET: api/inventario/mensajes/paged
+    [HttpGet("mensajes/paged")]
+    public async Task<ActionResult<PagedResult<Mensaje>>> GetMensajesPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
+    {
+        var query = _context.Mensajes.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(m => m.Contenido.ToLower().Contains(s) || m.ConversacionId.ToString().Contains(s));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(m => m.FechaEnvio)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new PagedResult<Mensaje> { Items = items, TotalCount = total });
     }
 
     // GET: api/inventario/mensajes/{id}

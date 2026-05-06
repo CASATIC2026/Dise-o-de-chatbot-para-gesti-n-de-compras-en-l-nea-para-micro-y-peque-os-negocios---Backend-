@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/client';
-import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon, InfoIcon } from '../components/Icons';
+import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon, MessagesIcon } from '../components/Icons';
+import { getNotifColor, getNotifIcon } from '../utils/notifications';
+
+
 
 function Dashboard({ notifications = [] }) {
     const [stats, setStats] = useState(null);
@@ -12,6 +15,7 @@ function Dashboard({ notifications = [] }) {
         Ingresos: true,
         Actividad: true
     });
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     useEffect(() => {
         fetchStats();
@@ -106,20 +110,49 @@ function Dashboard({ notifications = [] }) {
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Monitorea los KPIs de tu E-commerce en tiempo real</p>
                 </div>
 
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                {/* Opciones de personalizar (Desktop) */}
+                <div className="hidden lg:flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-300 px-2 border-r border-gray-200 dark:border-gray-600">Personalizar</span>
                     {Object.keys(widgets).map((key) => (
                         <button
                             key={key}
                             onClick={() => toggleWidget(key)}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${widgets[key]
-                                ? 'bg-primary-50 text-primary-600'
+                                ? 'bg-primary-50 dark:bg-cyan-900/20 text-primary-600 dark:text-cyan-400'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                 }`}
                         >
                             {key}
                         </button>
                     ))}
+                </div>
+
+                {/* Opciones de personalizar (Mobile Collapsible) */}
+                <div className="lg:hidden relative w-full sm:w-auto mt-2 md:mt-0">
+                    <button 
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="flex items-center justify-between w-full sm:w-64 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/80 transition-colors"
+                    >
+                        <span>Personalizar Widgets</span>
+                        <svg className={`w-4 h-4 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {isDropdownOpen && (
+                        <div className="absolute top-full right-0 left-0 sm:left-auto sm:right-0 mt-2 sm:w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-10 p-2 flex flex-col gap-1 animate-fade-in">
+                            {Object.keys(widgets).map((key) => (
+                                <button
+                                    key={key}
+                                    onClick={() => toggleWidget(key)}
+                                    className={`flex items-center justify-between px-3 py-2.5 text-sm font-semibold rounded-lg transition-all ${widgets[key]
+                                        ? 'bg-primary-50 dark:bg-cyan-900/20 text-primary-600 dark:text-cyan-400'
+                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        }`}
+                                >
+                                    <span>{key}</span>
+                                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${widgets[key] ? 'bg-primary-500 dark:bg-cyan-400 shadow-primary-500/50' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -220,18 +253,21 @@ function Dashboard({ notifications = [] }) {
                     </div>
                     <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
                         {notifications.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-4">Sin actividad reciente</p>}
-                        {notifications.map((act) => (
-                            <div key={act.id} className={`flex items-start gap-3 p-3 ${act.color} rounded-xl border border-gray-100 animate-fade-in-up`}>
-                                <span className="mt-0.5 text-gray-700 dark:text-gray-300">
-                                    <NotificationIcon name={act.icono} />
-                                </span>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{act.titulo}</p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300">{act.mensaje}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{act.fecha}</p>
+                        {notifications.map((act) => {
+                            const NotifIcon = getNotifIcon(act.icono);
+                            return (
+                                <div key={act.id} className={`flex items-start gap-3 p-3 rounded-xl border animate-fade-in-up ${getNotifColor(act.color)}`}>
+                                    <span className="mt-0.5 text-gray-600 dark:text-gray-300 shrink-0">
+                                        <NotifIcon className="w-5 h-5" />
+                                    </span>
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{act.titulo}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300">{act.mensaje}</p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{act.fecha}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
 using Shared.Core.Entities;
 using BCrypt.Net;
+using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
@@ -29,6 +30,30 @@ public class UsuarioController : ControllerBase
             .ToListAsync();
 
         return Ok(usuarios);
+    }
+
+    // GET: api/inventario/usuarios/paged
+    [HttpGet("usuarios/paged")]
+    public async Task<ActionResult<PagedResult<Usuario>>> GetUsuariosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
+    {
+        var query = _context.Usuarios.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(u => u.Nombre.ToLower().Contains(s) || 
+                                    (u.Email != null && u.Email.ToLower().Contains(s)) ||
+                                    (u.Telefono != null && u.Telefono.ToLower().Contains(s)));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderBy(u => u.Nombre)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new PagedResult<Usuario> { Items = items, TotalCount = total });
     }
 
     // GET: api/inventario/usuarios/{id}

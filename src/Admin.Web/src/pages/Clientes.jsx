@@ -1,23 +1,38 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, PhoneIcon, EmailIcon, ClientsIcon, CloseIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 function Clientes() {
     const [clientes, setClientes] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingCliente, setEditingCliente] = useState(null);
     const [formData, setFormData] = useState({ nombre: '', telefono: '', email: '', direccion: '' });
 
-    useEffect(() => { fetchClientes(); }, []);
+    useEffect(() => { 
+        fetchClientes(); 
+    }, [currentPage, searchTerm]);
 
     const fetchClientes = async () => {
         try {
-            const response = await api.get('/admin/inventario/clientes');
-            setClientes(response.data);
-        } catch (error) { console.error('Error fetching clientes:', error); }
-        finally { setLoading(false); }
+            const response = await api.get('/admin/inventario/clientes/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setClientes(response.data.items);
+            setTotalCount(response.data.totalCount);
+        } catch (error) { 
+            console.error('Error fetching clientes:', error); 
+        } finally { setLoading(false); }
     };
 
     const handleOpenModal = (cliente = null) => {
@@ -44,18 +59,8 @@ function Clientes() {
         catch (error) { console.error('Error deleting cliente:', error); }
     };
 
-    const normalizedSearchTerm = searchTerm.toLowerCase();
-    const filteredClientes = clientes.filter((cliente) => {
-        const nombre = (cliente?.nombre || '').toLowerCase();
-        const email = (cliente?.email || '').toLowerCase();
-        const telefono = (cliente?.telefono || '').toLowerCase();
-
-        return (
-            nombre.includes(normalizedSearchTerm) ||
-            email.includes(normalizedSearchTerm) ||
-            telefono.includes(normalizedSearchTerm)
-        );
-    });
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -74,7 +79,7 @@ function Clientes() {
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input type="text" placeholder="Buscar clientes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar clientes..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none" />
                     </div>
                     <button onClick={() => handleOpenModal()}
@@ -97,7 +102,7 @@ function Clientes() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-gray-700">
-                            {filteredClientes.map((cliente) => (
+                            {clientes.map((cliente) => (
                                 <tr key={cliente.id} className="hover:bg-neutral-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-neutral-900 dark:text-neutral-100">{cliente.nombre}</td>
                                     <td className="px-6 py-4">
@@ -123,13 +128,20 @@ function Clientes() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredClientes.length === 0 && (
+                    {clientes.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
                             <ClientsIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron clientes.</span>
                         </div>
                     )}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {/* Modal */}

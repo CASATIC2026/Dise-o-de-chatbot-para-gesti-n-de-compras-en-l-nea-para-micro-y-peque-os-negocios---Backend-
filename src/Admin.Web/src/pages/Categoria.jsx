@@ -1,21 +1,35 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { SearchIcon, AddNewIcon, EditIcon, DeleteIcon, CategoriesIcon, CrossIcon } from '../components/Icons';
+import Pagination from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 function Categoria() {
     const [categorias, setCategorias] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [editingCategoria, setEditingCategoria] = useState(null);
     const [formData, setFormData] = useState({ nombre: '', descripcion: '' });
 
-    useEffect(() => { fetchCategorias(); }, []);
+    useEffect(() => { 
+        fetchCategorias(); 
+    }, [currentPage, searchTerm]);
 
     const fetchCategorias = async () => {
         try {
-            const response = await api.get('/admin/inventario/categorias');
-            setCategorias(response.data);
+            const response = await api.get('/admin/inventario/categorias/paged', {
+                params: {
+                    page: currentPage,
+                    pageSize: ITEMS_PER_PAGE,
+                    search: searchTerm
+                }
+            });
+            setCategorias(response.data.items);
+            setTotalCount(response.data.totalCount);
         } catch (error) {
             console.error('Error fetching categorias:', error);
         } finally { setLoading(false); }
@@ -45,10 +59,9 @@ function Categoria() {
         catch (error) { console.error('Error deleting categoria:', error); }
     };
 
-    const filteredCategorias = categorias.filter(cat =>
-        cat.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cat.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+
+    const handleSearch = (value) => { setSearchTerm(value); setCurrentPage(1); };
 
     if (loading) return (
         <div className="flex justify-center items-center h-64">
@@ -67,7 +80,7 @@ function Categoria() {
                 <div className="flex flex-col sm:flex-row w-full md:w-auto gap-4">
                     <div className="relative flex-1 sm:w-72">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input type="text" placeholder="Buscar categorías..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        <input type="text" placeholder="Buscar categorías..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-input border border-neutral-200 dark:border-dark-border text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 rounded-xl focus:outline-none focus:border-primary-500 dark:focus:border-cyan-500 focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-cyan-500/10 transition-all shadow-sm dark:shadow-none" />
                     </div>
                     <button onClick={() => handleOpenModal()}
@@ -89,7 +102,7 @@ function Categoria() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-dark-border">
-                            {filteredCategorias.map((categoria) => (
+                            {categorias.map((categoria) => (
                                 <tr key={categoria.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-neutral-900 dark:text-neutral-100">{categoria.nombre}</div>
@@ -113,13 +126,21 @@ function Categoria() {
                             ))}
                         </tbody>
                     </table>
-                    {filteredCategorias.length === 0 && (
+                    {categorias.length === 0 && (
                         <div className="flex flex-col justify-center items-center py-16 text-neutral-500 dark:text-neutral-500">
                             <CategoriesIcon className="w-12 h-12 mb-4 opacity-40" />
                             <span className="font-medium">No se encontraron categorías.</span>
                         </div>
                     )}
                 </div>
+                {/* Paginación */}
+                <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalCount}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onChange={setCurrentPage}
+                />
             </div>
 
             {/* Modal */}

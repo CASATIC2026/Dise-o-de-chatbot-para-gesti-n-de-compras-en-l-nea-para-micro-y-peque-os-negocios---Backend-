@@ -31,11 +31,35 @@ public class InventarioController : ControllerBase
         }
         // Cargar la informacion del producto junto con la categoria listado ordenado por nombre de producto 
         var productos = await query
-            .OrderBy(p => p.Nombre).
-            Include(p => p.Categoria)
+            .OrderBy(p => p.Nombre)
+            .Include(p => p.Categoria)
             .ToListAsync();
 
         return Ok(productos);
+    }
+
+    // GET: api/inventario/productos/paged
+    [HttpGet("productos/paged")]
+    public async Task<ActionResult<PagedResult<Producto>>> GetProductosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
+    {
+        var query = _context.Productos.Include(p => p.Categoria).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(p => p.Nombre.ToLower().Contains(s) || 
+                                    (p.Descripcion != null && p.Descripcion.ToLower().Contains(s)) ||
+                                    (p.Categoria != null && p.Categoria.Nombre.ToLower().Contains(s)));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderBy(p => p.Nombre)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new PagedResult<Producto> { Items = items, TotalCount = total });
     }
 
     // GET: api/inventario/productos/{id}
@@ -145,17 +169,17 @@ public class InventarioController : ControllerBase
     )
     {
 
-        var Productos = await _context.Productos.
-        Where(p => p.CategoriaId == categoriaId).
-        Where(p => p.Activo == true && p.StockDisponible > 0).
-        Skip(page * pageSize).
-        Take(pageSize).
-        ToListAsync();
+        var Productos = await _context.Productos
+            .Where(p => p.CategoriaId == categoriaId)
+            .Where(p => p.Activo == true && p.StockDisponible > 0)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
-        var total = await _context.Productos.
-        Where(p => p.CategoriaId == categoriaId).
-        Where(p => p.Activo == true && p.StockDisponible > 0).
-        CountAsync();
+        var total = await _context.Productos
+            .Where(p => p.CategoriaId == categoriaId)
+            .Where(p => p.Activo == true && p.StockDisponible > 0)
+            .CountAsync();
 
         return Ok(new PagedResult<Producto> { Items = Productos, TotalCount = total });
     }
