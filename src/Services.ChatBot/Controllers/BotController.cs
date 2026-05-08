@@ -64,6 +64,14 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
         }
         return Ok();
     }
+
+    /// <summary>
+    /// Notifies the user via Telegram that an order's payment is being processed and provides a secure redirection link to the payment gateway.
+    /// </summary>
+    /// <param name="bot">The injected Telegram bot client.</param>
+    /// <param name="db">The database context for accessing order and conversation data.</param>
+    /// <param name="notificacion">The notification data containing the transaction reference and gateway URL.</param>
+    /// <returns>An <see cref="IActionResult"/> indicating the result of the notification attempt.</returns>
     [HttpPost("pago-procesando")]
     public async Task<IActionResult> NotificarPagoProcesando(
         [FromServices] ITelegramBotClient bot,
@@ -126,6 +134,14 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
             return NotFound();
         }
     }
+
+    /// <summary>
+    /// Notifies the user via Telegram that an order's payment has been completed successfully.
+    /// </summary>
+    /// <param name="bot">The injected Telegram bot client.</param>
+    /// <param name="db">The database context for accessing order and conversation data.</param>
+    /// <param name="notificacion">The notification data containing the transaction reference.</param>
+    /// <returns>An <see cref="IActionResult"/> indicating the result of the notification attempt.</returns>
     [HttpPost("pagos-completado")]
     public async Task<IActionResult> NotificarPagoRealizado([FromServices] ITelegramBotClient bot,
     [FromServices] ApplicationDbContext db,

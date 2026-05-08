@@ -25,5 +25,12 @@ public interface ICarrito
     /// <returns>A tuple containing the summary message text and the <see cref="InlineKeyboardMarkup"/> for final confirmation.</returns>
     (string texto, InlineKeyboardMarkup markup) BuildUIResumenFinal(Pedido? pedido, Cliente? cliente);
 
+    /// <summary>
+    /// Builds the payment ticket user interface, providing order details and the payment link button.
+    /// </summary>
+    /// <param name="pagosLinks">The DTO containing payment link information and transaction reference.</param>
+    /// <param name="pedidoId">The unique identifier of the order.</param>
+    /// <param name="url">The secure redirection URL for the payment process.</param>
+    /// <returns>A tuple containing the formatted message text and the <see cref="InlineKeyboardMarkup"/> with the payment button.</returns>
     (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId, string url);
 }
