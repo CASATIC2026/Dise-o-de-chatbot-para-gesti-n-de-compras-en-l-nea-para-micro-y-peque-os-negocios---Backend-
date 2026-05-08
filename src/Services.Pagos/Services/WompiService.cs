@@ -5,12 +5,22 @@ using Services.Pagos.Models;
 
 namespace Services.Pagos.Services;
 
+/// <summary>
+/// Service responsible for interacting with the Wompi payment gateway API.
+/// Handles authentication, payment link creation, and link management.
+/// </summary>
 public class WompiService
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WompiService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WompiService"/> class.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used for API requests.</param>
+    /// <param name="configuration">The configuration provider for accessing Wompi settings.</param>
+    /// <param name="logger">The logger instance for diagnostic messages.</param>
     public WompiService(HttpClient httpClient, IConfiguration configuration, ILogger<WompiService> logger)
     {
         _httpClient = httpClient;
@@ -18,6 +28,10 @@ public class WompiService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Obtains an OAuth2 access token from the Wompi identity service using client credentials.
+    /// </summary>
+    /// <returns>A JWT access token string if successful; otherwise, an empty string.</returns>
     private async Task<string> ObtenerTokenAsync()
     {
         var clientId = _configuration["Wompi:ClientId"] ?? _configuration["WOMPI_CLIENT_ID"];
@@ -51,6 +65,13 @@ public class WompiService
         return authResponse.AccessToken;
     }
 
+    /// <summary>
+    /// Creates a payment link in Wompi for a specific transaction.
+    /// Configures redirection URLs, webhooks, and usage limits based on the request and system settings.
+    /// </summary>
+    /// <param name="request">The transaction request details including amount and reference.</param>
+    /// <returns>A <see cref="WompiTransactionResponse"/> containing the payment link or error details.</returns>
+    /// <exception cref="Exception">Thrown when an authentication token cannot be acquired.</exception>
     public async Task<WompiTransactionResponse> CrearEnlacePago(WompiTransactionRequest request)
     {
         try
@@ -174,6 +195,11 @@ public class WompiService
         }
     }
 
+    /// <summary>
+    /// Requests Wompi to deactivate an existing payment link.
+    /// </summary>
+    /// <param name="enlaceId">The unique identifier of the payment link in Wompi.</param>
+    /// <returns>True if the link was successfully deactivated; otherwise, false.</returns>
     public async Task<bool> DesactivarEnlacePago(long enlaceId)
     {
         try
@@ -210,6 +236,10 @@ public class WompiService
         }
     }
 
+    /// <summary>
+    /// Resolves the correct Webhook URL from configuration, supporting both modern and legacy keys.
+    /// </summary>
+    /// <returns>The resolved absolute URL string, or null if no valid configuration is found.</returns>
     private string? ResolveWebhookUrl()
     {
         var webhookUrl = _configuration["Wompi:WebhookUrl"];
