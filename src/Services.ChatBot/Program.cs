@@ -31,7 +31,7 @@ builder.Services.AddHttpClient("GatewayApi", client =>
     client.BaseAddress = new Uri(gatewayUrl);
 }
 );
-
+// Configures the client for the internal Pagos API.
 builder.Services.AddHttpClient("PagosApi", client =>
 {
     var pagosUrl = builder.Configuration["PagosSettings:Url"] ?? "http//localhost:5002"; 

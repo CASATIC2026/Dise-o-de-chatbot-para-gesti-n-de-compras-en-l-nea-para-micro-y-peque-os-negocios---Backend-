@@ -114,10 +114,10 @@ public class CarritoModule : ICarrito
     {
         new[] {
             InlineKeyboardButton.WithCallbackData("🚀 CONFIRMAR Y PAGAR", "checkoutEnd"),
-            InlineKeyboardButton.WithCallbackData("🚫 CANCELAR PEDIDO", "ask_clear"),
+            InlineKeyboardButton.WithCallbackData("🚫 CANCELAR", "ask_clear"),
         },
         new[] { 
-            // Si algo está mal, lo regresamos al inicio del checkout para que sobrescriba los datos
+            // Si algo está mal, lo regresamos al inicio para sobrescribir la data
             InlineKeyboardButton.WithCallbackData("🔄 Corregir Datos", "checkout")
         },
         new[] {
@@ -127,6 +127,14 @@ public class CarritoModule : ICarrito
         return (sb.ToString(), new InlineKeyboardMarkup(buttons));
     }
 
+    /// <summary>
+    /// Constructs the payment ticket UI, providing the order status, reference, 
+    /// and the button to navigate to the external payment gateway.
+    /// </summary>
+    /// <param name="pagosLinks">The DTO containing payment link information and transaction reference.</param>
+    /// <param name="pedidoId">The unique identifier of the order.</param>
+    /// <param name="url">The secure redirection URL for the payment process.</param>
+    /// <returns>A tuple containing the formatted Markdown text and the <see cref="InlineKeyboardMarkup"/> with the payment button.</returns>
     public (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId, string url)
     {
         var sb = new StringBuilder();

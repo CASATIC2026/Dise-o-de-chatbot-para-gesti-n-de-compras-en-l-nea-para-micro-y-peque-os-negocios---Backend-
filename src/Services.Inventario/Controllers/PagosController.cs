@@ -8,6 +8,9 @@ using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
+/// <summary>
+/// API Controller for managing payments and transaction status within the inventory system.
+/// </summary>
 [ApiController]
 [Route("api/pagos")]
 public class PagosController : ControllerBase
@@ -16,6 +19,12 @@ public class PagosController : ControllerBase
     private readonly ILogger<PagosController> _logger;
     private readonly IHubContext<NotificationHub> _hubContext;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PagosController"/> class.
+    /// </summary>
+    /// <param name="context">The database context.</param>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="hubContext">The SignalR hub context for real-time notifications.</param>
     public PagosController(
         ApplicationDbContext context,
         ILogger<PagosController> logger,
@@ -26,7 +35,11 @@ public class PagosController : ControllerBase
         _hubContext = hubContext;
     }
 
-
+    /// <summary>
+    /// Retrieves all payment records including their associated order information.
+    /// </summary>
+    /// <returns>A list of payments ordered by date descending.</returns>
+    // GET: api/pagos
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Pago>>> GetPagos()
     {
@@ -61,6 +74,12 @@ public class PagosController : ControllerBase
         return Ok(new PagedResult<Pago> { Items = items, TotalCount = total });
     }
 
+    /// <summary>
+    /// Retrieves a specific payment record by its unique identifier.
+    /// </summary>
+    /// <param name="id">The payment ID.</param>
+    /// <returns>The requested payment if found; otherwise, a 404 Not Found response.</returns>
+    // GET: api/pagos/{id}
     [HttpGet("{id}")]
     public async Task<ActionResult<Pago>> GetPago(int id)
     {
@@ -402,6 +421,12 @@ public class PagosController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Internal helper to build a consistent response object for payment/order status.
+    /// </summary>
+    /// <param name="pago">The payment entity.</param>
+    /// <param name="pedido">The associated order entity.</param>
+    /// <returns>An anonymous object for JSON response.</returns>
     private object BuildPagoPedidoResponse(Pago pago, Pedido pedido)
 {
     return new
@@ -415,11 +440,23 @@ public class PagosController : ControllerBase
         estadoPedido = (int)pedido.Estado
     };
 }
+
+    /// <summary>
+    /// Generates a unique transaction reference for Wompi.
+    /// </summary>
+    /// <param name="pedidoId">The order identifier.</param>
+    /// <returns>A string reference in the format PED-{id}-{timestamp}.</returns>
     private static string CreateReference(int pedidoId)
     {
         return $"PED-{pedidoId}-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
     }
 
+    /// <summary>
+    /// Attempts to extract the Order ID from a standard transaction reference string.
+    /// </summary>
+    /// <param name="referencia">The reference string.</param>
+    /// <param name="pedidoId">The outputted order identifier.</param>
+    /// <returns>True if extraction was successful; otherwise, false.</returns>
     private static bool TryExtractPedidoId(string referencia, out int pedidoId)
     {
         pedidoId = 0;
@@ -434,18 +471,31 @@ public class PagosController : ControllerBase
     }
     
 
+    /// <summary>
+    /// Request model for updating a payment via reference.
+    /// </summary>
     public class ActualizarPagoPorReferenciaRequest
     {
+        /// <summary>The transaction reference.</summary>
         public string? ReferenciaTransaccion { get; set; }
+        /// <summary>The gateway-provided transaction ID.</summary>
         public string? IdTransaccion { get; set; }
+        /// <summary>The confirmed payment amount.</summary>
         public decimal? Monto { get; set; }
+        /// <summary>The payment method used.</summary>
         public string? MetodoPago { get; set; }
+        /// <summary>The transaction result status from the gateway.</summary>
         public string? ResultadoTransaccion { get; set; }
+        /// <summary>Indicates if the transaction was processed in a production environment.</summary>
         public bool? EsProductiva { get; set; }
     }
 
+    /// <summary>
+    /// Request model for marking a payment as rejected.
+    /// </summary>
     public class MarcarRechazadoRequest
     {
+        /// <summary>The reason for the rejection (e.g., Timeout).</summary>
         public string? Motivo { get; set; }
     }
 }

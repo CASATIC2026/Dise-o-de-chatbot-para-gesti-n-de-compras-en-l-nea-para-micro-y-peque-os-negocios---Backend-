@@ -4,8 +4,17 @@ using Services.Pagos.Services;
 
 namespace Services.Pagos;
 
+/// <summary>
+/// The main entry point class for the Pagos (Payments) microservice.
+/// This class configures the web host, registers services, and initializes the database.
+/// </summary>
 public class Program
 {
+    /// <summary>
+    /// Configures and runs the application.
+    /// </summary>
+    /// <param name="args">Command-line arguments provided at startup.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation of the application execution.</returns>
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -38,29 +47,29 @@ public class Program
 
                 if (await context.Database.CanConnectAsync())
                 {
-                    Console.WriteLine("✅ [CONEXIÓN EXITOSA]: El microservicio de Pagos está conectado a la DB.");
+                    Console.WriteLine("[CONEXIÓN EXITOSA]: El microservicio de Pagos está conectado a la DB.");
 
                     var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
 
                     if (pendingMigrations.Any())
                     {
-                        Console.WriteLine("⚙️ Aplicando migraciones...");
+                        Console.WriteLine("Aplicando migraciones...");
                         await context.Database.MigrateAsync();
-                        Console.WriteLine("✅ Migraciones aplicadas correctamente.");
+                        Console.WriteLine("Migraciones aplicadas correctamente.");
                     }
                     else
                     {
-                        Console.WriteLine("ℹ️ No hay migraciones pendientes.");
+                        Console.WriteLine("No hay migraciones pendientes.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("⚠️ No se pudo conectar a PostgreSQL.");
+                    Console.WriteLine("No se pudo conectar a PostgreSQL.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [ERROR CRÍTICO]: Fallo al inicializar la DB: {ex.Message}");
+                Console.WriteLine($"[ERROR CRÍTICO]: Fallo al inicializar la DB: {ex.Message}");
             }
         }
 

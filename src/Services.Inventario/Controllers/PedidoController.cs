@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
 using Shared.Core.Entities;
-using Microsoft.AspNetCore.SignalR; // <-- Agregado
-using Service.Inventario.Hubs;      // <-- Agregado (Asegúrate que el namespace coincida con tu NotificationHub)
+using Microsoft.AspNetCore.SignalR; 
+using Service.Inventario.Hubs;      
 using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
+/// <summary>
+/// API Controller for managing customer orders (pedidos).
+/// </summary>
 [ApiController]
 [Route("api/inventario")]
 public class PedidoController : ControllerBase
@@ -16,7 +19,12 @@ public class PedidoController : ControllerBase
     private readonly ILogger<PedidoController> _logger;
     private readonly IHubContext<NotificationHub> _hubContext; // <-- Agregado
 
-    // Constructor actualizado con la inyección del Hub
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PedidoController"/> class.
+    /// </summary>
+    /// <param name="context">The application's database context.</param>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="hubContext">The SignalR hub context for sending real-time notifications.</param>
     public PedidoController(
         ApplicationDbContext context, 
         ILogger<PedidoController> logger,
@@ -27,6 +35,10 @@ public class PedidoController : ControllerBase
         _hubContext = hubContext;
     }
 
+    /// <summary>
+    /// Retrieves all orders, ordered by creation date in descending order.
+    /// </summary>
+    /// <returns>A list of all orders.</returns>
     // GET: api/inventario/pedidos
     [HttpGet("pedidos")]
     public async Task<ActionResult<IEnumerable<Pedido>>> GetPedidos()
@@ -38,6 +50,13 @@ public class PedidoController : ControllerBase
         return Ok(pedidos);
     }
 
+    /// <summary>
+    /// Retrieves a paged result of orders with optional search filtering.
+    /// </summary>
+    /// <param name="page">The page number (defaults to 1).</param>
+    /// <param name="pageSize">The number of items per page (defaults to 10).</param>
+    /// <param name="search">A string to filter orders by ID, delivery address, or Wompi reference.</param>
+    /// <returns>A paged result containing the requested orders.</returns>
     // GET: api/inventario/pedidos/paged
     [HttpGet("pedidos/paged")]
     public async Task<ActionResult<PagedResult<Pedido>>> GetPedidosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
@@ -62,6 +81,11 @@ public class PedidoController : ControllerBase
         return Ok(new PagedResult<Pedido> { Items = items, TotalCount = total });
     }
 
+    /// <summary>
+    /// Retrieves a specific order by its unique identifier.
+    /// </summary>
+    /// <param name="id">The ID of the order to retrieve.</param>
+    /// <returns>The requested order if found; otherwise, a 404 Not Found response.</returns>
     // GET: api/inventario/pedidos/{id}
     [HttpGet("pedidos/{id}")]
     public async Task<ActionResult<Pedido>> GetPedido(int id)
@@ -76,6 +100,12 @@ public class PedidoController : ControllerBase
         return Ok(pedido);
     }
 
+    /// <summary>
+    /// Creates a new order and sets the server-side timestamps.
+    /// Sends a real-time notification about the new order.
+    /// </summary>
+    /// <param name="pedido">The order object to be created.</param>
+    /// <returns>The newly created order with its assigned ID.</returns>
     // POST: api/inventario/pedidos
     [HttpPost("pedidos")]
     public async Task<ActionResult<Pedido>> CreatePedido([FromBody] Pedido pedido)
@@ -88,8 +118,7 @@ public class PedidoController : ControllerBase
 
         _logger.LogInformation("Pedido creado: {PedidoId}", pedido.Id);
 
-        // --- NOTIFICACIÓN EN TIEMPO REAL ---
-        // Este objeto es el que recibirá React para actualizar la "Actividad Reciente"
+        // Sends a real-time notification to all connected clients (e.g., dashboard)
         await _hubContext.Clients.All.SendAsync("ReceiveNotification", new 
         {
             titulo = "Nuevo pedido recibido",
@@ -101,6 +130,13 @@ public class PedidoController : ControllerBase
         return CreatedAtAction(nameof(GetPedido), new { id = pedido.Id }, pedido);
     }
 
+    /// <summary>
+    /// Updates an existing order's details.
+    /// Sends a real-time notification about the updated order.
+    /// </summary>
+    /// <param name="id">The ID of the order to update.</param>
+    /// <param name="pedido">The order data to update.</param>
+    /// <returns>A 204 No Content response on success, or an error status code.</returns>
     // PUT: api/inventario/pedidos/{id}
     [HttpPut("pedidos/{id}")]
     public async Task<IActionResult> UpdatePedido(int id, [FromBody] Pedido pedido)
@@ -129,7 +165,7 @@ public class PedidoController : ControllerBase
 
         _logger.LogInformation("Pedido actualizado: {PedidoId}", id);
 
-        // Notificación opcional cuando se actualiza el estado (ej. de pendiente a confirmado)
+        // Sends a real-time notification about the order update
         await _hubContext.Clients.All.SendAsync("ReceiveNotification", new 
         {
             titulo = "Pedido Actualizado",
@@ -141,6 +177,11 @@ public class PedidoController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Permanently deletes an order from the database.
+    /// </summary>
+    /// <param name="id">The unique identifier of the order to remove.</param>
+    /// <returns>A 204 No Content response on success, or a 404 Not Found response if not found.</returns>
     // DELETE: api/inventario/pedidos/{id}
     [HttpDelete("pedidos/{id}")]
     public async Task<IActionResult> DeletePedido(int id)

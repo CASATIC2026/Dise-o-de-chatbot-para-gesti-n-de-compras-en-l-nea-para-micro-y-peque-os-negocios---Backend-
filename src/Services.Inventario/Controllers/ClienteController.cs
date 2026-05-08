@@ -6,6 +6,9 @@ using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
+/// <summary>
+/// API Controller for managing client information.
+/// </summary>
 [ApiController]
 [Route("api/inventario")]
 public class ClienteController : ControllerBase
@@ -13,12 +16,21 @@ public class ClienteController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ClienteController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClienteController"/> class.
+    /// </summary>
+    /// <param name="context">The database context.</param>
+    /// <param name="logger">The logger instance.</param>
     public ClienteController(ApplicationDbContext context, ILogger<ClienteController> logger)
     {
         _context = context;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Retrieves all clients ordered by name.
+    /// </summary>
+    /// <returns>A list of clients.</returns>
     // GET: api/inventario/clientes
     [HttpGet("clientes")]
     public async Task<ActionResult<IEnumerable<Cliente>>> GetClientes()
@@ -30,6 +42,13 @@ public class ClienteController : ControllerBase
         return Ok(clientes);
     }
 
+    /// <summary>
+    /// Retrieves a paged result of clients with optional search filtering.
+    /// </summary>
+    /// <param name="page">The page number (defaults to 1).</param>
+    /// <param name="pageSize">The number of items per page (defaults to 10).</param>
+    /// <param name="search">A string to filter clients by name, email, or phone.</param>
+    /// <returns>A paged result containing the requested clients.</returns>
     // GET: api/inventario/clientes/paged
     [HttpGet("clientes/paged")]
     public async Task<ActionResult<PagedResult<Cliente>>> GetClientesPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
@@ -54,6 +73,11 @@ public class ClienteController : ControllerBase
         return Ok(new PagedResult<Cliente> { Items = items, TotalCount = total });
     }
 
+    /// <summary>
+    /// Retrieves a specific client by their unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the client.</param>
+    /// <returns>The requested client if found; otherwise, 404 Not Found.</returns>
     // GET: api/inventario/clientes/{id}
     [HttpGet("clientes/{id}")]
     public async Task<ActionResult<Cliente>> GetCliente(int id)
@@ -68,6 +92,11 @@ public class ClienteController : ControllerBase
         return Ok(cliente);
     }
 
+    /// <summary>
+    /// Creates a new client.
+    /// </summary>
+    /// <param name="cliente">The client data to create.</param>
+    /// <returns>The created client.</returns>
     // POST: api/inventario/clientes
     [HttpPost("clientes")]
     public async Task<ActionResult<Cliente>> CreateCliente([FromBody] Cliente cliente)
@@ -83,6 +112,12 @@ public class ClienteController : ControllerBase
         return CreatedAtAction(nameof(GetCliente), new { id = cliente.Id }, cliente);
     }
 
+    /// <summary>
+    /// Updates an existing client.
+    /// </summary>
+    /// <param name="id">The unique identifier of the client to update.</param>
+    /// <param name="cliente">The updated client data.</param>
+    /// <returns>204 No Content if successful; otherwise, an error response.</returns>
     // PUT: api/inventario/clientes/{id}
     [HttpPut("clientes/{id}")]
     public async Task<IActionResult> UpdateCliente(int id, [FromBody] Cliente cliente)
@@ -111,6 +146,11 @@ public class ClienteController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Permanently deletes a client from the database.
+    /// </summary>
+    /// <param name="id">The unique identifier of the client to delete.</param>
+    /// <returns>204 No Content if successful; otherwise, 404 Not Found.</returns>
     // DELETE: api/inventario/clientes/{id}
     [HttpDelete("clientes/{id}")]
     public async Task<IActionResult> DeleteCliente(int id)

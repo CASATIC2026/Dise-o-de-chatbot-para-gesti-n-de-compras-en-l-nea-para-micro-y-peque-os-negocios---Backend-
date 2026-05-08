@@ -7,6 +7,9 @@ using System.Text.Json;
 
 namespace Services.Pagos.Controllers;
 
+/// <summary>
+/// Controller for managing Wompi payment gateway integration, including link generation and webhook processing.
+/// </summary>
 [ApiController]
 [Route("api/pagos")]
 public class WompiController : ControllerBase
@@ -16,6 +19,13 @@ public class WompiController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<WompiController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WompiController"/> class.
+    /// </summary>
+    /// <param name="wompiService">The service for interacting with Wompi API.</param>
+    /// <param name="httpClientFactory">The factory to create HTTP clients for internal service communication.</param>
+    /// <param name="configuration">The system configuration.</param>
+    /// <param name="logger">The logger instance.</param>
     public WompiController(
         WompiService wompiService,
         IHttpClientFactory httpClientFactory,
@@ -28,6 +38,12 @@ public class WompiController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Automatically creates a Wompi payment link for a specific order.
+    /// It fetches order data from the inventory service and validates states before requesting the link.
+    /// </summary>
+    /// <param name="pedidoId">The ID of the order to pay.</param>
+    /// <returns>An <see cref="IActionResult"/> containing the payment URL and reference.</returns>
     [HttpPost("crear-enlace-automatico/{pedidoId}")]
     public async Task<IActionResult> CrearEnlaceAutomatico(int pedidoId)
     {
@@ -107,6 +123,11 @@ public class WompiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Webhook endpoint called by Wompi to notify the system of transaction results.
+    /// It updates the payment and order status and notifies the chatbot service.
+    /// </summary>
+    /// <returns>A 200 OK response to acknowledge receipt of the webhook.</returns>
     [HttpPost("webhook/wompi")]
     public async Task<IActionResult> RecibirWebhookWompi()
     {
@@ -251,6 +272,11 @@ public class WompiController : ControllerBase
     }
     [HttpPost("")]
 
+    /// <summary>
+    /// Determines if a transaction result status string from Wompi represents a successful payment.
+    /// </summary>
+    /// <param name="estado">The status string provided by Wompi.</param>
+    /// <returns>True if the status indicates success; otherwise, false.</returns>
     private static bool EsPagoExitoso(string? estado)
     {
         if (string.IsNullOrWhiteSpace(estado))
@@ -263,6 +289,12 @@ public class WompiController : ControllerBase
             || estado.Contains("Exitosa", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Validates if the current states of the order and payment allow for the creation of a new payment link.
+    /// </summary>
+    /// <param name="pedidoId">The order ID.</param>
+    /// <param name="pago">The current payment data transferred from the inventory service.</param>
+    /// <returns>An error object if the state is invalid; otherwise, null.</returns>
     private static object? ValidarEstadosParaCrearEnlace(int pedidoId, PagoDto pago)
     {
         const int estadoPedidoPagado = 2;
@@ -317,14 +349,24 @@ public class WompiController : ControllerBase
         return null;
     }
 
+    /// <summary>
+    /// Internal Data Transfer Object representing payment and order status info returned from the inventory service.
+    /// </summary>
     public class PagoDto
     {
+        /// <summary>The payment ID.</summary>
         public int Id { get; set; }
+        /// <summary>The associated order ID.</summary>
         public int PedidoId { get; set; }
+        /// <summary>The amount specifically associated with the payment record.</summary>
         public decimal Monto { get; set; }
+        /// <summary>The total amount for the order.</summary>
         public decimal Total { get; set; }
+        /// <summary>The transaction reference used for tracking.</summary>
         public string ReferenciaTransaccion { get; set; } = string.Empty;
+        /// <summary>The current state of the payment.</summary>
         public int EstadoPago { get; set; }
+        /// <summary>The current state of the order.</summary>
         public int EstadoPedido { get; set; }
     }
 }

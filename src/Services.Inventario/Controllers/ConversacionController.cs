@@ -6,6 +6,9 @@ using Services.Inventario.Validators;
 
 namespace Services.Inventario.Controllers;
 
+/// <summary>
+/// API Controller for managing conversations within the inventory system.
+/// </summary>
 [ApiController]
 [Route("api/inventario")]
 public class ConversacionController : ControllerBase
@@ -13,12 +16,21 @@ public class ConversacionController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ConversacionController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConversacionController"/> class.
+    /// </summary>
+    /// <param name="context">The application's database context.</param>
+    /// <param name="logger">The logger for the controller.</param>
     public ConversacionController(ApplicationDbContext context, ILogger<ConversacionController> logger)
     {
         _context = context;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Retrieves all conversations, ordered by their last update date in descending order.
+    /// </summary>
+    /// <returns>A list of all conversations.</returns>
     // GET: api/inventario/conversaciones
     [HttpGet("conversaciones")]
     public async Task<ActionResult<IEnumerable<Conversacion>>> GetConversaciones()
@@ -30,6 +42,13 @@ public class ConversacionController : ControllerBase
         return Ok(conversaciones);
     }
 
+    /// <summary>
+    /// Retrieves a paged result of conversations with optional search filtering.
+    /// </summary>
+    /// <param name="page">The page number (defaults to 1).</param>
+    /// <param name="pageSize">The number of items per page (defaults to 10).</param>
+    /// <param name="search">A string to filter conversations by client ID or conversation ID.</param>
+    /// <returns>A paged result containing the requested conversations.</returns>
     // GET: api/inventario/conversaciones/paged
     [HttpGet("conversaciones/paged")]
     public async Task<ActionResult<PagedResult<Conversacion>>> GetConversacionesPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
@@ -52,6 +71,11 @@ public class ConversacionController : ControllerBase
         return Ok(new PagedResult<Conversacion> { Items = items, TotalCount = total });
     }
 
+    /// <summary>
+    /// Retrieves a specific conversation by its unique identifier.
+    /// </summary>
+    /// <param name="id">The ID of the conversation to retrieve.</param>
+    /// <returns>The requested conversation if found; otherwise, a 404 Not Found response.</returns>
     // GET: api/inventario/conversaciones/{id}
     [HttpGet("conversaciones/{id}")]
     public async Task<ActionResult<Conversacion>> GetConversacion(int id)
@@ -66,6 +90,11 @@ public class ConversacionController : ControllerBase
         return Ok(conversacion);
     }
 
+    /// <summary>
+    /// Creates a new conversation and sets the server-side timestamps.
+    /// </summary>
+    /// <param name="conversacion">The conversation object to be created.</param>
+    /// <returns>The newly created conversation with its assigned ID.</returns>
     // POST: api/inventario/conversaciones
     [HttpPost("conversaciones")]
     public async Task<ActionResult<Conversacion>> CreateConversacion([FromBody] Conversacion conversacion)
@@ -83,6 +112,12 @@ public class ConversacionController : ControllerBase
         return CreatedAtAction(nameof(GetConversacion), new { id = conversacion.Id }, conversacion);
     }
 
+    /// <summary>
+    /// Updates an existing conversation's details.
+    /// </summary>
+    /// <param name="id">The ID of the conversation to update.</param>
+    /// <param name="conversacion">The conversation data to update.</param>
+    /// <returns>A 204 No Content response on success, or an error status code.</returns>
     // PUT: api/inventario/conversaciones/{id}
     [HttpPut("conversaciones/{id}")]
     public async Task<IActionResult> UpdateConversacion(int id, [FromBody] Conversacion conversacion)
@@ -109,6 +144,11 @@ public class ConversacionController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Permanently deletes a conversation from the database.
+    /// </summary>
+    /// <param name="id">The unique identifier of the conversation to remove.</param>
+    /// <returns>A 204 No Content response on success, or a 404 Not Found response if not found.</returns>
     // DELETE: api/inventario/conversaciones/{id}
     [HttpDelete("conversaciones/{id}")]
     public async Task<IActionResult> DeleteConversacion(int id)
