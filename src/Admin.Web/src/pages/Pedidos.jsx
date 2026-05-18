@@ -104,8 +104,8 @@ function Pedidos() {
                                 <tr key={pedido.id} className="hover:bg-neutral-50/50 dark:hover:bg-dark-input/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-neutral-900 dark:text-neutral-100">#{pedido.id.toString().padStart(4, '0')}</td>
                                     <td className="px-6 py-4">
-                                        <div className="font-semibold text-neutral-900 dark:text-neutral-100">ID: {pedido.clienteId}</div>
-                                        <div className="text-xs text-neutral-500 dark:text-neutral-500">Usr: {pedido.usuarioId}</div>
+                                        <div className="font-semibold text-neutral-900 dark:text-neutral-100">ID: {pedido.cliente?.nombre}</div>
+                                        <div className="text-xs text-neutral-500 dark:text-neutral-500">Usr: {pedido.usuario?.nombre || 'Creado desde Chat'}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm font-medium text-neutral-700 dark:text-neutral-400 truncate max-w-xs" title={pedido.direccionEntrega}>

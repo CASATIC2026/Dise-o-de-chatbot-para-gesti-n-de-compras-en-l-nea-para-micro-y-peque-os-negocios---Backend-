@@ -61,7 +61,7 @@ public class PedidoController : ControllerBase
     [HttpGet("pedidos/paged")]
     public async Task<ActionResult<PagedResult<Pedido>>> GetPedidosPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "")
     {
-        var query = _context.Pedidos.AsQueryable();
+        var query = _context.Pedidos.Include(p=>p.Cliente).Include(p=>p.Usuario).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
