@@ -253,4 +253,17 @@ PaymentService _paymentService)
             await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
         }*/
     }
+
+    public async Task ManejarSeleccionDepto(TelegramBotClient bot, CallbackQuery callbackQuery, string depto)
+    {
+        var pedidoactual = _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var pedido = new PedidoDTO();
+        
+        if (pedidoactual != null )
+        {
+            pedido.Direccion = depto;
+            pedido.Id = pedidoactual.Id;
+        }
+        await _persistencia.ActualizarPedido(callbackQuery.From.Id,pedido);        
+    }
 }

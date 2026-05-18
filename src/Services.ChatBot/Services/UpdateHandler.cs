@@ -209,5 +209,11 @@ BotOnMsgInteractionHandler onMsgInteractionHandler
         }
         if (action == "checkoutEnd")
             await interactionHandler.ManejarFinalizacionPedido(bot, callbackQuerry);
+        if(action == "Dep")
+        {
+            int page = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+            Console.WriteLine("PAGINA EN DEP: " + page);
+            await renderer.RenderizarDepartamentos(bot, callbackQuerry, page);
+        }
     }
 }

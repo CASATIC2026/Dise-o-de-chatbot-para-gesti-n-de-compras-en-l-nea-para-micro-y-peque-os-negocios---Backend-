@@ -62,7 +62,8 @@ public class CarritoModule : ICarrito
         buttons.Add(
             [
                 InlineKeyboardButton.WithCallbackData("🗑 Vaciar", "ask_clear"),
-                InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "checkout")
+                //InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "checkout")
+                InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "Dep_0")
             ]
         );
         buttons.Add([InlineKeyboardButton.WithCallbackData("Seguir Comprando", "pcat_0")]);
@@ -156,5 +157,89 @@ public class CarritoModule : ICarrito
         
         return (sb.ToString(), keyboard);
     }
-    
+
+    public (string texto, InlineKeyboardMarkup markup) Deptos(List<String> departamentos, int page)
+    {
+        var sb = new StringBuilder();
+        var keyboard = new InlineKeyboardMarkup();
+        var buttons = new List<InlineKeyboardButton[]>();
+        List<String> deptos = new List<String>();
+        if (departamentos == null || departamentos.Any())
+        {
+            int rango =  6;
+            int start = 0;
+            var longCuenta = departamentos!.LongCount().ToString();
+            int cuenta = int.Parse(longCuenta);
+            
+            if(page != 0)
+            {
+                if((page + 1) * rango > cuenta)
+                {
+                    start = cuenta - ((page -1) * rango); 
+                    rango = cuenta;
+                }else{
+                    start = page * rango;
+                    rango += start;
+                }
+            }
+            for (int i = start; i < rango; i++)
+            {
+                deptos.Add(departamentos![i]);
+                //keyboard.AddButton(InlineKeyboardButton.WithCallbackData(departamentos![i].ToString(), departamentos[i].ToString()));
+            }    
+            buttons = deptos.Select(d => 
+                new [] {InlineKeyboardButton.WithCallbackData(d.ToString(), $"Muni_{d.ToString()}_{page}_{0}")}).ToList();       
+
+            var navRow = new List<InlineKeyboardButton>();
+            if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"Dep_{page - 1}"));
+            if ((page + 1) *  6 < departamentos!.LongCount()) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"Dep_{page + 1}"));
+            if (navRow.Count != 0)  buttons.Add(navRow.ToArray());
+
+            keyboard = new InlineKeyboardMarkup(buttons);
+            sb.Append("*Seleccione Departamento*");
+            return (sb.ToString(), keyboard);            
+        }
+        return (sb.ToString(), keyboard);
+    }
+
+    public (string texto, InlineKeyboardMarkup markup) Municipios(List<String> municipios, int page, int pageDepto, string departamento)
+    {
+        var sb = new StringBuilder();
+        var keyboard = new InlineKeyboardMarkup();
+        if (municipios == null || municipios.Any())
+        {
+            int rango =  6;
+            int start = 0;
+            var longCuenta = municipios!.LongCount().ToString();
+            int cuenta = int.Parse(longCuenta);
+            var buttons = new List<InlineKeyboardButton[]>();
+            if(page != 0)
+            {
+                if((page + 1) * rango > cuenta)
+                {
+                    start = cuenta - ((page -1) * rango); 
+                }else{
+                    start = page * rango;
+                }
+            }
+            List<String> munis = new List<String>();
+            for (int i = start; i < rango; i++)
+            {
+                //buttons.Add([InlineKeyboardButton.WithCallbackData(municipios![i].ToString(), municipios[i].ToString())]);
+                munis.Add(municipios[i]);
+            }            
+            buttons = munis.Select(d => 
+                new [] {InlineKeyboardButton.WithCallbackData(d.ToString(), d.ToString())}).ToList();     
+
+            var navRow = new List<InlineKeyboardButton>();
+            if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"Muni_{departamento}_{pageDepto}_{page - 1}"));
+            if ((page + 1) *  6 < municipios!.LongCount()) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"Muni_{departamento}_{pageDepto}_{page + 1}"));
+            if (navRow.Count != 0) buttons.Add(navRow.ToArray());
+
+            sb.Append("*Seleccione Distrito/Municipio*");
+             keyboard = new InlineKeyboardMarkup(buttons); 
+            return (sb.ToString(), keyboard);            
+        }
+        return (sb.ToString(), keyboard);
+    }
 }
