@@ -32,5 +32,7 @@ public interface ICarrito
     /// <param name="pedidoId">The unique identifier of the order.</param>
     /// <param name="url">The secure redirection URL for the payment process.</param>
     /// <returns>A tuple containing the formatted message text and the <see cref="InlineKeyboardMarkup"/> with the payment button.</returns>
-    (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId, string url);
+    (string texto, InlineKeyboardMarkup markup) Ticket(PagosLinksDTO? pagosLinks, int pedidoId, string url);    
+    (string texto, InlineKeyboardMarkup markup) Deptos(List<String> departamentos, int page);
+    (string texto, InlineKeyboardMarkup markup) Municipios(List<String> municipios, int page, int pageDepto, string departamento);
 }

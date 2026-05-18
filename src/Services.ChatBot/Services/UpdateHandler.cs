@@ -196,8 +196,10 @@ BotOnMsgInteractionHandler onMsgInteractionHandler
         if (rf.StartsWith("rmv"))
             await interactionHandler.ManejarEliminarItem(bot, parts, callbackQuerry);
 
-        if (action == "checkout")
+        if (action == "checkout"){
+            await interactionHandler.ManejarSeleccionMunicipio(bot, callbackQuerry, parts[1]);
             await interactionHandler.ManejarRegistroDireccionEnvio(bot, callbackQuerry);
+        }
 
         if (action == "ords")
             await renderer.RenderizarOrdenes(bot, callbackQuerry, 0);
@@ -209,5 +211,26 @@ BotOnMsgInteractionHandler onMsgInteractionHandler
         }
         if (action == "checkoutEnd")
             await interactionHandler.ManejarFinalizacionPedido(bot, callbackQuerry);
+        if(action == "Dep")
+        {
+            int page = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+            Console.WriteLine("PAGINA EN DEP: " + page);
+            await renderer.RenderizarDepartamentos(bot, callbackQuerry, page);
+        }
+        if(action == "Muni")
+        {
+            string depto = parts[1];            
+            int pageDepto = int.Parse(parts[2]);
+            int page = parts.Length > 3 ? int.Parse(parts[3]) : 0;
+            if(page == -1)
+            {
+                page = 0;
+                await interactionHandler.ManejarSeleccionDepto(bot, callbackQuerry, depto);
+            }
+
+            Console.WriteLine("PAGINA EN MUNI: " + page + depto);
+            await renderer.RenderizarMunicipios(bot, callbackQuerry, depto, page, pageDepto);
+
+        }
     }
 }

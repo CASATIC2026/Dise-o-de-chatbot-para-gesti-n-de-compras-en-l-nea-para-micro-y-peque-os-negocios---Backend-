@@ -13,11 +13,14 @@ namespace Webhook.Controllers.Services;
 /// This includes managing product quantities, shopping cart operations, and steering the checkout workflow.
 /// </summary>
 public class BotInteractionHandler(
+IHttpClientFactory httpClientFactory,
 IBotPersistencia _persistencia,
 BotRenderer renderer,
 ICatalogoUI catalogoUI,
 PaymentService _paymentService)
 {
+
+    private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
     /// <summary>
     /// Handles the increment and decrement of product quantities in the product detail view.
     /// Updates the inline keyboard to reflect the new quantity before the user adds the item to the cart.
@@ -32,7 +35,7 @@ PaymentService _paymentService)
         int catId = int.Parse(parts[2]);
         int page = int.Parse(parts[3]);
         var currentMkp = callbackQuery.Message!.ReplyMarkup;
-
+        //int StockDisponible = await _persistencia. 
         int currentQty = int.Parse(currentMkp!.InlineKeyboard.ElementAt(0).ElementAt(1).Text);
 
         if (action == "inc") currentQty++;
@@ -252,5 +255,33 @@ PaymentService _paymentService)
             //await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
             await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
         }*/
+    }
+
+    public async Task ManejarSeleccionDepto(ITelegramBotClient bot, CallbackQuery callbackQuery, string depto)
+    {
+        var pedidoactual = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var pedido = new PedidoDTO();
+        pedido.Estado = EstadoPedido.Pendiente;
+        if (pedidoactual != null )
+        {
+            pedido.Direccion =  depto;
+            pedido.Id = pedidoactual.Id;
+        }
+        await _persistencia.ActualizarPedido(callbackQuery.From.Id,pedido);      
+        Console.WriteLine("Se guardo Depto");
+    }
+
+    public async Task ManejarSeleccionMunicipio(ITelegramBotClient bot, CallbackQuery callbackQuery, string municipio)
+    {           
+        var pedidoactual = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var pedido = new PedidoDTO();
+        pedido.Estado = EstadoPedido.Pendiente;
+        if (pedidoactual != null )
+        {
+            pedido.Direccion +=  pedidoactual.DireccionEntrega + $"|{municipio}";
+            pedido.Id = pedidoactual.Id;
+        }
+        await _persistencia.ActualizarPedido(callbackQuery.From.Id,pedido);  
+        Console.WriteLine("Se guardo Muni");
     }
 }

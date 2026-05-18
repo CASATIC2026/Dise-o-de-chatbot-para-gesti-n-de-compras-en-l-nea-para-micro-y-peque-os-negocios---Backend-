@@ -17,6 +17,8 @@ namespace Webhook.Controllers.Services
     {
         private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
 
+        public int Length { get; private set; }
+
         /// <summary>
         /// Handles the initial message of a conversation by displaying the main menu.
         /// </summary>
@@ -120,11 +122,11 @@ namespace Webhook.Controllers.Services
                 if (lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_DIRECCION]"))
                 {
                     string direccion = text;
-
+                    var pedidoactual = await _persistencia.ObtenerPedidoActivo(msg.From!.Id);
                     await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
                     {
                         Estado = EstadoPedido.Pendiente,
-                        Direccion = direccion
+                        Direccion = pedidoactual!.DireccionEntrega + "|" + direccion
                     });
 
                     Asunto = conv.Asunto!;
@@ -147,24 +149,45 @@ namespace Webhook.Controllers.Services
                 }
                 else if (lastMsg.Contenido.Contains("[ESTADO:CHECKOUT_TELEFONO]"))
                 {
-                    string telefono = text;
+                    int longTelephono = 8;
 
-                    await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
+                    int IntTelefono;
+                    var formTexte = text.Trim().Replace(" ", "").Replace("-", "");
+                    if (formTexte.Length == longTelephono)
                     {
-                        Detalles = new PedidoDetalleDTO { Telefono = telefono }
-                    });
-
-                    CallbackQuery callbackQuery = new()
-                    {
-                        Data = "menu",
-                        From = msg.From,
-                        Message = new Message
+                        if (int.TryParse(formTexte, out IntTelefono))
                         {
-                            Chat = msg.Chat,
+                            await _persistencia.ActualizarPedido(msg.From.Id, new PedidoDTO
+                            {
+                                Detalles = new PedidoDetalleDTO { Telefono = formTexte.ToString() }
+
+
+                            });
+                            CallbackQuery callbackQuery = new()
+                            {
+                                Data = "menu",
+                                From = msg.From,
+                                Message = new Message
+                                {
+                                    Chat = msg.Chat,
+                                }
+                            };
+                            saveMsg = "[ESTADO:REPOSO]";
+                            await renderer.RenderizarResumenFina(bot, callbackQuery, int.Parse(Asunto!));
                         }
-                    };
-                    saveMsg = "[ESTADO:REPOSO]";
-                    await renderer.RenderizarResumenFina(bot, callbackQuery, int.Parse(Asunto!));
+                        else
+                        {
+                            instruction = " ERROR AL INGRESAR EL TELEFONO:\n*Solo numeros*\n📞 PASO 3: TELÉFONO DE CONTACTO\n\n Escribe tu número de teléfono para coordinar la entrega:";
+                            saveMsg = $"[ESTADO:CHECKOUT_TELEFONO]_[{Asunto}]_Esperando teléfono...";
+                        }
+                    }
+                    else
+                    {
+                        instruction = "ERROR AL INGRESAR EL TELEFONO:\n*Ingresar 8 numeros*\n📞 PASO 3: TELÉFONO DE CONTACTO\n\nEscribe tu número de teléfono para coordinar la entrega:";
+                        saveMsg = $"[ESTADO:CHECKOUT_TELEFONO]_[{Asunto}]_Esperando teléfono...";
+                    }
+
+
                 }
 
                 await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);

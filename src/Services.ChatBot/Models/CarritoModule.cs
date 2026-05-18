@@ -62,7 +62,8 @@ public class CarritoModule : ICarrito
         buttons.Add(
             [
                 InlineKeyboardButton.WithCallbackData("🗑 Vaciar", "ask_clear"),
-                InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "checkout")
+                //InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "checkout")
+                InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "Dep_0")
             ]
         );
         buttons.Add([InlineKeyboardButton.WithCallbackData("Seguir Comprando", "pcat_0")]);
@@ -103,8 +104,8 @@ public class CarritoModule : ICarrito
         sb.AppendLine("__________________________");
         sb.AppendLine($"💰 *TOTAL A PAGAR: ${pedido.Total}*");
         sb.AppendLine("__________________________");
-        
-        sb.AppendLine($"📍 *Dirección de Envío:*`{pedido.DireccionEntrega}`");
+        var Direccion = pedido.DireccionEntrega.Trim().Replace("|", "\n- ");
+        sb.AppendLine($"📍 *Dirección de Envío:*`\n{Direccion}`");
         sb.AppendLine($"🔸 Referencias: `{detalleDTO.Referencias}`");
         sb.AppendLine($"📞 *Teléfono:* `{detalleDTO.Telefono}`");
         sb.AppendLine("__________________________\n");
@@ -118,7 +119,7 @@ public class CarritoModule : ICarrito
         },
         new[] { 
             // Si algo está mal, lo regresamos al inicio para sobrescribir la data
-            InlineKeyboardButton.WithCallbackData("🔄 Corregir Datos", "checkout")
+            InlineKeyboardButton.WithCallbackData("🔄 Corregir Datos", $"Dep_{0}")
         },
         new[] {
             InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart")
@@ -156,5 +157,96 @@ public class CarritoModule : ICarrito
         
         return (sb.ToString(), keyboard);
     }
-    
+
+    public (string texto, InlineKeyboardMarkup markup) Deptos(List<String> departamentos, int page)
+    {
+        var sb = new StringBuilder();
+        var keyboard = new InlineKeyboardMarkup();
+        var buttons = new List<InlineKeyboardButton[]>();
+        List<String> deptos = new List<String>();
+        if (departamentos == null || departamentos.Any())
+        {
+            int rango =  6;
+            int start = 0;
+            var longCuenta = departamentos!.LongCount().ToString();
+            int cuenta = int.Parse(longCuenta);
+            
+            if(page != 0)
+            {
+                if((page + 1) * rango > cuenta)
+                {
+                    start = cuenta - Math.Abs((page * rango) - cuenta); 
+                    
+                    rango = cuenta;
+                }else{
+                    start = page * rango;
+                    rango += start;
+                }
+                Console.WriteLine($"Cuenta: {cuenta}, Start: {start}, Rango: {rango}" );
+            }
+            for (int i = start; i < rango; i++)
+            {
+                deptos.Add(departamentos![i]);
+                //keyboard.AddButton(InlineKeyboardButton.WithCallbackData(departamentos![i].ToString(), departamentos[i].ToString()));
+            }    
+            buttons = deptos.Select(d => 
+                new [] {InlineKeyboardButton.WithCallbackData(d.ToString(), $"Muni_{d.ToString()}_{page}_{-1}")}).ToList();       
+
+            var navRow = new List<InlineKeyboardButton>();
+            if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"Dep_{page - 1}"));
+            if ((page + 1) *  6 < departamentos!.LongCount()) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"Dep_{page + 1}"));
+            if (navRow.Count != 0)  buttons.Add(navRow.ToArray());
+
+            keyboard = new InlineKeyboardMarkup(buttons);
+            sb.Append("*Seleccione Departamento*");
+            return (sb.ToString(), keyboard);            
+        }
+        return (sb.ToString(), keyboard);
+    }
+
+    public (string texto, InlineKeyboardMarkup markup) Municipios(List<String> municipios, int page, int pageDepto, string departamento)
+    {
+        var sb = new StringBuilder();
+        var keyboard = new InlineKeyboardMarkup();
+        var buttons = new List<InlineKeyboardButton[]>();
+        List<String> munis = new List<String>();
+        if (municipios == null || municipios.Any())
+        {
+            int rango =  6;
+            int start = 0;
+            var longCuenta = municipios!.LongCount().ToString();
+            int cuenta = int.Parse(longCuenta);
+            
+            if(page != 0)
+            {
+                if((page + 1) * rango > cuenta)
+                {
+                    start = cuenta - Math.Abs((page  * rango) - cuenta); 
+                    rango = cuenta;
+                }else{
+                    start = page * rango;
+                    rango += start;
+                }
+            }
+            
+            for (int i = start; i < rango; i++)
+            {
+                //buttons.Add([InlineKeyboardButton.WithCallbackData(municipios![i].ToString(), municipios[i].ToString())]);
+                munis.Add(municipios![i]);
+            }            
+            buttons = munis.Select(d => 
+                new [] {InlineKeyboardButton.WithCallbackData(d.ToString(), $"checkout_{d.ToString()}")}).ToList();     
+
+            var navRow = new List<InlineKeyboardButton>();
+            if (page > 0) navRow.Add(InlineKeyboardButton.WithCallbackData("⬅️", $"Muni_{departamento}_{pageDepto}_{page - 1}"));
+            if ((page + 1) *  6 < municipios!.LongCount()) navRow.Add(InlineKeyboardButton.WithCallbackData("➡️", $"Muni_{departamento}_{pageDepto}_{page + 1}"));
+            if (navRow.Count != 0) buttons.Add(navRow.ToArray());
+            buttons.Add([InlineKeyboardButton.WithCallbackData("🔙 Volver", $"Dep_{pageDepto}")]);
+
+            sb.Append("*Seleccione Distrito/Municipio*");
+            keyboard = new InlineKeyboardMarkup(buttons); 
+            return (sb.ToString(), keyboard);            
+        }
+        return (sb.ToString(), keyboard);
+    }
 }
