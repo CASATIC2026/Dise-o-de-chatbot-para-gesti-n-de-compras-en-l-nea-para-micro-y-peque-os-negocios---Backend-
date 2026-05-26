@@ -263,14 +263,10 @@ IBotPersistencia _persistencia
         if (pedido == null) return;
         string urlCodec = Uri.EscapeDataString(data.Url);
         string urlPublic = "https://adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect";
-        string urlCodec = Uri.EscapeDataString(data.Url);
-        string urlPublic = "https://adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect";
+        
         string url = $"{urlPublic}?url={urlCodec}&convasacionId={callbackQuery!.Message!.MessageId}&refe={data.Referencia}"; //cambio de url de servicio por puerto, al subir cambiar por url de microservicio generado
 
-        try
-        {
-            var (texto, markup) = carritoUI.Ticket(data, pedido.Id, url);
-
+        
         try
         {
             var (texto, markup) = carritoUI.Ticket(data, pedido.Id, url);
@@ -293,16 +289,7 @@ IBotPersistencia _persistencia
                 return;
             }
 
-            if (Succes)
-            {
-                await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
-                await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
-            }
-            else
-            {
-                var text = "🔄 REINTENTAR";
-                await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
-                var markup2 = new InlineKeyboardMarkup(new[]{
+            
             if (Succes)
             {
                 await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
