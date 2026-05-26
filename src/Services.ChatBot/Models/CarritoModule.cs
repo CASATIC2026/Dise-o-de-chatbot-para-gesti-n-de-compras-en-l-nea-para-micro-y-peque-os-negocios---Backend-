@@ -64,6 +64,8 @@ public class CarritoModule : ICarrito
                 InlineKeyboardButton.WithCallbackData("🗑 Vaciar", "ask_clear"),
                 //InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "checkout")
                 InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "Dep_0")
+                //InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "checkout")
+                InlineKeyboardButton.WithCallbackData("✅ Finalizar Compra", "Dep_0")
             ]
         );
         buttons.Add([InlineKeyboardButton.WithCallbackData("Seguir Comprando", "pcat_0")]);
