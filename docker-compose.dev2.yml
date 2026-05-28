@@ -82,6 +82,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - Service__PagosBaseUrl=http://pagos-service:8080
+      - ChatBotConfig__BannerUrl=https://placehold.co/360x100/png?text=Tienda
+      - BotConfiguration__BotToken=${TELEGRAM_BOT_TOKEN}
+      - BotConfiguration__WebhookUrl=${TELEGRAM_WEBHOOK_URL}
+      - BotConfiguration__SecretToken=${TELEGRAM_SECRET_TOKEN}
+      
     volumes:
       - ./src/Services.Chatbot:/src/Services.ChatBot
       - ./src/Shared.Core:/src/Shared.Core

@@ -15,9 +15,10 @@ namespace Webhook.Controllers.Services
     public class BotOnMsgInteractionHandler(
     IBotPersistencia _persistencia,
     BotRenderer renderer,
-    BotInteractionHandler interactionHandler)
+    BotInteractionHandler interactionHandler,
+    IConfiguration configuration)
     {
-        private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
+        private readonly string url = configuration["ChatBotConfig:BannerUrl"];
 
         public int Length { get; private set; }
 
