@@ -1,5 +1,6 @@
 using Services.ChatBot.DTOs;
 using Services.ChatBot.Interfaces;
+using Services.ChatBot.Utils;
 using Shared.Core.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -260,41 +261,103 @@ IBotPersistencia _persistencia
         var Succes = false; var msg = "";
         //var data = await _paymentService.GeneratedPaymentLink(pedido.Id);        
         if (pedido == null) return;
-        string urlCodec = Uri.EscapeDataString(data.Url);      
-        string urlPublic = "https://adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect"; 
+        string urlCodec = Uri.EscapeDataString(data.Url);
+        string urlPublic = "https://adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect";
+        
         string url = $"{urlPublic}?url={urlCodec}&convasacionId={callbackQuery!.Message!.MessageId}&refe={data.Referencia}"; //cambio de url de servicio por puerto, al subir cambiar por url de microservicio generado
 
-        try{
-        var (texto, markup) = carritoUI.Ticket(data, pedido.Id, url);
         
+        try
+        {
+            var (texto, markup) = carritoUI.Ticket(data, pedido.Id, url);
 
-        if (string.IsNullOrEmpty(texto))        
-            (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido); // En renderer
-        else
-        {
-            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {texto}", showAlert: true);
-            await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);            
-            return;
-        }
 
-        if (Succes)
-        {
-            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
-            await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
-        }
-        else
-        {
-            var text = "🔄 REINTENTAR";
-            await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
-            var markup2 = new InlineKeyboardMarkup(new[]{
+            if (string.IsNullOrEmpty(texto))
+                (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido); // En renderer
+            else
+            {
+                await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {texto}", showAlert: true);
+                await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
+                return;
+            }
+            if (string.IsNullOrEmpty(texto))
+                (Succes, msg) = await _persistencia.ActualizarPedido(callbackQuery.From.Id, pedido); // En renderer
+            else
+            {
+                await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {texto}", showAlert: true);
+                await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
+                return;
+            }
+
+            
+            if (Succes)
+            {
+                await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
+                await bot.EditMessageCaption(callbackQuery.Message!.Chat.Id, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, replyMarkup: markup);
+            }
+            else
+            {
+                var text = "🔄 REINTENTAR";
+                await bot.AnswerCallbackQuery(callbackQuery.Id, $"⚠️ {msg}", showAlert: true);
+                var markup2 = new InlineKeyboardMarkup(new[]{
                 InlineKeyboardButton.WithCallbackData(text, "checkoutEnd"),
                 InlineKeyboardButton.WithCallbackData("🛒 Volver al Carrito", "cart")
             });
-            await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup2);
+                await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup2);
+            }
         }
-        }catch (Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine("Fallo al renderizar el ticket: " + ex);
+        }
+    }
+
+    /// <summary>
+    /// Renders the list of departments as interactive buttons for delivery address selection.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client instance.</param>
+    /// <param name="callbackQuery">The callback query originating from the user's interaction.</param>
+    /// <param name="page">The page number for pagination of the department list.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task RenderizarDepartamentos(ITelegramBotClient bot, CallbackQuery callbackQuery, int page)
+    {
+        var JsonUtil = new DeserialiceJson();
+
+        try
+        {
+            var divisionPolitica = JsonUtil.ObtenerDatos();
+            List<String> departamentos = divisionPolitica.Keys.ToList();
+            var (texto, markup) = carritoUI.Deptos(departamentos, page);
+            await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, markup);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error al renderizar departamentos: " + ex.Message);            
+        }
+    }
+
+    /// <summary>
+    /// Renders the list of municipalities for a specific department as interactive buttons.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client instance.</param>
+    /// <param name="callbackQuery">The callback query originating from the user's interaction.</param>
+    /// <param name="departamento">The name of the department to show municipalities for.</param>
+    /// <param name="page">The page number for pagination of the municipality list.</param>
+    /// <param name="deptoPage">The page number of the department list to allow returning back.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task RenderizarMunicipios(ITelegramBotClient bot, CallbackQuery callbackQuery, string departamento , int page, int deptoPage)
+    {
+        var JsonUtil = new DeserialiceJson();
+        try
+        {
+            var divisionPolitica = JsonUtil.ObtenerDatos();
+            List<String> municipios = divisionPolitica[departamento].ToList();
+            var (texto, markup) = carritoUI.Municipios(municipios, page, deptoPage, departamento);
+            await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, texto, parseMode: ParseMode.Markdown, markup);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error al renderizar municipios: " + ex.Message);            
         }
     }
 }
