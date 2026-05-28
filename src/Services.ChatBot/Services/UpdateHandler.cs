@@ -13,7 +13,6 @@ namespace Webhook.Controllers.Services;
 /// </summary>
 public class UpdateHandler(ITelegramBotClient bot,
 ILogger<UpdateHandler> logger,
-IHttpClientFactory httpClientFactory,
 IUtilsUI utilsUI,
 IBotPersistencia _persistencia,
 BotRenderer renderer,
@@ -21,9 +20,6 @@ BotInteractionHandler interactionHandler,
 BotOnMsgInteractionHandler onMsgInteractionHandler
 ) : IUpdateHandler
 {
-    private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
-    private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
-
     /// <summary>
     /// Handles errors that occur during bot update processing.
     /// Implements a cooldown delay for network connection errors.
@@ -213,8 +209,7 @@ BotOnMsgInteractionHandler onMsgInteractionHandler
             await interactionHandler.ManejarFinalizacionPedido(bot, callbackQuerry);
         if(action == "Dep")
         {
-            int page = parts.Length > 1 ? int.Parse(parts[1]) : 0;
-            Console.WriteLine("PAGINA EN DEP: " + page);
+            int page = parts.Length > 1 ? int.Parse(parts[1]) : 0;            
             await renderer.RenderizarDepartamentos(bot, callbackQuerry, page);
         }
         if(action == "Muni")
@@ -226,9 +221,7 @@ BotOnMsgInteractionHandler onMsgInteractionHandler
             {
                 page = 0;
                 await interactionHandler.ManejarSeleccionDepto(bot, callbackQuerry, depto);
-            }
-
-            Console.WriteLine("PAGINA EN MUNI: " + page + depto);
+            }            
             await renderer.RenderizarMunicipios(bot, callbackQuerry, depto, page, pageDepto);
 
         }

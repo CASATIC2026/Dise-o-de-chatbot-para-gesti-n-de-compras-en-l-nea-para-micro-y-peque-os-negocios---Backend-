@@ -159,6 +159,12 @@ public class CarritoModule : ICarrito
         return (sb.ToString(), keyboard);
     }
 
+    /// <summary>
+    /// Builds the user interface for displaying a paginated list of departments.
+    /// </summary>
+    /// <param name="departamentos">A list of department names.</param>
+    /// <param name="page">The current page number for pagination.</param>
+    /// <returns>A tuple containing the formatted message text and the <see cref="InlineKeyboardMarkup"/> for department navigation.</returns>
     public (string texto, InlineKeyboardMarkup markup) Deptos(List<String> departamentos, int page)
     {
         var sb = new StringBuilder();
@@ -205,6 +211,14 @@ public class CarritoModule : ICarrito
         return (sb.ToString(), keyboard);
     }
 
+    /// <summary>
+    /// Builds the user interface for displaying a paginated list of municipalities within a specific department.
+    /// </summary>
+    /// <param name="municipios">A list of municipality names.</param>
+    /// <param name="page">The current page number for pagination of municipalities.</param>
+    /// <param name="pageDepto">The page number of the department list, used for navigation back to departments.</param>
+    /// <param name="departamento">The name of the department to which the municipalities belong.</param>
+    /// <returns>A tuple containing the formatted message text and the <see cref="InlineKeyboardMarkup"/> for municipality navigation.</returns>
     public (string texto, InlineKeyboardMarkup markup) Municipios(List<String> municipios, int page, int pageDepto, string departamento)
     {
         var sb = new StringBuilder();

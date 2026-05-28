@@ -4,6 +4,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Shared.Core.Entities;
 using Services.ChatBot.DTOs;
+using System.Linq;
 
 namespace Webhook.Controllers.Services
 {
@@ -13,7 +14,8 @@ namespace Webhook.Controllers.Services
     /// </summary>
     public class BotOnMsgInteractionHandler(
     IBotPersistencia _persistencia,
-    BotRenderer renderer)
+    BotRenderer renderer,
+    BotInteractionHandler interactionHandler)
     {
         private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
 
@@ -55,32 +57,33 @@ namespace Webhook.Controllers.Services
             var lastMsg = await _persistencia.ObtenerUltimoMensaje(conv.Id);
             if (lastMsg != null && lastMsg.Remitente == TipoRemitente.Sistema && lastMsg.Contenido.Contains("[ID:"))
             {
-                if (int.TryParse(text, out int cantidad) && cantidad > 0)
+                string fragmento = lastMsg.Contenido.Split('[', ']')[1]; // "ID:2_3_0"
+                string[] partes = fragmento.Split(':')[1].Split('_');    // ["2", "3", "0"]
+                int prodId = int.Parse(partes[0]);
+                int catId = int.Parse(partes[1]);
+                int page = int.Parse(partes[2]);
+                int currentQty = int.Parse(partes[3]);
+                var newParts = partes.Prepend("0").ToArray();
+                newParts = newParts.Prepend("0").ToArray();
+                Console.WriteLine($"prodId {prodId}, catId {catId}, page {page}, lenth {newParts.Length}");
+                string data = (catId == -1) ? $"prod_{prodId}_{-1}_{0}_{currentQty}" : $"prod_{prodId}_{catId}_{page}_{currentQty}";
+                CallbackQuery callbackQuery = new()
                 {
-                    string fragmento = lastMsg.Contenido.Split('[', ']')[1]; // "ID:2_3_0"
-                    string[] partes = fragmento.Split(':')[1].Split('_');    // ["2", "3", "0"]
-
-                    int prodId = int.Parse(partes[0]);
-                    int catId = int.Parse(partes[1]);
-                    int page = int.Parse(partes[2]);
-                    Console.WriteLine($"prodId {prodId}, catId {catId}, page {page}");
-
-                    string data = (catId == -1) ? $"prod_{prodId}_{-1}_{0}" : $"prod_{prodId}_{catId}_{page}";
-
-                    CallbackQuery callbackQuery = new()
+                    Data = data,
+                    From = msg.From,
+                    Message = new Message
                     {
-                        Data = data,
-                        From = msg.From,
-                        Message = new Message
-                        {
-                            Chat = msg.Chat,
-                        }
-                    };
+                        Chat = msg.Chat,
+                    }
+                };
+
+                if (int.TryParse(text, out int cantidad) && cantidad > 0 && cantidad <= 5)
+                {
 
                     //Console.Error.WriteLine($"\nId: {callbackQuery.Message.MessageId}, conversacion Asunt: {conv.Asunto}\n");
                     await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);
                     if (catId == -1)
-                    {
+                    {                        
                         await renderer.RenderizarProducto(bot, prodId, catId, page, callbackQuery, int.Parse(conv.Asunto!), cantidad);
                         return true;
                     }
@@ -90,10 +93,21 @@ namespace Webhook.Controllers.Services
                         return true;
                     }
                 }
-                else
+                else if (cantidad <= 0)
                 {
                     //await bot.SendMessage(msg.Chat.Id, "Valor invalido. Por favor, solo numeros mayores a 0.");
-                    await bot.SendPhoto(msg.Chat.Id, url, "Valor invalido. Por favor, solo numeros mayores a 0.", parseMode: ParseMode.Markdown);
+                    //await bot.SendPhoto(msg.Chat.Id, url, "Valor invalido. Por favor, solo numeros mayores a 0.", parseMode: ParseMode.Markdown);
+                    var texto = "Valor invalido. Por favor, solo numeros mayores a 0.";                   
+                    await bot.DeleteMessage(msg.Chat.Id, msg.MessageId); 
+                    await interactionHandler.ManejarEdicionManual(bot, newParts, callbackQuery, texto, int.Parse(conv.Asunto!));
+                    return true;
+                }
+                else if (cantidad > 5)
+                {
+                    //await bot.SendPhoto(msg.Chat.Id, url, "Valor invalido. Por favor, solo numeros menores a 5.", parseMode: ParseMode.Markdown);
+                    var texto = "Valor invalido. Por favor, solo numeros menores a 5.";           
+                    await bot.DeleteMessage(msg.Chat.Id, msg.MessageId);         
+                    await interactionHandler.ManejarEdicionManual(bot, newParts, callbackQuery, texto, int.Parse(conv.Asunto!));
                     return true;
                 }
             }

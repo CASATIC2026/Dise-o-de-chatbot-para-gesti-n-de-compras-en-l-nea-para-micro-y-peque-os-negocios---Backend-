@@ -311,6 +311,14 @@ IBotPersistencia _persistencia
             Console.WriteLine("Fallo al renderizar el ticket: " + ex);
         }
     }
+
+    /// <summary>
+    /// Renders the list of departments as interactive buttons for delivery address selection.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client instance.</param>
+    /// <param name="callbackQuery">The callback query originating from the user's interaction.</param>
+    /// <param name="page">The page number for pagination of the department list.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarDepartamentos(ITelegramBotClient bot, CallbackQuery callbackQuery, int page)
     {
         var JsonUtil = new DeserialiceJson();
@@ -328,6 +336,15 @@ IBotPersistencia _persistencia
         }
     }
 
+    /// <summary>
+    /// Renders the list of municipalities for a specific department as interactive buttons.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client instance.</param>
+    /// <param name="callbackQuery">The callback query originating from the user's interaction.</param>
+    /// <param name="departamento">The name of the department to show municipalities for.</param>
+    /// <param name="page">The page number for pagination of the municipality list.</param>
+    /// <param name="deptoPage">The page number of the department list to allow returning back.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RenderizarMunicipios(ITelegramBotClient bot, CallbackQuery callbackQuery, string departamento , int page, int deptoPage)
     {
         var JsonUtil = new DeserialiceJson();
