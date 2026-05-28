@@ -13,11 +13,14 @@ namespace Webhook.Controllers.Services;
 /// This includes managing product quantities, shopping cart operations, and steering the checkout workflow.
 /// </summary>
 public class BotInteractionHandler(
+IHttpClientFactory httpClientFactory,
 IBotPersistencia _persistencia,
 BotRenderer renderer,
 ICatalogoUI catalogoUI,
 PaymentService _paymentService)
 {
+
+    private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
     /// <summary>
     /// Handles the increment and decrement of product quantities in the product detail view.
     /// Updates the inline keyboard to reflect the new quantity before the user adds the item to the cart.
@@ -32,11 +35,15 @@ PaymentService _paymentService)
         int catId = int.Parse(parts[2]);
         int page = int.Parse(parts[3]);
         var currentMkp = callbackQuery.Message!.ReplyMarkup;
-
+        //int StockDisponible = await _persistencia. 
         int currentQty = int.Parse(currentMkp!.InlineKeyboard.ElementAt(0).ElementAt(1).Text);
 
-        if (action == "inc") currentQty++;
-        else if (currentQty > 1) currentQty--;
+        if (action == "inc" && currentQty < 5) currentQty++;
+
+        else if (action == "dec" && currentQty > 0) currentQty--;
+
+        else if(action == "inc") await bot.AnswerCallbackQuery(callbackQuery.Id, "Cantidad no puede ser mayor a 5");
+        //else if(action == "dec") await bot.AnswerCallbackQuery(callbackQuery.Id, "Cantidad no puede ser mayor a 5");
 
         var keyboard = catalogoUI.BuildUIDetalleProducto(prodId, catId, page, currentQty);
 
@@ -50,29 +57,47 @@ PaymentService _paymentService)
     /// <param name="bot">The Telegram bot client instance.</param>
     /// <param name="parts">The split callback data containing product details.</param>
     /// <param name="callbackQuery">The original callback query from the user interaction.</param>
-    public async Task ManejarEdicionManual(ITelegramBotClient bot, string[] parts, CallbackQuery callbackQuery)
+    /// <param name="msg">An optional text message to prepend to the instructions, typically used for displaying validation errors.</param>
+    /// <param name="msgId">The specific message ID to update. If set to 0, it defaults to the message ID from the callback query.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task ManejarEdicionManual(ITelegramBotClient bot, string[] parts, CallbackQuery callbackQuery, string msg = "", int msgId = 0)
     {
         int prodId = int.Parse(parts[2]);
         int catId = int.Parse(parts[3]);
         int page = int.Parse(parts[4]);
         int currentQty = int.Parse(parts[5]);
+        string instruction;
+        if(msg == "")
+        instruction = $"*Ingreso Manual*\n\nEscribe la cantidad que deseas para el producto [ID:{prodId}]";
+        else
+        instruction = msg + $"\n*Ingreso Manual*\n\nEscribe la cantidad que deseas para el producto [ID:{prodId}]";
 
-        string instruction = $"*Ingreso Manual*\n\nEscribe la cantidad que deseas para el producto [ID:{prodId}]";
-        await bot.AnswerCallbackQuery(callbackQuery.Id, "⌨️ Escribe la cantidad en el chat", showAlert: false);
+        int MSGId ;
+        if (msgId == 0)
+        {
+            MSGId = callbackQuery.Message!.MessageId ;
+            await bot.AnswerCallbackQuery(callbackQuery.Id, "⌨️ Escribe la cantidad en el chat", showAlert: false);
+        }
+        else
+        {
+            MSGId = msgId;
+        }
+        
         Console.WriteLine(instruction);
 
         var cancelKbd = new InlineKeyboardMarkup(
             InlineKeyboardButton.WithCallbackData("Cancelar", $"prod_{prodId}_{catId}_{page}_{currentQty}")
         );
-
+       
+        
         //await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
-        await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
+        await bot.EditMessageCaption(callbackQuery.Message!.Chat, MSGId, instruction, parseMode: ParseMode.Markdown, replyMarkup: cancelKbd);
 
         var conv = await _persistencia.ObtenerConversacionActiva(callbackQuery.From.Id);
         if (conv != null)
         {
-            await _persistencia.RegistrarMensaje(conv.Id, $" [ID:{prodId}_{catId}_{page}] Esperando cantidad manual...", TipoRemitente.Sistema);
-        }
+            await _persistencia.RegistrarMensaje(conv.Id, $" [ID:{prodId}_{catId}_{page}_{currentQty}] Esperando cantidad manual...", TipoRemitente.Sistema);
+        }        
     }
 
     /// <summary>
@@ -252,5 +277,47 @@ PaymentService _paymentService)
             //await bot.EditMessageText(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
             await bot.EditMessageCaption(callbackQuery.Message!.Chat, callbackQuery.Message.MessageId, text, parseMode: ParseMode.Markdown, markup);
         }*/
+    }
+
+    /// <summary>
+    /// Records the user's selection of a department and updates the active order's delivery information.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client instance.</param>
+    /// <param name="callbackQuery">The original callback query from the user interaction.</param>
+    /// <param name="depto">The name of the selected department.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task ManejarSeleccionDepto(ITelegramBotClient bot, CallbackQuery callbackQuery, string depto)
+    {
+        var pedidoactual = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var pedido = new PedidoDTO();
+        pedido.Estado = EstadoPedido.Pendiente;
+        if (pedidoactual != null )
+        {
+            pedido.Direccion =  depto;
+            pedido.Id = pedidoactual.Id;
+        }
+        await _persistencia.ActualizarPedido(callbackQuery.From.Id,pedido);      
+        Console.WriteLine("Se guardo Depto");
+    }
+
+    /// <summary>
+    /// Records the user's selection of a municipality and appends it to the delivery address in the active order.
+    /// </summary>
+    /// <param name="bot">The Telegram bot client instance.</param>
+    /// <param name="callbackQuery">The original callback query from the user interaction.</param>
+    /// <param name="municipio">The name of the selected municipality.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task ManejarSeleccionMunicipio(ITelegramBotClient bot, CallbackQuery callbackQuery, string municipio)
+    {           
+        var pedidoactual = await _persistencia.ObtenerPedidoActivo(callbackQuery.From.Id);
+        var pedido = new PedidoDTO();
+        pedido.Estado = EstadoPedido.Pendiente;
+        if (pedidoactual != null )
+        {
+            pedido.Direccion +=  pedidoactual.DireccionEntrega + $"|{municipio}";
+            pedido.Id = pedidoactual.Id;
+        }
+        await _persistencia.ActualizarPedido(callbackQuery.From.Id,pedido);  
+        Console.WriteLine("Se guardo Muni");
     }
 }
