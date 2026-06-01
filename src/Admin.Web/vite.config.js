@@ -13,12 +13,12 @@ export default defineConfig(({ mode }) => {
       allowedHosts: env.VITE_ALLOWED_HOST ? [env.VITE_ALLOWED_HOST] : true,
       proxy: {
         '/api': {
-          target: 'http://gateway-service:3000', 
+          target: env.VITE_API_URL || 'http://gateway-service:3000', 
           changeOrigin: true,
           secure: false,
         },
         '/notificationHub': {
-          target: 'http://inventario-service:8080',
+          target: env.VITE_NOTIFICATIONS_URL || 'http://inventario-service:8080',
           changeOrigin: true,
           secure: false,
           ws: true,
