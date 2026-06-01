@@ -21,12 +21,13 @@ namespace Webhook.Controllers.Services;
 public class BotRenderer(IHttpClientFactory httpClientFactory,
 ICatalogoUI catalogoUI, IMenuUI menuUI,
 ICarrito carritoUI,
-IBotPersistencia _persistencia
+IBotPersistencia _persistencia,
+IConfiguration configuration
 )
 {
     /// <summary>The HTTP client used to interact with the system gateway.</summary>
     private readonly HttpClient _gateway = httpClientFactory.CreateClient("GatewayApi");
-    private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
+    private readonly string url = configuration["ChatBotConfig:BannerUrl"];
 
     /// <summary>
     /// Renders the product catalog for a specific category with pagination.
@@ -262,7 +263,7 @@ IBotPersistencia _persistencia
         //var data = await _paymentService.GeneratedPaymentLink(pedido.Id);        
         if (pedido == null) return;
         string urlCodec = Uri.EscapeDataString(data.Url);
-        string urlPublic = "https://adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect";
+        string urlPublic = configuration["BotConfiguration:BotWebhookUrl"]+"/api/pagos/redirect";
         
         string url = $"{urlPublic}?url={urlCodec}&convasacionId={callbackQuery!.Message!.MessageId}&refe={data.Referencia}"; //cambio de url de servicio por puerto, al subir cambiar por url de microservicio generado
 

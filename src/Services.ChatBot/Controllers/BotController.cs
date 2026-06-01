@@ -17,7 +17,8 @@ namespace Webhook.Controllers.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
+public class BotController(IOptions<BotConfiguration> Config,
+IConfiguration configuration) : ControllerBase
 {
     /// <summary>
     /// Configures the Telegram Bot API to send updates to this server's webhook URL.
@@ -91,7 +92,7 @@ public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
             if (string.IsNullOrEmpty(Url)) return NotFound();
 
             string urlCodec = Uri.EscapeDataString(Url);
-            string urlPublic = "adele-unconvergent-preternaturally.ngrok-free.dev/api/pagos/redirect";
+            string urlPublic = configuration["BotConfiguration:BotWebhookUrl"]+"/api/pagos/redirect";
 
             int.TryParse(lastconversacion!.Asunto, out int msgId);
             string url = $"{urlPublic}?url={urlCodec}&convasacionId={msgId}&refe={""}";

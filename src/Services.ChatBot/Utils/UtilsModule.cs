@@ -9,9 +9,9 @@ namespace Services.ChatBot.Models;
 /// Provides utility methods for UI manipulation and message management within the Telegram bot.
 /// Implements <see cref="IUtilsUI"/> to decouple bot logic from direct Telegram API interaction.
 /// </summary>
-public class UtilsModule(ITelegramBotClient bot) : IUtilsUI
+public class UtilsModule(ITelegramBotClient bot, IConfiguration configuration) : IUtilsUI
 {
-    private readonly string url = "https://placehold.co/360x100/png?text=Tienda";
+    private readonly string url = configuration["ChatBotConfig:BannerUrl"];
     /// <summary>
     /// Invalidates an existing menu or session message by updating its content with a warning.
     /// This is typically used when a conversation session has expired or the user needs to restart.
