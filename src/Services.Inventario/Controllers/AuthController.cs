@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
         }
 
         // 2. Preparamos la llave secreta desde el .env
-        var jwtSecret = _config["JWT_SECRET"] ?? "f9a2b8c7e6d5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b";
+        var jwtSecret = _config["JWT_SECRET"];
         var key = Encoding.ASCII.GetBytes(jwtSecret);
 
         // 3. Creamos el contenido del token (Claims)
