@@ -25,6 +25,8 @@ builder.Configuration.AddEnvironmentVariables();
 /// </section>
 var jwtSecret = builder.Configuration["JWT_SECRET"];
 var key = Encoding.ASCII.GetBytes(jwtSecret);
+var viteUrl = builder.Configuration["ViteUrl"] ?? "http://localhost:5173";
+
 
 builder.Services.AddAuthentication(x =>
 {
@@ -85,7 +87,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowGateway", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Default Vite/React port
+        policy.WithOrigins(viteUrl) // Default Vite/React port
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); // Mandatory for SignalR when using Authentication
