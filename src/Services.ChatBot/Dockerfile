@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY ["Services.ChatBot/Services.ChatBot.csproj", "Services.ChatBot/"]
+COPY ["src/Services.ChatBot/Services.ChatBot.csproj", "Services.ChatBot/"]
 
 RUN dotnet restore "Services.ChatBot/Services.ChatBot.csproj"
 
-COPY . .
+COPY src/ .
 WORKDIR "/src/Services.ChatBot"
 RUN dotnet build "Service.ChatBot.csproj" -c Release -o /app/build
 
