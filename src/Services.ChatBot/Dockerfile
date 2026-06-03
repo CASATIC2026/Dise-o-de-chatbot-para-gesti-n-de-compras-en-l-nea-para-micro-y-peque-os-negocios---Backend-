@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 COPY ["src/Services.ChatBot/Services.ChatBot.csproj", "Services.ChatBot/"]
+COPY ["src/Shared.Core/Shared.Core.csproj", "Shared.Core/"]
 
 RUN dotnet restore "Services.ChatBot/Services.ChatBot.csproj"
 
