@@ -83,6 +83,7 @@ services:
       - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - INVENTARIO_SERVICE_URL=http://inventario-service:8080
       - PAGOS_SERVICE_URL=http://pagos-service:8080
+      - CHATBOT_SERVICE_URL=http://admin-web:5173
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
