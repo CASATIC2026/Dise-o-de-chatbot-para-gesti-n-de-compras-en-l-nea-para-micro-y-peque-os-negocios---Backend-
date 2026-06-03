@@ -7,7 +7,7 @@ RUN dotnet restore "Services.ChatBot/Services.ChatBot.csproj"
 
 COPY src/ .
 WORKDIR "/src/Services.ChatBot"
-RUN dotnet build "Service.ChatBot.csproj" -c Release -o /app/build
+RUN dotnet build "Services.ChatBot.csproj" -c Release -o /app/build
 
 FROM build AS publish
 RUN dotnet publish "Services.ChatBot.csproj" -c Release -o /app/publish /p:UseAppHost=false
