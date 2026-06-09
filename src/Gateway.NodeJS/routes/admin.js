@@ -7,9 +7,20 @@ import { authenticateToken, requireRole } from '../middleware/Auth.js';
 
 const router = express.Router();
 
-// Si no hay .env, usara el nombre del servicio de Docker por defecto
-const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5041';
-const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://pagos-service:8080';
+// Si no hay .env, usara los puertos locales por defecto
+const resolveServiceUrl = (...candidates) => candidates.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim();
+
+const INVENTARIO_URL = resolveServiceUrl(
+    process.env.INVENTARIO_SERVICE_URL,
+    process.env.INVENTORY_SERVICE_URL,
+    process.env.Services__InventarioBaseUrl
+) || 'http://localhost:5001';
+
+const PAGOS_URL = resolveServiceUrl(
+    process.env.PAGOS_SERVICE_URL,
+    process.env.PAYMENTS_SERVICE_URL,
+    process.env.Services__PagosBaseUrl
+) || 'http://localhost:5002';
 
 // Aplicar autenticacion a todas las rutas de admin
 router.use(authenticateToken);

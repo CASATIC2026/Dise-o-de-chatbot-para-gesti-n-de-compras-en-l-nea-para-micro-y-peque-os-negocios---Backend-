@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Services.Pagos.Services;
 using Shared.Core.Entities;
-using Shared.Core.Entities;
 using System.Text;
 using System.Text.Json;
 
@@ -38,6 +37,20 @@ public class WompiController : ControllerBase
         _logger = logger;
     }
 
+    private string ResolveInventarioBaseUrl()
+    {
+        var candidates = new[]
+        {
+            _configuration["Services:InventarioBaseUrl"],
+            _configuration["Services__InventarioBaseUrl"],
+            _configuration["INVENTARIO_SERVICE_URL"],
+            _configuration["INVENTORY_SERVICE_URL"]
+        };
+
+        return candidates.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))
+            ?? "http://inventario-service:8080";
+    }
+
     /// <summary>
     /// Automatically creates a Wompi payment link for a specific order.
     /// It fetches order data from the inventory service and validates states before requesting the link.
@@ -47,7 +60,7 @@ public class WompiController : ControllerBase
     [HttpPost("crear-enlace-automatico/{pedidoId}")]
     public async Task<IActionResult> CrearEnlaceAutomatico(int pedidoId)
     {
-        var inventarioBaseUrl = _configuration["Services:InventarioBaseUrl"] ?? "http://inventario-service:8080";
+        var inventarioBaseUrl = ResolveInventarioBaseUrl();
         using var client = _httpClientFactory.CreateClient();
 
         try
@@ -211,7 +224,7 @@ public class WompiController : ControllerBase
                 return Ok();
             }
 
-            var inventarioBaseUrl = _configuration["Services:InventarioBaseUrl"] ?? "http://inventario-service:8080";
+            var inventarioBaseUrl = ResolveInventarioBaseUrl();
             using var client = _httpClientFactory.CreateClient();
 
             var response = await client.PostAsJsonAsync(

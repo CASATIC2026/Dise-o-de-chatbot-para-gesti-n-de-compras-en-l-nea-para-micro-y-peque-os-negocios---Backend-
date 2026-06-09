@@ -63,7 +63,7 @@ const initialFormData = {
 function Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); // Solo sirve para la carga inicial de la página
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
@@ -78,7 +78,7 @@ function Usuarios() {
 
     const fetchUsuarios = async () => {
         try {
-            setLoading(true);
+            // NOTA: Eliminamos el setLoading(true) de aquí para evitar que la pantalla parpadee o se bloquee al escribir
             const response = await api.get('/admin/inventario/usuarios/paged', {
                 params: {
                     page: currentPage,
@@ -86,12 +86,12 @@ function Usuarios() {
                     search: searchTerm
                 }
             });
-            setUsuarios(response.data.items);
-            setTotalCount(response.data.totalCount);
+            setUsuarios(response.data.items || []);
+            setTotalCount(response.data.totalCount || 0);
         } catch (error) {
             console.error('Error fetching usuarios:', error);
         } finally {
-            setLoading(false);
+            setLoading(false); // Desactiva la pantalla de carga inicial una vez que llegan los datos
         }
     };
 
@@ -106,14 +106,12 @@ function Usuarios() {
             setEditingUsuario(null);
             setFormData(initialFormData);
         }
-
         setShowModal(true);
     };
 
     const handleCloseModal = () => {
         setShowModal(false);
         setEditingUsuario(null);
-        setFormData(initialFormData);
     };
 
     const handleSubmit = async (e) => {
@@ -168,10 +166,9 @@ function Usuarios() {
     };
 
     const handleDeletePermanently = async (id) => {
-        if (!window.confirm('Esta seguro de eliminar este usuario?')) {
+        if (!window.confirm('¿Esta seguro de eliminar este usuario?')) {
             return;
         }
-
         try {
             await api.delete(`/admin/inventario/usuarios/${id}`);
             fetchUsuarios();
@@ -183,8 +180,12 @@ function Usuarios() {
     const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
     const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
-
-    if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div></div>;
+    // Pantalla de carga (Sólo se ejecutará la primera vez que entres a la sección)
+    if (loading) return (
+        <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div>
+        </div>
+    );
 
     return (
         <div className="animate-fade-in">
@@ -229,52 +230,49 @@ function Usuarios() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-dark-border">
-                            {usuarios.length > 0 ? (
-                                usuarios.map((usuario) => (
-                                    <tr key={usuario.id} className="hover:bg-gray-50 dark:hover:bg-dark-input/50">
-                                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{usuario.nombre}</td>
-                                        <td className="px-6 py-4 text-gray-900 dark:text-gray-200">{usuario.email}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
-                                                {getRolText(usuario.rol)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'}`}>
-                                                {usuario.estado ? 'Activo' : 'Inactivo'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleOpenModal(usuario)}
-                                                    className="p-2 text-primary-600 dark:text-cyan-400 hover:bg-primary-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
-                                                    title="Editar"
-                                                >
-                                                    <ActionIcon name="edit" />
-                                                    <span className="hidden sm:inline">Editar</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeletePermanently(usuario.id)}
-                                                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
-                                                    title="Eliminar"
-                                                >
-                                                    <ActionIcon name="delete" />
-                                                    <span className="hidden sm:inline">Eliminar</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                        No se encontraron usuarios.
+                            {usuarios.map((usuario) => (
+                                <tr key={usuario.id} className="hover:bg-gray-50 dark:hover:bg-dark-input/50">
+                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{usuario.nombre}</td>
+                                    <td className="px-6 py-4 text-gray-900 dark:text-gray-200">{usuario.email}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRolColor(usuario.rol)}`}>
+                                            {getRolText(usuario.rol)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${usuario.estado ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400'}`}>
+                                            {usuario.estado ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => handleOpenModal(usuario)}
+                                                className="p-2 text-primary-600 dark:text-cyan-400 hover:bg-primary-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
+                                                title="Editar"
+                                            >
+                                                <ActionIcon name="edit" />
+                                                <span className="hidden sm:inline">Editar</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePermanently(usuario.id)}
+                                                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors inline-flex items-center gap-2"
+                                                title="Eliminar"
+                                            >
+                                                <ActionIcon name="delete" />
+                                                <span className="hidden sm:inline">Eliminar</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
-                            )}
+                            ))}
                         </tbody>
                     </table>
+                    {usuarios.length === 0 && (
+                        <div className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                            No se encontraron usuarios.
+                        </div>
+                    )}
                 </div>
                 <Pagination 
                     currentPage={currentPage}
@@ -285,6 +283,7 @@ function Usuarios() {
                 />
             </div>
 
+            {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-surface rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-dark-border">
@@ -295,73 +294,34 @@ function Usuarios() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className={labelCls}>Nombre</label>
-                                <input
-                                    type="text"
-                                    value={formData.nombre}
-                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                    className={inputCls}
-                                    required
-                                />
+                                <input type="text" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className={inputCls} required />
                             </div>
                             <div>
                                 <label className={labelCls}>Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className={inputCls}
-                                    required
-                                />
+                                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className={inputCls} required />
                             </div>
                             <div>
-                                <label className={labelCls}>
-                                    {editingUsuario ? 'Nueva contrasena (opcional)' : 'Contrasena'}
-                                </label>
-                                <input
-                                    type="password"
-                                    value={formData.contrasenaHash}
-                                    onChange={(e) => setFormData({ ...formData, contrasenaHash: e.target.value })}
-                                    className={inputCls}
-                                    required={!editingUsuario}
-                                />
+                                <label className={labelCls}>{editingUsuario ? 'Nueva contrasena (opcional)' : 'Contrasena'}</label>
+                                <input type="password" value={formData.contrasenaHash} onChange={(e) => setFormData({ ...formData, contrasenaHash: e.target.value })} className={inputCls} required={!editingUsuario} />
                             </div>
                             <div>
                                 <label className={labelCls}>Rol</label>
-                                <select
-                                    value={formData.rol}
-                                    onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })}
-                                    className={inputCls}
-                                    required
-                                >
+                                <select value={formData.rol} onChange={(e) => setFormData({ ...formData, rol: Number(e.target.value) })} className={inputCls} required>
                                     <option value={ROLES.VENDEDOR}>Vendedor</option>
                                     <option value={ROLES.ADMINISTRADOR}>Administrador</option>
                                 </select>
                             </div>
                             <div>
                                 <label className={labelCls}>Telefono</label>
-                                <input
-                                    type="text"
-                                    value={formData.telefono || ''}
-                                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                                    className={inputCls}
-                                />
+                                <input type="text" value={formData.telefono || ''} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} className={inputCls} />
                             </div>
                             <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.estado}
-                                    onChange={(e) => setFormData({ ...formData, estado: e.target.checked })}
-                                    className="w-4 h-4 text-primary-600"
-                                />
+                                <input type="checkbox" checked={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.checked })} className="w-4 h-4 text-primary-600" />
                                 <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">Usuario activo</label>
                             </div>
                             <div className="flex space-x-3 pt-4">
-                                <button type="submit" className="flex-1 bg-primary-600 dark:bg-cyan-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 dark:hover:bg-cyan-700">
-                                    Guardar
-                                </button>
-                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600">
-                                    Cancelar
-                                </button>
+                                <button type="submit" className="flex-1 bg-primary-600 dark:bg-cyan-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 dark:hover:bg-cyan-700">Guardar</button>
+                                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600">Cancelar</button>
                             </div>
                         </form>
                     </div>
