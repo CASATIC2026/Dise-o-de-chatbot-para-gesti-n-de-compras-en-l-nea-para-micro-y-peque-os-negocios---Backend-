@@ -14,6 +14,7 @@ function Dashboard({ notifications = [] }) {
         Actividad: true
     });
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/El_Salvador';
 
     useEffect(() => {
         fetchStats();
@@ -21,7 +22,11 @@ function Dashboard({ notifications = [] }) {
 
     const fetchStats = async () => {
         try {
-            const response = await api.get('/admin/dashboard/stats');
+            const response = await api.get('/admin/dashboard/stats', {
+                params: {
+                    timeZone: userTimeZone
+                }
+            });
             setStats(response.data);
         } catch (error) {
             console.error('[Dashboard] Error en stats:', error);

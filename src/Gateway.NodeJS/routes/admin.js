@@ -242,9 +242,9 @@ const buildLastSevenDaysSeries = (items, getDate, getValue, labelKey, valueKey) 
     return days.map(({ date, ...rest }) => rest);
 };
 
-const buildTodayHourlyRevenue = (pagos) => {
+const buildTodayHourlyRevenue = (pagos, timeZone = REVENUE_TIME_ZONE) => {
     const today = new Date();
-    const todayKey = getTimeZoneDayKey(today);
+    const todayKey = getTimeZoneDayKey(today, timeZone);
     const buckets = Array.from({ length: 6 }, (_, index) => {
         const hour = 8 + (index * 2);
         return {
@@ -256,11 +256,11 @@ const buildTodayHourlyRevenue = (pagos) => {
 
     pagos.forEach((pago) => {
         const pagoDate = parseDate(pago.fechaPago ?? pago.FechaPago ?? pago.creadoEn ?? pago.CreadoEn);
-        if (!pagoDate || getTimeZoneDayKey(pagoDate) !== todayKey) {
+        if (!pagoDate || getTimeZoneDayKey(pagoDate, timeZone) !== todayKey) {
             return;
         }
 
-        const { hour } = getTimeZoneParts(pagoDate);
+        const { hour } = getTimeZoneParts(pagoDate, timeZone);
         const bucketIndex = Math.max(0, Math.min(buckets.length - 1, Math.floor((hour - 8) / 2)));
         const bucket = buckets[bucketIndex];
 
@@ -313,6 +313,9 @@ router.all('/pagos/*', async (req, res) => {
 router.get('/dashboard/stats', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
+        const requestedTimeZone = typeof req.query.timeZone === 'string' && req.query.timeZone.trim()
+            ? req.query.timeZone.trim()
+            : REVENUE_TIME_ZONE;
 
         const [productosRes, pedidosRes, pagosRes, clientesRes] = await Promise.all([
             axios.get(`${INVENTARIO_URL}/api/inventario/productos`, {
@@ -351,7 +354,7 @@ router.get('/dashboard/stats', async (req, res) => {
             'ventas'
         );
 
-        const ingresosHoy = buildTodayHourlyRevenue(pagos);
+        const ingresosHoy = buildTodayHourlyRevenue(pagos, requestedTimeZone);
 
         const currentWeekOrders = pedidosSemanaActual.reduce((sum, item) => sum + item.ventas, 0);
         const previousWeekOrders = pedidos
