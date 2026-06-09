@@ -79,6 +79,9 @@ namespace Shared.Core.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("HistorialConversacion")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -87,6 +90,12 @@ namespace Shared.Core.Migrations
                     b.Property<string>("Telefono")
                         .HasMaxLength(35)
                         .HasColumnType("character varying(35)");
+
+                    b.Property<long?>("TelegramId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WhatsAppId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -252,7 +261,7 @@ namespace Shared.Core.Migrations
                     b.Property<decimal>("Total")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("UsuarioId")
+                    b.Property<int?>("UsuarioId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -341,7 +350,17 @@ namespace Shared.Core.Migrations
                     b.Property<decimal>("Precio")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("Stock")
+                    b.Property<int?>("StockDisponible")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer")
+                        .HasComputedColumnSql("\"StockTotal\" -\"StockReservado\"", true);
+
+                    b.Property<int?>("StockReservado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("StockTotal")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -366,7 +385,8 @@ namespace Shared.Core.Migrations
 
                     b.Property<string>("ContrasenaHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -378,11 +398,9 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("Estado")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("HistorialConversacion")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -390,16 +408,12 @@ namespace Shared.Core.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("");
 
-                    b.Property<string>("Rol")
-                        .HasColumnType("text");
+                    b.Property<int>("Rol")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
 
                     b.Property<string>("Telefono")
-                        .HasColumnType("text");
-
-                    b.Property<long?>("TelegramId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("WhatsAppId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -451,8 +465,7 @@ namespace Shared.Core.Migrations
                     b.HasOne("Shared.Core.Entities.Usuario", "Usuario")
                         .WithMany("Pedidos")
                         .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Cliente");
 

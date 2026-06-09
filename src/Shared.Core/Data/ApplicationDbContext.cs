@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Core.Entities;
 using Shared.Core.Mappings;
 
@@ -19,6 +18,7 @@ public class ApplicationDbContext : DbContext
         : base(options)
     {
     }
+
     /// <summary>
     /// Entity sets for database tables.
     /// </summary>
@@ -35,13 +35,13 @@ public class ApplicationDbContext : DbContext
 
     /// <summary>
     /// Configures the schema needed for the application context.
+    /// Applies all entity mappings from the Mappings folder.
     /// </summary>
     /// <param name="modelBuilder">The builder being used to construct the model for this context.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply entity configurations from separate classes to keep this file clean.
         modelBuilder.ApplyConfiguration(new CategoriaConfiguration());
         modelBuilder.ApplyConfiguration(new ClienteConfiguration());
         modelBuilder.ApplyConfiguration(new ConversacionConfiguration());
@@ -51,6 +51,5 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new PedidoProductoConfiguration());
         modelBuilder.ApplyConfiguration(new ProductoConfiguration());
         modelBuilder.ApplyConfiguration(new UsuarioConfiguration());
-
     }
 }

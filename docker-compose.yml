@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -22,12 +22,15 @@ services:
 
   inventario-service:
     build:
-      context: ./src/Services.Inventario
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services.Inventario/Dockerfile
     container_name: inventario-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - Jwt__Key=${JWT_SECRET}
+      - Jwt__Issuer=ChatbotAPI
+      - Jwt__Audience=ChatbotFrontend
     ports:
       - "5001:8080"
     depends_on:
@@ -39,15 +42,19 @@ services:
 
   pagos-service:
     build:
-      context: ./src/Services.Pagos
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services.Pagos/Dockerfile
     container_name: pagos-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
-      - Wompi__PublicKey=${WOMPI_PUBLIC_KEY}
-      - Wompi__PrivateKey=${WOMPI_PRIVATE_KEY}
+      - Wompi__ClientId=${WOMPI_CLIENT_ID}
+      - Wompi__ClientSecret=${WOMPI_CLIENT_SECRET}
+      - Wompi__WebhookUrl=${WOMPI_WEBHOOK_URL:-${WOMPI_WEBHOOK_SECRET}}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
+      - Wompi__RedirectUrl=${WOMPI_REDIRECT_URL}
+      - Wompi__NotificationEmails=${WOMPI_NOTIFICATION_EMAILS}
+      - Services__InventarioBaseUrl=http://inventario-service:8080
     ports:
       - "5002:8080"
     depends_on:
@@ -76,6 +83,7 @@ services:
       - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - INVENTARIO_SERVICE_URL=http://inventario-service:8080
       - PAGOS_SERVICE_URL=http://pagos-service:8080
+      - CHATBOT_SERVICE_URL=http://admin-web:5173
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
@@ -88,8 +96,8 @@ services:
 
   admin-web:
     build:
-      context: ./src/Admin.Web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Admin.Web/Dockerfile
     container_name: admin-web
     ports:
       - "80:80"

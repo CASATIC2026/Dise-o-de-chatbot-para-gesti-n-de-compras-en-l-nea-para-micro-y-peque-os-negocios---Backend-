@@ -5,23 +5,28 @@ using Shared.Core.Data;
 
 namespace Shared.Core;
 
+/// <summary>
+/// Contains extension methods for registering shared core infrastructure in the dependency injection container.
+/// </summary>
 public static class DependencyInjection
 {
-    // Este método es una "extensión" de IServiceCollection (la caja de herramientas de .NET)
+    /// <summary>
+    /// Adds shared infrastructure services, such as the PostgreSQL database context, to the specified <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="configuration">The configuration to retrieve settings, such as connection strings, from.</param>
+    /// <returns>The updated <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection AddSharedInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Extraemos la cadena de conexión del appsettings.json del microservicio que nos llame
-        // .NET busca automáticamente dentro de la sección "ConnectionStrings"
+        // Extracts the connection string from the 'ConnectionStrings' section of the configuration
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        // Registramos el ApplicationDbContext en el contenedor de Inyección de Dependencias
+        // Configures and registers the ApplicationDbContext using Npgsql (PostgreSQL)
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(connectionString, b =>
-                // IMPORTANTE: Le decimos a EF Core que las migraciones (tablas) 
-                // están definidas aquí mismo, en el proyecto Shared.Core
+                // Specifies that migrations for this context are located in the Shared.Core assembly
                 b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
-        //Eliminar el .EnableSensitiveDataLogging(); // <-- Solo para desarrollo .EnableSensitiveDataLogging()
-        // Retornamos los servicios para permitir el encadenamiento (Fluent API)
+
         return services;
     }
 }

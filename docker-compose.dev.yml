@@ -1,6 +1,5 @@
-
 services:
-  # PostgreSQL Database
+ # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: chatbot-db
@@ -11,7 +10,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # CAMBIO AQUÍ: Ahora los datos se guardarán en una carpeta real en tu PC
+      - ./postgres_data:/var/lib/postgresql/data 
     networks:
       - chatbot-network
     healthcheck:
@@ -29,9 +29,13 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
     volumes:
       - ./src/Services.Inventario:/src/Services.Inventario
       - ./src/Shared.Core:/src/Shared.Core
+      - /src/Shared.Core/bin
+      - /src/Shared.Core/obj
     ports:
       - "5001:8080"
     depends_on:
@@ -49,12 +53,18 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
-      - Wompi__PublicKey=${WOMPI_PUBLIC_KEY}
-      - Wompi__PrivateKey=${WOMPI_PRIVATE_KEY}
+      - Wompi__ClientId=${WOMPI_CLIENT_ID}
+      - Wompi__ClientSecret=${WOMPI_CLIENT_SECRET}
       - Wompi__WebhookSecret=${WOMPI_WEBHOOK_SECRET}
+      - Wompi__WebhookUrl=${WOMPI_WEBHOOK_URL:-${WOMPI_WEBHOOK_SECRET}}
+      - Wompi__RedirectUrl=${WOMPI_REDIRECT_URL}
+      - Wompi__NotificationEmails=${WOMPI_NOTIFICATION_EMAILS}
+      - Services__InventarioBaseUrl=http://inventario-service:8080
     volumes:
       - ./src/Services.Pagos:/src/Services.Pagos
       - ./src/Shared.Core:/src/Shared.Core
+      - /src/Shared.Core/bin
+      - /src/Shared.Core/obj
     ports:
       - "5002:8080"
     depends_on:
@@ -63,7 +73,25 @@ services:
     networks:
       - chatbot-network
 
-  # Node.js Gateway & Chatbot
+  # Chatbot Microservice (.NET 8)
+  chatbot-service:
+    build:
+      context: ./src
+      dockerfile: Services.Chatbot/Dockerfile.dev
+    container_name: chatbot-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./src/Services.Chatbot:/src/Services.ChatBot
+      - ./src/Shared.Core:/src/Shared.Core
+      - /src/Shared.Core/bin
+      - /src/Shared.Core/obj
+    ports:
+      - "5003:8080"
+    networks:
+      - chatbot-network
+
+  # Node.js Gateway
   gateway:
     build:
       context: ./src/Gateway.NodeJS
@@ -77,12 +105,13 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
+      - Wompi__ClientId=${WOMPI_CLIENT_ID}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - INVENTARIO_SERVICE_URL=http://inventario-service:8080
       - PAGOS_SERVICE_URL=http://pagos-service:8080
+      - CHATBOT_SERVICE_URL=http://chatbot-service:8080
     volumes:
       - ./src/Gateway.NodeJS:/app
       - /app/node_modules
@@ -120,3 +149,6 @@ networks:
 volumes:
   postgres_data:
     name: postgres_data
+
+
+    

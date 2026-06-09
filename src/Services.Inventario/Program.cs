@@ -1,27 +1,32 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.Data;
-using Shared.Core; // Referencia a la librería 'sistema circulatorio'
+using Shared.Core;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.OpenApi.Models; // <-- Agrega esta para Swagger
-using Microsoft.Extensions.Diagnostics.HealthChecks; // <-- Agrega esta para HealthChecks
+using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Service.Inventario.Hubs;
 
+/// <summary>
+/// Entry point for the Inventory Service. 
+/// Configures the web host, services, dependency injection, and the request processing pipeline.
+/// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. CARGAR CONFIGURACIÓN DE VARIABLES DE ENTORNO (.env)
-// Esto asegura que builder.Configuration["JWT_SECRET"] funcione
+/// <section>
+/// Environment Variables Configuration: Loads configuration from system environment variables.
+/// </section>
 builder.Configuration.AddEnvironmentVariables();
 
-// 2. CONFIGURACIÓN DE JWT
+/// <section>
+/// Authentication and JWT Configuration: Sets up Bearer authentication with JWT validation logic.
+/// </section>
 var jwtSecret = builder.Configuration["JWT_SECRET"];
-if (string.IsNullOrEmpty(jwtSecret))
-{
-    // Fallback por si el .env no carga en local, pero lo ideal es que venga del env
-    jwtSecret = "f9a2b8c7e6d5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b";
-}
 var key = Encoding.ASCII.GetBytes(jwtSecret);
+var viteUrl = builder.Configuration["ViteUrl"] ?? "http://localhost:5173";
+
 
 builder.Services.AddAuthentication(x =>
 {
@@ -38,55 +43,94 @@ builder.Services.AddAuthentication(x =>
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false,
-        ValidateLifetime = true // Valida la expiración de 8h que pusiste
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero // Opcional: elimina el margen de 5 min para expirar tokens
+    };
+
+    /// <remarks>
+    /// SignalR Token Extraction Logic:
+    /// Standard WebSockets do not support custom headers in the browser, 
+    /// so the JWT must be passed via a query string parameter named 'access_token'.
+    /// </remarks>
+    x.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            // Identify if the request is directed to the SignalR notification hub
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
-// 3. SERVICIOS BASE
+/// <section>
+/// Core API Services Configuration: Configures controllers, JSON serialization, and Shared Infrastructure.
+/// </section>
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    // Evita problemas de referencias circulares al serializar entidades con relaciones
+    // Prevents infinite loops when serializing objects with circular references (e.g., Category -> Products -> Category)
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
-// DbContext
+// Add infrastructure from the Shared project (Database, Repositories, etc.)
 builder.Services.AddSharedInfrastructure(builder.Configuration);
 
-// CORS
+/// <section>
+/// CORS Policy: Configures cross-origin resource sharing specifically for the React frontend.
+/// </section>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowGateway", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(viteUrl) // Default Vite/React port
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Mandatory for SignalR when using Authentication
     });
 });
 
-// FluentValidation (Actualizado para evitar warnings de obsolescencia)
+/// <section>
+/// Additional Service Registrations: FluentValidation, SignalR, Swagger, and Health Checks.
+/// </section>
 builder.Services.AddFluentValidationAutoValidation();
-
-// Swagger y HealthChecks
+builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>();
 
 var app = builder.Build();
 
-// 4. PIPELINE DE MIDDLEWARE
+/// <section>
+/// HTTP Request Pipeline: Configures middleware execution order.
+/// </section>
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// 1. Initialize Routing
+app.UseRouting();
+
+// 2. CORS must be processed before Authentication to handle preflight (OPTIONS) requests
 app.UseCors("AllowGateway");
 
-// IMPORTANTE: Authentication siempre debe ir ANTES de Authorization
+// 3. Identify who the user is (Authentication) and what they can do (Authorization)
 app.UseAuthentication();
 app.UseAuthorization();
 
+/// <section>
+/// Endpoint Mapping: Maps Controllers, Health Checks, and SignalR Hubs.
+/// </section>
 app.MapControllers();
 app.MapHealthChecks("/health");
+
+// SignalR Hub Route Mapping
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
