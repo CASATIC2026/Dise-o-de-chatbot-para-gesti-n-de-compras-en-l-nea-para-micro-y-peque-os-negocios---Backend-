@@ -180,7 +180,6 @@ function Usuarios() {
     const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
     const handleSearch = (v) => { setSearchTerm(v); setCurrentPage(1); };
 
-    // Pantalla de carga (Sólo se ejecutará la primera vez que entres a la sección)
     if (loading) return (
         <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-cyan-500"></div>
