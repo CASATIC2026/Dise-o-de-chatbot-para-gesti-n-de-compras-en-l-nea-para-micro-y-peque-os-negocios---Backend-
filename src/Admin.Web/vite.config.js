@@ -10,11 +10,11 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
-      //allowedHosts: env.VITE_ALLOWED_HOST ? [env.VITE_ALLOWED_HOST] : true,
+      allowedHosts: env.VITE_ALLOWED_HOST ? [env.VITE_ALLOWED_HOST] : true,
       proxy: {
         '/api': {
-          //target: env.VITE_API_URL || 'http://gateway-service:3000',
-          target: 'http://gateway-service:3000', 
+          target: env.VITE_API_URL || 'http://gateway-service:3000',
+          //target: 'http://gateway-service:3000', 
           changeOrigin: true,
           secure: false,
         },
