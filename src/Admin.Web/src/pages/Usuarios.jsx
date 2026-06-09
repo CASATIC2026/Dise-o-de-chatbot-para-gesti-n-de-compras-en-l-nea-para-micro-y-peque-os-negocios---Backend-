@@ -63,7 +63,7 @@ const initialFormData = {
 function Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
-    const [loading, setLoading] = useState(true); // Solo sirve para la carga inicial de la página
+    const [loading, setLoading] = useState(true); 
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
@@ -78,7 +78,7 @@ function Usuarios() {
 
     const fetchUsuarios = async () => {
         try {
-            // NOTA: Eliminamos el setLoading(true) de aquí para evitar que la pantalla parpadee o se bloquee al escribir
+            
             const response = await api.get('/admin/inventario/usuarios/paged', {
                 params: {
                     page: currentPage,
@@ -91,7 +91,7 @@ function Usuarios() {
         } catch (error) {
             console.error('Error fetching usuarios:', error);
         } finally {
-            setLoading(false); // Desactiva la pantalla de carga inicial una vez que llegan los datos
+            setLoading(false); 
         }
     };
 
