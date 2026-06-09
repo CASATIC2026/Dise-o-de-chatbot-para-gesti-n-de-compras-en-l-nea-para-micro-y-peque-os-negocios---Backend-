@@ -6,8 +6,6 @@ import axios from 'axios';
 import { authenticateToken, requireRole } from '../middleware/Auth.js';
 
 const router = express.Router();
-const REVENUE_TIME_ZONE = process.env.DASHBOARD_TIME_ZONE || 'America/Guatemala';
-
 // Si no hay .env, usara los puertos locales por defecto
 const resolveServiceUrl = (...candidates) => candidates.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim();
 
@@ -168,29 +166,11 @@ const parseDate = (value) => {
     return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const getTimeZoneParts = (date, timeZone = REVENUE_TIME_ZONE) => {
-    const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        hour12: false
-    }).formatToParts(date);
+const getLocalDayKey = (date, timeZoneOffsetMinutes = 0) => {
+    const localMillis = date.getTime() - (timeZoneOffsetMinutes * 60 * 1000);
+    const localDate = new Date(localMillis);
 
-    const getValue = (type) => parts.find((part) => part.type === type)?.value ?? '0';
-
-    return {
-        year: Number(getValue('year')),
-        month: Number(getValue('month')),
-        day: Number(getValue('day')),
-        hour: Number(getValue('hour'))
-    };
-};
-
-const getTimeZoneDayKey = (date, timeZone = REVENUE_TIME_ZONE) => {
-    const { year, month, day } = getTimeZoneParts(date, timeZone);
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, '0')}-${String(localDate.getUTCDate()).padStart(2, '0')}`;
 };
 
 const isSameDay = (left, right) =>
@@ -242,9 +222,9 @@ const buildLastSevenDaysSeries = (items, getDate, getValue, labelKey, valueKey) 
     return days.map(({ date, ...rest }) => rest);
 };
 
-const buildTodayHourlyRevenue = (pagos, timeZone = REVENUE_TIME_ZONE) => {
+const buildTodayHourlyRevenue = (pagos, timeZoneOffsetMinutes = 0) => {
     const today = new Date();
-    const todayKey = getTimeZoneDayKey(today, timeZone);
+    const todayKey = getLocalDayKey(today, timeZoneOffsetMinutes);
     const buckets = Array.from({ length: 6 }, (_, index) => {
         const hour = 8 + (index * 2);
         return {
@@ -256,11 +236,13 @@ const buildTodayHourlyRevenue = (pagos, timeZone = REVENUE_TIME_ZONE) => {
 
     pagos.forEach((pago) => {
         const pagoDate = parseDate(pago.fechaPago ?? pago.FechaPago ?? pago.creadoEn ?? pago.CreadoEn);
-        if (!pagoDate || getTimeZoneDayKey(pagoDate, timeZone) !== todayKey) {
+        if (!pagoDate || getLocalDayKey(pagoDate, timeZoneOffsetMinutes) !== todayKey) {
             return;
         }
 
-        const { hour } = getTimeZoneParts(pagoDate, timeZone);
+        const localMillis = pagoDate.getTime() - (timeZoneOffsetMinutes * 60 * 1000);
+        const localDate = new Date(localMillis);
+        const hour = localDate.getUTCHours();
         const bucketIndex = Math.max(0, Math.min(buckets.length - 1, Math.floor((hour - 8) / 2)));
         const bucket = buckets[bucketIndex];
 
@@ -313,9 +295,9 @@ router.all('/pagos/*', async (req, res) => {
 router.get('/dashboard/stats', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
-        const requestedTimeZone = typeof req.query.timeZone === 'string' && req.query.timeZone.trim()
-            ? req.query.timeZone.trim()
-            : REVENUE_TIME_ZONE;
+        const requestedTimeZoneOffsetMinutes = Number.isFinite(Number(req.query.timeZoneOffsetMinutes))
+            ? Number(req.query.timeZoneOffsetMinutes)
+            : new Date().getTimezoneOffset();
 
         const [productosRes, pedidosRes, pagosRes, clientesRes] = await Promise.all([
             axios.get(`${INVENTARIO_URL}/api/inventario/productos`, {
@@ -354,7 +336,7 @@ router.get('/dashboard/stats', async (req, res) => {
             'ventas'
         );
 
-        const ingresosHoy = buildTodayHourlyRevenue(pagos, requestedTimeZone);
+        const ingresosHoy = buildTodayHourlyRevenue(pagos, requestedTimeZoneOffsetMinutes);
 
         const currentWeekOrders = pedidosSemanaActual.reduce((sum, item) => sum + item.ventas, 0);
         const previousWeekOrders = pedidos

@@ -14,7 +14,7 @@ function Dashboard({ notifications = [] }) {
         Actividad: true
     });
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/El_Salvador';
+    const userTimeZoneOffsetMinutes = new Date().getTimezoneOffset();
 
     useEffect(() => {
         fetchStats();
@@ -24,7 +24,7 @@ function Dashboard({ notifications = [] }) {
         try {
             const response = await api.get('/admin/dashboard/stats', {
                 params: {
-                    timeZone: userTimeZone
+                    timeZoneOffsetMinutes: userTimeZoneOffsetMinutes
                 }
             });
             setStats(response.data);
