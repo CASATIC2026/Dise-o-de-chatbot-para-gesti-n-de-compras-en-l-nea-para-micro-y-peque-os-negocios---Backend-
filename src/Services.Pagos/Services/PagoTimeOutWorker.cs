@@ -33,6 +33,20 @@ public class PagoTimeoutWorker : BackgroundService
         _logger = logger;
     }
 
+    private string ResolveInventarioUrl()
+    {
+        var candidates = new[]
+        {
+            _config["Services:InventarioBaseUrl"],
+            _config["Services__InventarioBaseUrl"],
+            _config["INVENTARIO_SERVICE_URL"],
+            _config["INVENTORY_SERVICE_URL"]
+        };
+
+        return candidates.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))
+            ?? "http://inventario-service:8080";
+    }
+
     /// <summary>
     /// Executes the background task logic, polling the inventory service for pending payments 
     /// and applying timeout rules.
@@ -40,7 +54,7 @@ public class PagoTimeoutWorker : BackgroundService
     /// <param name="stoppingToken">Triggered when the host is shutting down.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var inventarioUrl = _config["Services:InventarioBaseUrl"] ?? "http://inventario-service:8080";
+        var inventarioUrl = ResolveInventarioUrl();
         var timeoutMinutes = _config.GetValue<int?>("Payments:PendingTimeoutMinutes") ?? 5;
         var pollingSeconds = _config.GetValue<int?>("Payments:PendingPollingSeconds") ?? 30;
         var motivoRechazo = _config["Payments:TimeoutRejectReason"] ?? "Timeout sin confirmacion de Wompi";

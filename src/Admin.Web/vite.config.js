@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => {
       allowedHosts: env.VITE_ALLOWED_HOST ? [env.VITE_ALLOWED_HOST] : true,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://gateway-service:3000', 
+          target: env.VITE_API_URL || 'http://gateway-service:3000',
+          //target: 'http://gateway-service:3000', 
           changeOrigin: true,
           secure: false,
         },

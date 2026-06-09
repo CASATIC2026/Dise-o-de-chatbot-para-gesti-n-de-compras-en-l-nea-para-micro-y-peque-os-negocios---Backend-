@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/client';
-import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon, MessagesIcon } from '../components/Icons';
+import { MoneyIcon, OrdersIcon, InventoryIcon, AlertIcon, CheckCircleIcon } from '../components/Icons';
 import { getNotifColor, getNotifIcon } from '../utils/notifications';
-
-
 
 function Dashboard({ notifications = [] }) {
     const [stats, setStats] = useState(null);
@@ -36,17 +34,6 @@ function Dashboard({ notifications = [] }) {
         setWidgets((prev) => ({ ...prev, [widget]: !prev[widget] }));
     };
 
-    const NotificationIcon = ({ name }) => {
-        const icons = {
-            success: CheckCircleIcon,
-            warning: AlertIcon,
-            error: AlertIcon,
-            info: InfoIcon,
-        };
-        const SelectedIcon = icons[name] || InfoIcon;
-        return <SelectedIcon className="w-5 h-5" />;
-    };
-
     const formatCurrency = (value) =>
         `$${Number(value || 0).toLocaleString('es-CO', {
             minimumFractionDigits: 2,
@@ -58,7 +45,7 @@ function Dashboard({ notifications = [] }) {
             <div className="flex items-center justify-center h-64">
                 <div className="flex flex-col items-center">
                     <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-                    <div className="text-gray-500 font-medium tracking-wide">Cargando metricas...</div>
+                    <div className="text-gray-500 font-medium tracking-wide">Cargando métricas...</div>
                 </div>
             </div>
         );
@@ -213,6 +200,7 @@ function Dashboard({ notifications = [] }) {
                                     <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#868e96', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#868e96', fontSize: 12 }} />
                                     <Tooltip
+                                        labelFormatter={(label) => `Hora: ${label}`}
                                         formatter={(value) => [formatCurrency(value), 'Ingresos']}
                                         contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#333' }}
                                         itemStyle={{ color: '#00C2CB', fontWeight: 600 }}
@@ -270,7 +258,7 @@ function Dashboard({ notifications = [] }) {
                         })}
                     </div>
                 </div>
-            )}
+            )}do
         </div>
     );
 }

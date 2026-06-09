@@ -6,10 +6,22 @@ import axios from 'axios';
 import { authenticateToken, requireRole } from '../middleware/Auth.js';
 
 const router = express.Router();
+const REVENUE_TIME_ZONE = process.env.DASHBOARD_TIME_ZONE || 'America/Guatemala';
 
-// Si no hay .env, usara el nombre del servicio de Docker por defecto
-const INVENTARIO_URL = process.env.INVENTARIO_SERVICE_URL || 'http://localhost:5041';
-const PAGOS_URL = process.env.PAGOS_SERVICE_URL || 'http://pagos-service:8080';
+// Si no hay .env, usara los puertos locales por defecto
+const resolveServiceUrl = (...candidates) => candidates.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim();
+
+const INVENTARIO_URL = resolveServiceUrl(
+    process.env.INVENTARIO_SERVICE_URL,
+    process.env.INVENTORY_SERVICE_URL,
+    process.env.Services__InventarioBaseUrl
+) || 'http://localhost:5001';
+
+const PAGOS_URL = resolveServiceUrl(
+    process.env.PAGOS_SERVICE_URL,
+    process.env.PAYMENTS_SERVICE_URL,
+    process.env.Services__PagosBaseUrl
+) || 'http://localhost:5002';
 
 // Aplicar autenticacion a todas las rutas de admin
 router.use(authenticateToken);
@@ -156,6 +168,31 @@ const parseDate = (value) => {
     return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const getTimeZoneParts = (date, timeZone = REVENUE_TIME_ZONE) => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        hour12: false
+    }).formatToParts(date);
+
+    const getValue = (type) => parts.find((part) => part.type === type)?.value ?? '0';
+
+    return {
+        year: Number(getValue('year')),
+        month: Number(getValue('month')),
+        day: Number(getValue('day')),
+        hour: Number(getValue('hour'))
+    };
+};
+
+const getTimeZoneDayKey = (date, timeZone = REVENUE_TIME_ZONE) => {
+    const { year, month, day } = getTimeZoneParts(date, timeZone);
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
 const isSameDay = (left, right) =>
     left.getUTCFullYear() === right.getUTCFullYear() &&
     left.getUTCMonth() === right.getUTCMonth() &&
@@ -207,6 +244,7 @@ const buildLastSevenDaysSeries = (items, getDate, getValue, labelKey, valueKey) 
 
 const buildTodayHourlyRevenue = (pagos) => {
     const today = new Date();
+    const todayKey = getTimeZoneDayKey(today);
     const buckets = Array.from({ length: 6 }, (_, index) => {
         const hour = 8 + (index * 2);
         return {
@@ -218,11 +256,11 @@ const buildTodayHourlyRevenue = (pagos) => {
 
     pagos.forEach((pago) => {
         const pagoDate = parseDate(pago.fechaPago ?? pago.FechaPago ?? pago.creadoEn ?? pago.CreadoEn);
-        if (!pagoDate || !isSameDay(pagoDate, today)) {
+        if (!pagoDate || getTimeZoneDayKey(pagoDate) !== todayKey) {
             return;
         }
 
-        const hour = pagoDate.getUTCHours();
+        const { hour } = getTimeZoneParts(pagoDate);
         const bucketIndex = Math.max(0, Math.min(buckets.length - 1, Math.floor((hour - 8) / 2)));
         const bucket = buckets[bucketIndex];
 
